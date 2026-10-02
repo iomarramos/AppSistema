@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 0.1 – Borrador para revisión |
+| Versión | 0.1.1 – Borrador para revisión (se registra RNF-12: VB.NET) |
 | Fecha | 2026-10-02 |
 | Fuente | *Manual SGP Local – Para Operaciones* (Sodexo Perú, V006, 01/07/2013, 92 pp.) |
 | Estado | Borrador: requiere validación del negocio (ver §12 Preguntas abiertas) |
@@ -69,10 +69,11 @@ El sistema gestiona, por **contrato** (operación/sitio):
 - Intercambios entre contratos por archivos `.zip` enviados por correo (Outlook) [p.46–59].
 - Reportes impresos, exportaciones a Excel para inventario.
 
-### 2.2 Dirección propuesta (to-be) **(propuesto)**
-- Aplicación **web** (PWA) con arquitectura **offline-first** y sincronización con un backend central, para conservar la tolerancia a conectividad mala de los sites mineros.
-- Eliminar el intercambio de `.zip` por correo: traspasos entre contratos como documentos electrónicos en el backend central, con modo diferido si no hay conexión.
-- Pila tecnológica a definir (§12, P-01).
+### 2.2 Dirección propuesta (to-be)
+- **Restricción tecnológica confirmada (RNF-12):** el sistema se desarrolla en **VB.NET** y debe ejecutarse en **todas las computadoras** de la operación (ver §8). **Reemplaza** la propuesta anterior de PWA/web.
+- Se mantiene la tolerancia a conectividad mala de los sites: la operación diaria no depende de internet y se sincroniza cuando hay conexión **(propuesto)**.
+- Eliminar el intercambio de `.zip` por correo: traspasos entre contratos como documentos electrónicos, con modo diferido si no hay conexión **(propuesto)**.
+- Arquitectura detallada, motor de base de datos y mecanismo de sincronización: por definir (§12, P-01 y P-17).
 
 ### 2.3 Principios de diseño derivados del manual
 1. **Los documentos cerrados son inmutables** (no hay "marcha atrás"); se corrigen anulando y rehaciendo, conservando histórico de anulados [p.38, 53, 64].
@@ -386,6 +387,10 @@ Pedido propuesto = (+) Necesidad según minuta teórica (NT)
 | RNF-09 | **Multiempresa/contrato**: aislamiento de datos por contrato |
 | RNF-10 | **Trazabilidad** de cada ajuste y anulación |
 | RNF-11 | **Backup** y recuperación de la BD local/central |
+| RNF-12 | **Plataforma y lenguaje (confirmado, 02/10/2026):** el sistema se construye en **VB.NET** y debe funcionar en **todas las computadoras** donde se use. Esta decisión **reemplaza** el stack/PWA propuesto en versiones anteriores y la sugerencia Python/TypeScript de la *Guía de construcción modular* |
+| RNF-12.1 | Alcance de "todas las computadoras" **(por precisar, P-17)**: versiones de Windows soportadas, equipos antiguos (el SGP actual corre en Windows XP, p.5), si se requiere Mac/Linux, y requisitos mínimos de hardware |
+| RNF-12.2 | La versión de .NET se fija según los equipos objetivo y se bloquea en el proyecto; el instalador debe incluir o verificar el runtime necesario **(propuesto)** |
+| RNF-12.3 | Instalación y actualización simples en cada PC, con número de versión visible **(propuesto)** |
 
 ---
 
@@ -437,7 +442,8 @@ Procesos del manual: FMS-04 (requerimiento de compras), FMS-05 (recepción y ent
 
 | ID | Pregunta / Supuesto |
 |---|---|
-| P-01 | **Stack tecnológico y despliegue** (web/PWA vs escritorio; nube vs on-premise; BD). Sin definir; el repo está vacío |
+| P-01 | **Stack tecnológico y despliegue.** *Parcialmente resuelta:* lenguaje **VB.NET** para todas las computadoras (RNF-12). Siguen abiertos: tecnología de interfaz (WinForms/WPF), motor de base de datos (SQLite, SQL Server Express…) y nube vs on-premise |
+| P-17 | **Alcance de "todas las computadoras":** ¿solo Windows (qué versiones mínimas) o también Mac/Linux? Las apps de escritorio en VB.NET (WinForms/WPF) solo corren en Windows; para otros sistemas habría que usar otra interfaz |
 | P-02 | **Interfaces con ADS, SGO y SAP**: ¿existen APIs, o se mantienen archivos? Formato y contratos |
 | P-03 | Regla de **redondeo** del pedido a unidad de despacho, y de **fechas de entrega** sugeridas (¿por qué calendario de proveedor?) |
 | P-04 | Cálculo de **Stock de seguridad** y quién lo mantiene ("actualizado por compras") |
