@@ -388,6 +388,11 @@ Pedido propuesto = (+) Necesidad según minuta teórica (NT)
 | RNF-10 | **Trazabilidad** de cada ajuste y anulación |
 | RNF-11 | **Backup** y recuperación de la BD local/central |
 | RNF-12 | **Plataforma y lenguaje (confirmado, 02/10/2026):** el sistema se construye en **VB.NET** y debe funcionar en **todas las computadoras** donde se use. Esta decisión **reemplaza** el stack/PWA propuesto en versiones anteriores y la sugerencia Python/TypeScript de la *Guía de construcción modular* |
+| RNF-13 | **Base de datos (decidido, 02/10/2026):** **PostgreSQL**, con un servidor por sede al que se conectan los clientes VB.NET (acceso con `Npgsql`). Se descarta SQLite por la concurrencia estimada (≈20 computadoras, RNF-14) y porque no admite privilegios por tabla ni bloqueo por fila. Mismo motor en sede y central |
+| RNF-13.1 | El esquema SQLite de referencia (59 tablas) se **porta** a PostgreSQL: triggers en PL/pgSQL, secuencias en lugar de `AUTOINCREMENT`, `bigint` para los campos `_u6`, y se repiten los controles de integridad **(propuesto)** |
+| RNF-13.2 | Las escrituras de stock usan transacciones con bloqueo por fila; la aplicación usa un rol con permisos de escritura y los operadores no acceden directamente a las tablas (cierra las brechas H01–H03 de la guía) **(propuesto)** |
+| RNF-13.3 | El servidor de sede requiere una PC con Windows 10 o superior, encendida durante la operación, con respaldo programado **(propuesto, depende de P-17)** |
+| RNF-14 | **Volumen estimado:** ≈20 computadoras usando el sistema (por confirmar si son por sede o en total, y cuántas simultáneas) |
 | RNF-12.1 | Alcance de "todas las computadoras" **(por precisar, P-17)**: versiones de Windows soportadas, equipos antiguos (el SGP actual corre en Windows XP, p.5), si se requiere Mac/Linux, y requisitos mínimos de hardware |
 | RNF-12.2 | La versión de .NET se fija según los equipos objetivo y se bloquea en el proyecto; el instalador debe incluir o verificar el runtime necesario **(propuesto)** |
 | RNF-12.3 | Instalación y actualización simples en cada PC, con número de versión visible **(propuesto)** |
@@ -442,7 +447,7 @@ Procesos del manual: FMS-04 (requerimiento de compras), FMS-05 (recepción y ent
 
 | ID | Pregunta / Supuesto |
 |---|---|
-| P-01 | **Stack tecnológico y despliegue.** *Parcialmente resuelta:* lenguaje **VB.NET** para todas las computadoras (RNF-12). Siguen abiertos: tecnología de interfaz (WinForms/WPF), motor de base de datos (SQLite, SQL Server Express…) y nube vs on-premise |
+| P-01 | **Stack tecnológico y despliegue.** *Parcialmente resuelta:* lenguaje **VB.NET** para todas las computadoras (RNF-12). Motor de base de datos: **PostgreSQL** (RNF-13). Siguen abiertos: tecnología de interfaz (WinForms/WPF) y nube vs on-premise |
 | P-17 | **Alcance de "todas las computadoras":** ¿solo Windows (qué versiones mínimas) o también Mac/Linux? Las apps de escritorio en VB.NET (WinForms/WPF) solo corren en Windows; para otros sistemas habría que usar otra interfaz |
 | P-02 | **Interfaces con ADS, SGO y SAP**: ¿existen APIs, o se mantienen archivos? Formato y contratos |
 | P-03 | Regla de **redondeo** del pedido a unidad de despacho, y de **fechas de entrega** sugeridas (¿por qué calendario de proveedor?) |
@@ -455,7 +460,7 @@ Procesos del manual: FMS-04 (requerimiento de compras), FMS-05 (recepción y ent
 | P-10 | ¿Se mantiene el flujo "login de Soporte" para precios o se pasa a roles con aprobación? |
 | P-11 | ¿Se debe migrar la **historia** (kárdex, planificaciones) del SGP o solo saldos iniciales? |
 | P-12 | Alcance real de los **reportes de gerencia** (más allá de los del manual) |
-| P-13 | Volumen: n.º de contratos, usuarios concurrentes y productos/recetas |
+| P-13 | Volumen: ≈20 computadoras (RNF-14). Falta confirmar si son por sede o en total, n.º de contratos/sedes, usuarios simultáneos y n.º de productos/recetas |
 | P-14 | Gestión de **impuestos** (IGV) en compras: el manual muestra campos Exento/Neto/IGV/Otros imp./Total |
 | P-15 | El manual es de **2013 (V006)**: confirmar qué procesos cambiaron desde entonces |
 | P-16 | Moneda y localización: Soles/IGV 18 % (Perú); ¿otros países? |
