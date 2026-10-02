@@ -7,6 +7,8 @@
 | Fuente | *Manual SGP Local – Para Operaciones* (Sodexo Perú, V006, 01/07/2013, 92 pp.) |
 | Estado | Borrador: requiere validación del negocio (ver §12 Preguntas abiertas) |
 
+> **Vigencia.** Este documento recoge el alcance corporativo del manual SGP. La *Guía de construcción modular* (`docs/guia_construccion/`) redefine la primera etapa como producto comercial para pymes (sin ADS/SGO/SAP, sin Consumo Alternativo automático, ingreso mensual por servicio) y prevalece donde haya contradicción. Estado real de la construcción: `docs/SEGUIMIENTO.md`.
+>
 > Las referencias `[p.N]` apuntan a la página del manual. Los requisitos nuevos que **no** salen del manual están marcados como **(propuesto)**.
 
 ---
@@ -389,7 +391,7 @@ Pedido propuesto = (+) Necesidad según minuta teórica (NT)
 | RNF-11 | **Backup** y recuperación de la BD local/central |
 | RNF-12 | **Plataforma y lenguaje (confirmado, 02/10/2026):** el sistema se construye en **VB.NET** y debe funcionar en **todas las computadoras** donde se use. Esta decisión **reemplaza** el stack/PWA propuesto en versiones anteriores y la sugerencia Python/TypeScript de la *Guía de construcción modular* |
 | RNF-13 | **Base de datos (decidido, 02/10/2026):** **PostgreSQL**, con un servidor por sede al que se conectan los clientes VB.NET (acceso con `Npgsql`). Se descarta SQLite por la concurrencia estimada (≈20 computadoras, RNF-14) y porque no admite privilegios por tabla ni bloqueo por fila. Mismo motor en sede y central |
-| RNF-13.1 | El esquema SQLite de referencia (59 tablas) se **porta** a PostgreSQL: triggers en PL/pgSQL, secuencias en lugar de `AUTOINCREMENT`, `bigint` para los campos `_u6`, y se repiten los controles de integridad **(propuesto)** |
+| RNF-13.1 | **Hecho y verificado** (`database/postgresql/`): el esquema SQLite de referencia (59 tablas) se porta a PostgreSQL: triggers en PL/pgSQL, secuencias en lugar de `AUTOINCREMENT`, `bigint` para los campos `_u6`, y se repiten los controles de integridad **(propuesto)** |
 | RNF-13.2 | Las escrituras de stock usan transacciones con bloqueo por fila; la aplicación usa un rol con permisos de escritura y los operadores no acceden directamente a las tablas (cierra las brechas H01–H03 de la guía) **(propuesto)** |
 | RNF-13.3 | El servidor de sede requiere una PC con Windows 10 o superior, encendida durante la operación, con respaldo programado **(propuesto, depende de P-17)** |
 | RNF-14 | **Volumen estimado:** ≈20 computadoras usando el sistema (por confirmar si son por sede o en total, y cuántas simultáneas) |
