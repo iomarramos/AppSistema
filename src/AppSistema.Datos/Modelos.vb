@@ -1,0 +1,104 @@
+' Datos que devuelven los servicios a la interfaz. "Version" es el token de concurrencia optimista
+' (xmin de PostgreSQL): una edición con versión antigua recibe VERSION_CONFLICTIVA.
+
+Public NotInheritable Class UsuarioResumen
+    Public Property Id As Long
+    Public Property Login As String
+    Public Property Nombre As String
+    Public Property Activo As Boolean
+    Public Property Roles As String
+End Class
+
+Public NotInheritable Class AlmacenResumen
+    Public Property Id As Long
+    Public Property OperacionId As Long
+    Public Property Codigo As String
+    Public Property Nombre As String
+End Class
+
+Public NotInheritable Class UnidadMedidaDto
+    Public Property Id As Long
+    Public Property Codigo As String
+    Public Property Nombre As String
+    Public Property Dimension As String
+    Public Property FactorABaseU6 As Long
+End Class
+
+Public NotInheritable Class CategoriaDto
+    Public Property Id As Long
+    Public Property Codigo As String
+    Public Property Nombre As String
+End Class
+
+Public NotInheritable Class MarcaDto
+    Public Property Id As Long
+    Public Property Nombre As String
+End Class
+
+Public NotInheritable Class ProductoBaseDto
+    Public Property Id As Long
+    Public Property Codigo As String
+    Public Property Descripcion As String
+    Public Property Especificacion As String
+    Public Property UnidadBaseId As Long
+    Public Property UnidadCodigo As String
+    Public Property CategoriaId As Long?
+    Public Property CategoriaCodigo As String
+    Public Property Activo As Boolean
+    Public Property Version As String
+End Class
+
+Public NotInheritable Class VarianteDto
+    Public Property Id As Long
+    Public Property ProductoBaseId As Long
+    Public Property MarcaId As Long?
+    Public Property MarcaNombre As String
+    Public Property Codigo As String
+    Public Property DescripcionComercial As String
+    Public Property TipoEnvase As String
+    Public Property ContenidoBasePorEnvaseU6 As Long
+    Public Property Activo As Boolean
+    Public Property Version As String
+End Class
+
+Public NotInheritable Class EmpaqueDto
+    Public Property Id As Long
+    Public Property VarianteId As Long
+    Public Property Codigo As String
+    Public Property Descripcion As String
+    Public Property EnvasesPorEmpaque As Long
+    Public Property MinimoEmpaques As Long
+    Public Property MultiploEmpaques As Long
+    Public Property ContenidoBaseU6 As Long
+    Public Property Activo As Boolean
+End Class
+
+Public NotInheritable Class ProveedorDto
+    Public Property Id As Long
+    Public Property Codigo As String
+    Public Property Nombre As String
+    Public Property IdentificacionFiscal As String
+    Public Property Contacto As String
+    Public Property Correo As String
+    Public Property Telefono As String
+    Public Property EsCajaChica As Boolean
+End Class
+
+Public NotInheritable Class ProveedorEmpaqueDto
+    Public Property Id As Long
+    Public Property ProveedorId As Long
+    Public Property EmpaqueId As Long
+    Public Property EmpaqueDescripcion As String
+    Public Property VarianteCodigo As String
+    Public Property PlazoEntregaDias As Long
+End Class
+
+Public NotInheritable Class PrecioDto
+    Public Property Id As Long
+    Public Property ProveedorEmpaqueId As Long
+    Public Property FechaDesde As Date
+    Public Property FechaHasta As Date?
+    Public Property Moneda As String
+    Public Property PrecioEmpaqueU6 As Long
+    Public Property IncluyeImpuesto As Boolean
+End Class

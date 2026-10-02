@@ -1,6 +1,7 @@
 Imports System.Diagnostics
 Imports System.IO
 Imports Npgsql
+Imports AppSistema.Datos
 
 ''' <summary>Pruebas de integración contra un PostgreSQL real. Se activan con APPSISTEMA_PG_PRUEBAS=1.</summary>
 Public NotInheritable Class FactPostgresAttribute
@@ -77,21 +78,39 @@ Public NotInheritable Class BaseDatosPrueba
         Throw New DirectoryNotFoundException("No se encontro database/postgresql/migraciones.")
     End Function
 
+    Public Const ClaveAdmin As String = "Clave-Segura-2026"
+
+    ''' <summary>Empresa A (Orcopampa) y empresa B, instaladas con el servicio real de instalación.</summary>
+    Public Property A As ResultadoInstalacion
+    Public Property B As ResultadoInstalacion
+    ''' <summary>Aceite vegetal de A: variante de 4 L con caja de 4 envases.</summary>
+    Public Property VarianteAceiteId As Long
+    Public Property EmpaqueCajaId As Long
+    Public Property ProductoAceiteId As Long
+    Public Property UnidadLitroId As Long
+
     Private Sub Sembrar()
-        Dim sentencias() As String = {
-            "INSERT INTO empresa(id,codigo,nombre) VALUES (1,'A','Empresa ejemplo'),(2,'B','Otra empresa')",
-            "INSERT INTO usuario(id,empresa_id,nombre,login,password_hash) VALUES (1,1,'Ejemplo','ejemplo','NO_ES_CREDENCIAL')",
-            "INSERT INTO operacion(id,empresa_id,codigo,nombre) VALUES (1,1,'ORC','Orcopampa'),(2,2,'OTR','Otra')",
-            "INSERT INTO almacen(id,empresa_id,operacion_id,codigo,nombre) VALUES (1,1,1,'P','Principal')",
-            "INSERT INTO unidad_medida(id,empresa_id,codigo,nombre,dimension) VALUES (1,1,'L','Litro','volumen')",
-            "INSERT INTO producto_base(id,empresa_id,codigo,descripcion,unidad_base_id) VALUES (1,1,'ACE','Aceite vegetal',1)",
-            "INSERT INTO variante_producto(id,empresa_id,producto_base_id,codigo,descripcion_comercial,tipo_envase,contenido_base_por_envase_u6) " &
-                "VALUES (1,1,1,'ACE4','Aceite A 4 L','envase',4000000)"
-        }
-        For Each s In sentencias
-            EjecutarAdmin(s)
-        Next
+        Dim inst As New ServicioInstalacion(CadenaAdmin)
+        A = inst.CrearEmpresa(New DatosInstalacion With {
+            .EmpresaCodigo = "A", .EmpresaNombre = "Empresa ejemplo A", .OperacionCodigo = "ORC", .OperacionNombre = "Orcopampa",
+            .AlmacenCodigo = "P", .AlmacenNombre = "Principal", .AdminLogin = "admin", .AdminNombre = "Administrador A", .AdminClave = ClaveAdmin})
+        B = inst.CrearEmpresa(New DatosInstalacion With {
+            .EmpresaCodigo = "B", .EmpresaNombre = "Otra empresa", .OperacionCodigo = "OTR", .OperacionNombre = "Otra operacion",
+            .AlmacenCodigo = "Q", .AlmacenNombre = "Almacen B", .AdminLogin = "admin", .AdminNombre = "Administrador B", .AdminClave = ClaveAdmin})
+
+        Dim cat As New ServicioCatalogo(CadenaAplicacion, Sesion("A"))
+        UnidadLitroId = cat.CrearUnidad("L", "Litro", AppSistema.Dominio.Catalogo.Dimension.Volumen, 1000000)
+        ProductoAceiteId = cat.CrearProducto("ACE", "Aceite vegetal", Nothing, UnidadLitroId, Nothing)
+        VarianteAceiteId = cat.CrearVariante(ProductoAceiteId, Nothing, "ACE-A-4L", "Aceite A 4 L", "bidon", 4000000)
+        EmpaqueCajaId = cat.CrearEmpaque(VarianteAceiteId, "CAJA4", "Caja 4 x 4 L", 4)
     End Sub
+
+    ''' <summary>Inicia sesión como lo hace la aplicación y selecciona la primera operación.</summary>
+    Public Function Sesion(empresa As String, Optional login As String = "admin", Optional clave As String = ClaveAdmin) As SesionUsuario
+        Dim acceso As New ServicioAcceso(CadenaAplicacion)
+        Dim s = acceso.IniciarSesion(empresa, login, clave)
+        Return acceso.SeleccionarOperacion(s, s.Operaciones(0).Id)
+    End Function
 
     Public Sub EjecutarAdmin(sql As String)
         Using cn As New NpgsqlConnection(CadenaAdmin)

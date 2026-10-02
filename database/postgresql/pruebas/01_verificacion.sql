@@ -228,6 +228,8 @@ VALUES (1,1,2,6,5000000,30000000,45000000,'2026-10-10');
 SELECT pg_temp.ok('T14 pedido de 6 cajas (minimo 4, multiplo 3) aceptado');
 
 -- Rol de la aplicación: puede contabilizar, no puede escribir el saldo ni alterar el libro.
+-- Con RLS (V004) el rol solo ve datos de la empresa fijada en el contexto de sesión.
+SELECT set_config('app.empresa_id', '1', false);
 SET ROLE app_stock;
 SELECT pg_temp.contabilizar(930, 'salida_produccion', '2026-10-03', 2000000, -1);
 SELECT pg_temp.debe_fallar('rol app no actualiza saldo_stock', 'UPDATE saldo_stock SET cantidad_base_u6 = 0', 'permission denied');
@@ -240,6 +242,85 @@ RESET ROLE;
 SELECT pg_temp.afirmar((SELECT cantidad_base_u6 FROM saldo_stock WHERE variante_id=1) = 25000000
                    AND (SELECT count(*) FROM v_conciliacion_saldo) = 0,
        'el rol app contabiliza y el saldo se actualiza solo (27 - 2 = 25 L), conciliado');
+
+-- ================= Etapa 1 (V004): aislamiento, auditoría, presentaciones, precios, acceso =================
+
+-- Datos de otra empresa.
+INSERT INTO unidad_medida(id, empresa_id, codigo, nombre, dimension) VALUES (50,2,'KG','Kilogramo','masa');
+INSERT INTO producto_base(id, empresa_id, codigo, descripcion, unidad_base_id) VALUES (50,2,'SEC','Producto SECRETO de B',50);
+
+SET ROLE app_stock;
+SELECT set_config('app.empresa_id', '1', false);
+SELECT pg_temp.afirmar((SELECT count(*) FROM producto_base WHERE descripcion ILIKE '%secreto%') = 0,
+       'T02 busqueda por texto sin filtro de empresa no ve datos de B');
+SELECT pg_temp.afirmar((SELECT count(*) FROM empresa) = 1 AND (SELECT id FROM empresa) = 1,
+       'T02 solo se ve la propia empresa');
+SELECT pg_temp.debe_fallar('T01 no se insertan filas a nombre de otra empresa',
+  $q$INSERT INTO producto_base(empresa_id, codigo, descripcion, unidad_base_id) VALUES (2,'X','Intruso',50)$q$, 'row-level security');
+SELECT set_config('app.empresa_id', '2', false);
+SELECT pg_temp.afirmar((SELECT count(*) FROM saldo_stock) = 0 AND (SELECT count(*) FROM v_kardex) = 0
+                   AND (SELECT count(*) FROM movimiento_stock) = 0,
+       'T02 empresa B no ve saldo, kardex ni libro de A (vistas con security_invoker)');
+SELECT pg_temp.afirmar((SELECT count(*) FROM producto_base) = 1, 'empresa B ve solo su producto');
+SELECT set_config('app.empresa_id', '', false);
+SELECT pg_temp.afirmar((SELECT count(*) FROM producto_base) = 0 AND (SELECT count(*) FROM usuario) = 0,
+       'sin contexto de sesion no se ve nada (falla cerrado)');
+SELECT pg_temp.afirmar((SELECT count(*) FROM fn_datos_acceso('A','ejemplo')) = 1,
+       'el acceso funciona antes de conocer la empresa (funcion SECURITY DEFINER)');
+RESET ROLE;
+
+-- Auditoría automática.
+SELECT pg_temp.afirmar(EXISTS (SELECT 1 FROM auditoria WHERE tabla='producto_base' AND registro_id=1 AND accion='INSERT'),
+       'auditoria registra el alta de un producto');
+SELECT pg_temp.afirmar(NOT EXISTS (SELECT 1 FROM auditoria WHERE coalesce(antes_json,'') || coalesce(despues_json,'') LIKE '%NO_ES_CREDENCIAL%'),
+       'auditoria nunca guarda el hash de la clave');
+SELECT set_config('app.empresa_id', '1', false), set_config('app.usuario_id', '1', false);
+SET ROLE app_stock;
+UPDATE producto_base SET descripcion = 'Aceite vegetal refinado' WHERE id = 1;
+RESET ROLE;
+SELECT pg_temp.afirmar((SELECT usuario_id FROM auditoria WHERE tabla='producto_base' AND accion='UPDATE' ORDER BY id DESC LIMIT 1) = 1
+                   AND (SELECT despues_json::jsonb->>'descripcion' FROM auditoria WHERE tabla='producto_base' AND accion='UPDATE' ORDER BY id DESC LIMIT 1) = 'Aceite vegetal refinado',
+       'auditoria registra usuario y valores de la modificacion');
+UPDATE usuario SET password_hash = 'OTRO_HASH' WHERE id = 1;
+SELECT pg_temp.afirmar((SELECT accion FROM auditoria WHERE tabla='usuario' ORDER BY id DESC LIMIT 1) = 'CAMBIO_CLAVE'
+                   AND (SELECT despues_json FROM auditoria WHERE tabla='usuario' ORDER BY id DESC LIMIT 1) IS NULL,
+       'cambio de clave se audita sin guardar el hash');
+SELECT pg_temp.afirmar(NOT EXISTS (SELECT 1 FROM auditoria WHERE coalesce(despues_json,'') LIKE '%OTRO_HASH%'),
+       'el hash nuevo tampoco queda en auditoria');
+
+-- T06: una presentación usada no cambia su contenido; datos descriptivos sí.
+SELECT pg_temp.debe_fallar('T06 contenido de variante usada no cambia',
+  'UPDATE variante_producto SET contenido_base_por_envase_u6 = 5000000 WHERE id = 1', 'PRESENTACION_EN_USO');
+UPDATE variante_producto SET descripcion_comercial = 'Aceite A 4 L (bidon)' WHERE id = 1;
+SELECT pg_temp.ok('T06 la descripcion comercial si puede corregirse');
+SELECT pg_temp.debe_fallar('T06 envases de un empaque usado en pedidos no cambian',
+  'UPDATE empaque_compra SET envases_por_empaque = 2 WHERE id = 2', 'PRESENTACION_EN_USO');
+SELECT pg_temp.debe_fallar('factor de una unidad usada no cambia',
+  'UPDATE unidad_medida SET factor_a_base_u6 = 1000 WHERE id = 1', 'PRESENTACION_EN_USO');
+SELECT pg_temp.afirmar((SELECT cantidad_base_u6 FROM documento_stock_detalle WHERE id = 1) = 32000000,
+       'T06 el documento historico conserva 32 L');
+
+-- Precios: vigencias sin superposición por proveedor/empaque/moneda.
+INSERT INTO proveedor_empaque(id, empresa_id, proveedor_id, empaque_id) VALUES (1,1,1,1);
+INSERT INTO precio_compra(empresa_id, proveedor_empaque_id, fecha_desde, fecha_hasta, moneda, precio_empaque_u6)
+VALUES (1,1,'2026-01-01','2026-06-30','PEN',128000000);
+SELECT pg_temp.debe_fallar('precios con vigencias superpuestas se rechazan',
+  $q$INSERT INTO precio_compra(empresa_id, proveedor_empaque_id, fecha_desde, fecha_hasta, moneda, precio_empaque_u6)
+     VALUES (1,1,'2026-06-01',NULL,'PEN',130000000)$q$, 'precio_sin_superposicion');
+INSERT INTO precio_compra(empresa_id, proveedor_empaque_id, fecha_desde, fecha_hasta, moneda, precio_empaque_u6)
+VALUES (1,1,'2026-07-01',NULL,'PEN',130000000);
+SELECT pg_temp.ok('precio con vigencia contigua se acepta');
+
+-- Bloqueo por intentos fallidos.
+SELECT fn_registrar_intento_acceso(1, false) FROM generate_series(1,4);
+SELECT pg_temp.afirmar((SELECT bloqueado_hasta FROM usuario WHERE id=1) IS NULL, '4 fallos no bloquean');
+SELECT fn_registrar_intento_acceso(1, false);
+SELECT pg_temp.afirmar((SELECT bloqueado_hasta FROM usuario WHERE id=1) > now(), 'el 5.o fallo bloquea temporalmente');
+SELECT fn_registrar_intento_acceso(1, true);
+SELECT pg_temp.afirmar((SELECT bloqueado_hasta FROM usuario WHERE id=1) IS NULL
+                   AND (SELECT intentos_fallidos FROM usuario WHERE id=1) = 0, 'un acceso correcto reinicia el contador');
+SELECT pg_temp.afirmar(NOT EXISTS (SELECT 1 FROM auditoria WHERE tabla='usuario' AND accion='UPDATE'),
+       'los contadores de acceso no ensucian la auditoria');
 
 \o
 \unset QUIET

@@ -11,4 +11,9 @@ Public Class ReglaNegocioException
         MyBase.New(codigo & ": " & mensaje)
         Me.Codigo = codigo
     End Sub
+
+    Public Sub New(codigo As String, mensaje As String, causa As Exception)
+        MyBase.New(codigo & ": " & mensaje, causa)
+        Me.Codigo = codigo
+    End Sub
 End Class

@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 0.1.1 – Borrador para revisión (se registra RNF-12: VB.NET) |
+| Versión | 0.1.2 – Borrador para revisión (RNF-12 VB.NET, RNF-12.1 Windows 10+, RNF-13 PostgreSQL, RNF-15 WinForms) |
 | Fecha | 2026-10-02 |
 | Fuente | *Manual SGP Local – Para Operaciones* (Sodexo Perú, V006, 01/07/2013, 92 pp.) |
 | Estado | Borrador: requiere validación del negocio (ver §12 Preguntas abiertas) |
@@ -75,7 +75,8 @@ El sistema gestiona, por **contrato** (operación/sitio):
 - **Restricción tecnológica confirmada (RNF-12):** el sistema se desarrolla en **VB.NET** y debe ejecutarse en **todas las computadoras** de la operación (ver §8). **Reemplaza** la propuesta anterior de PWA/web.
 - Se mantiene la tolerancia a conectividad mala de los sites: la operación diaria no depende de internet y se sincroniza cuando hay conexión **(propuesto)**.
 - Eliminar el intercambio de `.zip` por correo: traspasos entre contratos como documentos electrónicos, con modo diferido si no hay conexión **(propuesto)**.
-- Arquitectura detallada, motor de base de datos y mecanismo de sincronización: por definir (§12, P-01 y P-17).
+- Equipos: **Windows 10 o superior** (RNF-12.1). Interfaz: **WinForms** (RNF-15). Base de datos: **PostgreSQL** (RNF-13).
+- Mecanismo de sincronización entre sedes y central: por definir (etapa 8 del plan).
 
 ### 2.3 Principios de diseño derivados del manual
 1. **Los documentos cerrados son inmutables** (no hay "marcha atrás"); se corrigen anulando y rehaciendo, conservando histórico de anulados [p.38, 53, 64].
@@ -393,10 +394,12 @@ Pedido propuesto = (+) Necesidad según minuta teórica (NT)
 | RNF-13 | **Base de datos (decidido, 02/10/2026):** **PostgreSQL**, con un servidor por sede al que se conectan los clientes VB.NET (acceso con `Npgsql`). Se descarta SQLite por la concurrencia estimada (≈20 computadoras, RNF-14) y porque no admite privilegios por tabla ni bloqueo por fila. Mismo motor en sede y central |
 | RNF-13.1 | **Hecho y verificado** (`database/postgresql/`): el esquema SQLite de referencia (59 tablas) se porta a PostgreSQL: triggers en PL/pgSQL, secuencias en lugar de `AUTOINCREMENT`, `bigint` para los campos `_u6`, y se repiten los controles de integridad **(propuesto)** |
 | RNF-13.2 | Las escrituras de stock usan transacciones con bloqueo por fila; la aplicación usa un rol con permisos de escritura y los operadores no acceden directamente a las tablas (cierra las brechas H01–H03 de la guía) **(propuesto)** |
-| RNF-13.3 | El servidor de sede requiere una PC con Windows 10 o superior, encendida durante la operación, con respaldo programado **(propuesto, depende de P-17)** |
+| RNF-13.3 | El servidor de sede requiere una PC con Windows 10 o superior, encendida durante la operación, con respaldo programado **(propuesto)** |
 | RNF-14 | **Volumen estimado:** ≈20 computadoras usando el sistema (por confirmar si son por sede o en total, y cuántas simultáneas) |
-| RNF-12.1 | Alcance de "todas las computadoras" **(por precisar, P-17)**: versiones de Windows soportadas, equipos antiguos (el SGP actual corre en Windows XP, p.5), si se requiere Mac/Linux, y requisitos mínimos de hardware |
-| RNF-12.2 | La versión de .NET se fija según los equipos objetivo y se bloquea en el proyecto; el instalador debe incluir o verificar el runtime necesario **(propuesto)** |
+| RNF-12.1 | **Equipos soportados (confirmado, 02/10/2026): Windows 10 o superior.** No se soportan Windows XP/7/8 ni Mac/Linux. Permite usar .NET 8 y Npgsql 8 |
+| RNF-12.2 | **.NET 8 (LTS)** fijado en los proyectos; el instalador debe incluir o verificar el runtime **(propuesto)** |
+| RNF-15 | **Interfaz (confirmado, 02/10/2026): WinForms** sobre .NET 8, orientada a captura rápida con teclado. Las reglas viven en las capas de dominio y datos, no en los formularios |
+| RNF-16 | **Control de versiones:** `main` (estable) ← `develop` (integración) ← `feature/etapa-N-*` (una rama por etapa del plan). Ver `docs/FLUJO_DE_RAMAS.md` |
 | RNF-12.3 | Instalación y actualización simples en cada PC, con número de versión visible **(propuesto)** |
 
 ---
@@ -449,8 +452,8 @@ Procesos del manual: FMS-04 (requerimiento de compras), FMS-05 (recepción y ent
 
 | ID | Pregunta / Supuesto |
 |---|---|
-| P-01 | **Stack tecnológico y despliegue.** *Parcialmente resuelta:* lenguaje **VB.NET** para todas las computadoras (RNF-12). Motor de base de datos: **PostgreSQL** (RNF-13). Siguen abiertos: tecnología de interfaz (WinForms/WPF) y nube vs on-premise |
-| P-17 | **Alcance de "todas las computadoras":** ¿solo Windows (qué versiones mínimas) o también Mac/Linux? Las apps de escritorio en VB.NET (WinForms/WPF) solo corren en Windows; para otros sistemas habría que usar otra interfaz |
+| P-01 | **Stack tecnológico y despliegue.** *Resuelta salvo despliegue central:* VB.NET + WinForms (.NET 8) en Windows 10+, PostgreSQL con servidor por sede. Sigue abierto: nube vs on-premise para el servidor central |
+| P-17 | *Resuelta:* Windows 10 o superior (RNF-12.1) |
 | P-02 | **Interfaces con ADS, SGO y SAP**: ¿existen APIs, o se mantienen archivos? Formato y contratos |
 | P-03 | Regla de **redondeo** del pedido a unidad de despacho, y de **fechas de entrega** sugeridas (¿por qué calendario de proveedor?) |
 | P-04 | Cálculo de **Stock de seguridad** y quién lo mantiene ("actualizado por compras") |
