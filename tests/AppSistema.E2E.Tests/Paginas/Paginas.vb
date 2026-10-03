@@ -51,7 +51,8 @@ Public NotInheritable Class PaginaPrincipal
         If Not MenuVisible(menuId) Then Return New List(Of String)()
         Desplegar(menuId)
         Dim ids As New List(Of String)
-        For Each v In _app.Ventanas()
+        ' Solo el menú desplegado (ventana propia): la principal también expone el menú de sistema (Restaurar, Mover, Cerrar…).
+        For Each v In _app.Ventanas().Where(Function(w) w.AutomationId <> "FormPrincipal")
             For Each e In AplicacionE2E.OpcionesDeMenu(v)
                 Dim id = AplicacionE2E.IdDeMenu(e)
                 If id IsNot Nothing AndAlso id.StartsWith("mnu", StringComparison.Ordinal) AndAlso Not MenusDeTrabajo.Contains(id) AndAlso

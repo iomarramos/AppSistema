@@ -33,7 +33,16 @@ Public NotInheritable Class AplicacionE2E
 
     ''' <summary>Ventanas de primer nivel de la aplicación (principal, diálogos, menús desplegables, mensajes).</summary>
     Public Function Ventanas() As Window()
-        Return Proceso.GetAllTopLevelWindows(Automatizacion)
+        ' Con un diálogo modal recién abierto UIA puede tardar en responder: se reintenta antes de fallar.
+        For intento = 1 To 4
+            Try
+                Return Proceso.GetAllTopLevelWindows(Automatizacion)
+            Catch ex As Exception When TypeOf ex Is TimeoutException OrElse TypeOf ex Is Runtime.InteropServices.COMException
+                If intento = 4 Then Throw
+                Threading.Thread.Sleep(1000)
+            End Try
+        Next
+        Return Array.Empty(Of Window)()
     End Function
 
     ''' <summary>
@@ -84,16 +93,20 @@ Public NotInheritable Class AplicacionE2E
     ''' y se espera como máximo 3 s; lo que se abra se busca después.
     ''' </remarks>
     Public Shared Sub Pulsar(e As AutomationElement)
-        If e.Patterns.Invoke.IsSupported Then
+        ' Clic real de mouse: con Invoke, si el control abre un diálogo modal (MessageBox, ShowDialog), la aplicación deja
+        ' de atender UI Automation hasta cerrarlo y las búsquedas siguientes vencen por tiempo.
+        Dim punto As Drawing.Point
+        If e.TryGetClickablePoint(punto) Then
+            Mouse.Click(punto)
+        ElseIf e.Patterns.Invoke.IsSupported Then
             Dim patron = e.Patterns.Invoke.Pattern
-            Dim tarea = Task.Run(Sub()
-                                     Try
-                                         patron.Invoke()
-                                     Catch ex As TimeoutException
-                                         ' Esperado si se abrió un diálogo modal.
-                                     End Try
-                                 End Sub)
-            tarea.Wait(TimeSpan.FromSeconds(3))
+            Task.Run(Sub()
+                         Try
+                             patron.Invoke()
+                         Catch ex As Exception
+                             ' Esperado si se abrió un diálogo modal.
+                         End Try
+                     End Sub).Wait(TimeSpan.FromSeconds(3))
         Else
             e.Click()
         End If
