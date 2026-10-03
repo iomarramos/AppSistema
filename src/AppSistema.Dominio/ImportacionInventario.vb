@@ -61,4 +61,46 @@ Namespace Importacion
 
     End Module
 
+    Public NotInheritable Class LineaConteoImportada
+        Public Property Linea As Integer
+        Public Property VarianteCodigo As String
+        ''' <summary>Nothing en ambos = celda vacía: queda pendiente (no es cero).</summary>
+        Public Property EnvasesU6 As Long?
+        Public Property ParcialU6 As Long?
+    End Class
+
+    ''' <summary>Lee un conteo físico: variante_codigo;envases;parcial (parcial en unidad base, opcional).</summary>
+    Public Module LectorConteo
+
+        Public Function Leer(texto As String) As (Lineas As List(Of LineaConteoImportada), Errores As List(Of ErrorFila))
+            Dim lineas As New List(Of LineaConteoImportada), errores As New List(Of ErrorFila)
+            Dim registros = LectorCsvCatalogo.Separar(If(texto, "").TrimStart(ChrW(&HFEFF)), ";"c)
+            Dim cab = registros(0).Campos.Select(Function(c) c.Trim().ToLowerInvariant()).ToList()
+            If Not cab.Contains("variante_codigo") OrElse Not cab.Contains("envases") Then
+                errores.Add(New ErrorFila(1, "Columnas requeridas: variante_codigo;envases;parcial"))
+                Return (lineas, errores)
+            End If
+            For Each reg In registros.Skip(1)
+                If reg.Campos.All(Function(c) c.Trim() = "") Then Continue For
+                Dim valor = Function(col As String) As String
+                                Dim i = cab.IndexOf(col)
+                                Return If(i < 0 OrElse i >= reg.Campos.Count, "", reg.Campos(i).Trim())
+                            End Function
+                Dim l As New LineaConteoImportada With {.Linea = reg.Linea, .VarianteCodigo = valor("variante_codigo")}
+                Dim v As Long
+                If valor("envases") <> "" Then
+                    If Not LectorCsvCatalogo.LeerDecimalU6(valor("envases"), v) OrElse v < 0 Then errores.Add(New ErrorFila(reg.Linea, "envases invalido")) : Continue For
+                    l.EnvasesU6 = v
+                End If
+                If valor("parcial") <> "" Then
+                    If Not LectorCsvCatalogo.LeerDecimalU6(valor("parcial"), v) OrElse v < 0 Then errores.Add(New ErrorFila(reg.Linea, "parcial invalido")) : Continue For
+                    l.ParcialU6 = v
+                End If
+                lineas.Add(l)
+            Next
+            Return (lineas, errores)
+        End Function
+
+    End Module
+
 End Namespace

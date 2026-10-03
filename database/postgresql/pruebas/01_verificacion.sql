@@ -140,6 +140,12 @@ SELECT pg_temp.afirmar((SELECT diferencia_u6 FROM v_diferencias_inventario WHERE
 SELECT pg_temp.afirmar((SELECT resultado FROM v_diferencias_inventario WHERE id=2) = 'sin contar',
        'T34 celda vacia = sin contar, no cero');
 SELECT pg_temp.afirmar((SELECT cantidad_base_u6 FROM saldo_stock) = 27000000, 'T33 el conteo no modifica el saldo');
+SELECT pg_temp.debe_fallar('T36 mientras se cuenta no se mueve la variante (V010)',
+  $q$SELECT pg_temp.contabilizar(9, 'salida_produccion', '2026-10-02', 1000000, -1)$q$, 'INVENTARIO_EN_CURSO');
+SELECT pg_temp.debe_fallar('V010 conteo con celdas vacias no se cierra',
+  $q$UPDATE inventario SET estado = 'contado' WHERE id = 1$q$, 'CONTEO_INCOMPLETO');
+DELETE FROM inventario_detalle WHERE inventario_id = 1;   -- borrador: se puede descartar
+DELETE FROM inventario WHERE id = 1;
 
 -- 9. Integridad.
 SELECT pg_temp.afirmar((SELECT count(*) FROM pg_constraint WHERE contype='f' AND NOT convalidated) = 0,

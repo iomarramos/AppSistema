@@ -60,6 +60,7 @@ Public Class FormPrincipal
 
         Dim almacen As New ToolStripMenuItem("A&lmacen")
         Agregar(almacen, "&Stock e inventario inicial", Permisos.CatalogoVer, Function() New FormStock(cadena, _sesion))
+        Agregar(almacen, "&Inventario fisico", Permisos.InventarioContar, Function() New FormInventarios(cadena, _sesion))
 
         Dim compras As New ToolStripMenuItem("C&ompras")
         Agregar(compras, "&Prevision y pedidos", Permisos.ComprasVer, Function() New FormCompras(cadena, _sesion))
