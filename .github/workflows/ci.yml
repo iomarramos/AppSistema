@@ -38,6 +38,8 @@ jobs:
   e2e-windows:
     runs-on: windows-latest
     timeout-minutes: 30
+    permissions:
+      contents: write   # publicar las capturas en la rama e2e-capturas
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -61,3 +63,18 @@ jobs:
           name: e2e-capturas
           path: artifacts/
           if-no-files-found: warn
+      # Las capturas también quedan en la rama e2e-capturas (solo en push), para verlas sin descargar el artefacto.
+      - name: Publicar capturas en la rama e2e-capturas
+        if: always() && github.event_name == 'push'
+        shell: bash
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          [ -d artifacts/screenshots ] || exit 0
+          cd artifacts/screenshots
+          git init -q -b e2e-capturas
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Capturas E2E de ${GITHUB_SHA::7}"
+          git push -q -f "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:e2e-capturas
