@@ -56,6 +56,7 @@ Public Class FormPrincipal
         Agregar(menus, "&Minutas y necesidades", Permisos.MenusVer, Function() New FormMinutas(cadena, _sesion))
         Agregar(menus, "&Servicios y estructuras", Permisos.MenusConfigurar, Function() New FormServicios(cadena, _sesion))
         Agregar(menus, "&Importar recetas...", Permisos.RecetasEditar, Function() New FormImportacion(cadena, _sesion))
+        Agregar(menus, "&Produccion", Permisos.MenusVer, Function() New FormProduccion(cadena, _sesion))
 
         Dim almacen As New ToolStripMenuItem("A&lmacen")
         Agregar(almacen, "&Stock e inventario inicial", Permisos.CatalogoVer, Function() New FormStock(cadena, _sesion))

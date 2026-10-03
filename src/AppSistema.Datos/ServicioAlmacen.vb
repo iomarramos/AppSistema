@@ -167,8 +167,10 @@ Public NotInheritable Class ServicioAlmacen
         Dim copia = lineas.ToList()
         Return EnTransaccion(Permisos.StockContabilizar,
             Function(u)
-                Dim sal = u.Consultar("SELECT d.almacen_id, d.tipo FROM documento_stock d JOIN almacen a ON a.id = d.almacen_id WHERE d.id = @d AND a.operacion_id = @o FOR UPDATE OF d",
-                                      Function(rd) (Almacen:=rd.GetInt64(0), Tipo:=rd.GetString(1)), "d", salidaDocumentoId, "o", Sesion.Operacion.Id).SingleOrDefault()
+                Dim sal = u.Consultar("SELECT d.almacen_id, d.tipo, d.requerimiento_id, d.operacion_servicio_id FROM documento_stock d JOIN almacen a ON a.id = d.almacen_id " &
+                                      "WHERE d.id = @d AND a.operacion_id = @o FOR UPDATE OF d",
+                                      Function(rd) (Almacen:=rd.GetInt64(0), Tipo:=rd.GetString(1), Req:=If(rd.IsDBNull(2), CType(Nothing, Long?), rd.GetInt64(2)),
+                                                    Servicio:=If(rd.IsDBNull(3), CType(Nothing, Long?), rd.GetInt64(3))), "d", salidaDocumentoId, "o", Sesion.Operacion.Id).SingleOrDefault()
                 If sal.Almacen = 0 Then Throw New ReglaNegocioException("OPERACION_AJENA", "La salida no pertenece a la operacion seleccionada.")
                 If sal.Tipo <> "salida_produccion" Then Throw New ReglaNegocioException("ORIGEN_REQUERIDO", "Solo se devuelve sobre una salida a produccion.")
                 Dim entregado = u.Consultar(
@@ -191,7 +193,7 @@ Public NotInheritable Class ServicioAlmacen
                     lineasStock.Add(New LineaDocumentoStock(g.Key, cantidad, Valoracion.CostoUnitarioU6(valor, cantidad), valor))
                 Next
                 Return Stock().ContabilizarEn(u, New DocumentoStockNuevo(sal.Almacen, TipoDocumentoStock.DevolucionProduccion, fecha, SiguienteNumero(u, "DV"), lineasStock) _
-                                                 With {.DocumentoOrigenId = salidaDocumentoId})
+                                                 With {.DocumentoOrigenId = salidaDocumentoId, .RequerimientoId = sal.Req, .OperacionServicioId = sal.Servicio})
             End Function)
     End Function
 

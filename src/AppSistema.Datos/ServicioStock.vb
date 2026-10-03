@@ -47,6 +47,8 @@ Imports AppSistema.Dominio.Stock
         Public Property RecepcionId As Long?
         Public Property DocumentoOrigenId As Long?
         Public Property AlmacenDestinoId As Long?
+        Public Property RequerimientoId As Long?
+        Public Property OperacionServicioId As Long?
 
         Public Sub New(almacenId As Long, tipo As TipoDocumentoStock,
                        fecha As Date, numero As String, lineas As IEnumerable(Of LineaDocumentoStock))
@@ -118,10 +120,11 @@ Imports AppSistema.Dominio.Stock
 
             ' 2. Documento en borrador y 3. líneas.
             Dim docId As Long = u.EscalarLong(
-                "INSERT INTO documento_stock(empresa_id, almacen_id, numero, fecha, tipo, estado, usuario_id, motivo, recepcion_id, documento_origen_id, almacen_destino_id) " &
-                "VALUES (@e, @a, @n, @f, @t, 'borrador', @u, @m, @r, @o, @ad) RETURNING id",
+                "INSERT INTO documento_stock(empresa_id, almacen_id, numero, fecha, tipo, estado, usuario_id, motivo, recepcion_id, documento_origen_id, " &
+                "almacen_destino_id, requerimiento_id, operacion_servicio_id) VALUES (@e, @a, @n, @f, @t, 'borrador', @u, @m, @r, @o, @ad, @rq, @os) RETURNING id",
                 "e", e, "a", doc.AlmacenId, "n", doc.Numero, "f", doc.Fecha.Date, "t", TiposDocumentoStockInfo.Codigo(doc.Tipo), "u", Sesion.UsuarioId,
-                "m", doc.Motivo, "r", Nulo(doc.RecepcionId), "o", Nulo(doc.DocumentoOrigenId), "ad", Nulo(doc.AlmacenDestinoId))
+                "m", doc.Motivo, "r", Nulo(doc.RecepcionId), "o", Nulo(doc.DocumentoOrigenId), "ad", Nulo(doc.AlmacenDestinoId),
+                "rq", Nulo(doc.RequerimientoId), "os", Nulo(doc.OperacionServicioId))
 
             ' Valoración (D01): una salida vale cantidad × costo vigente del saldo. El saldo se lee sin bloquearlo:
             ' toda contabilización del almacén ya está serializada por el bloqueo de su fila (paso 1). Varias líneas

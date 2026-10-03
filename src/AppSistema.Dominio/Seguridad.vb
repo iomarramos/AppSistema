@@ -19,12 +19,13 @@ Namespace Seguridad
         Public Const ComprasVer As String = "COMPRAS_VER"
         Public Const ComprasEditar As String = "COMPRAS_EDITAR"
         Public Const ComprasAprobar As String = "COMPRAS_APROBAR"
+        Public Const ProduccionEditar As String = "PRODUCCION_EDITAR"
 
         Public ReadOnly Property Todos As IReadOnlyList(Of String) = New String() {
             CatalogoVer, CatalogoEditar, CatalogoImportar, ProveedoresEditar, PreciosEditar,
             StockContabilizar, UsuariosAdministrar, AuditoriaVer,
             MenusVer, MenusConfigurar, RecetasEditar, RecetasAprobar, MinutasEditar, MinutasAprobar,
-            ComprasVer, ComprasEditar, ComprasAprobar}
+            ComprasVer, ComprasEditar, ComprasAprobar, ProduccionEditar}
 
         Public Function Descripcion(codigo As String) As String
             Select Case codigo
@@ -45,6 +46,7 @@ Namespace Seguridad
                 Case ComprasVer : Return "Consultar previsiones y pedidos de compra"
                 Case ComprasEditar : Return "Calcular previsiones, fijar reservas y preparar pedidos"
                 Case ComprasAprobar : Return "Aprobar y anular pedidos de compra"
+                Case ProduccionEditar : Return "Calcular requerimientos y registrar produccion y mermas"
                 Case Else : Return codigo
             End Select
         End Function
@@ -70,7 +72,7 @@ Namespace Seguridad
             New RolBase(Administrador, "Administrador", Permisos.Todos),
             New RolBase("SUPERVISOR", "Supervisor", Permisos.Todos.Where(Function(p) p <> Permisos.UsuariosAdministrar)),
             New RolBase("ALMACEN", "Almacen", {Permisos.CatalogoVer, Permisos.StockContabilizar, Permisos.MenusVer, Permisos.ComprasVer, Permisos.ComprasEditar}),
-            New RolBase("COCINA", "Cocina", {Permisos.CatalogoVer, Permisos.MenusVer, Permisos.RecetasEditar, Permisos.MinutasEditar})}
+            New RolBase("COCINA", "Cocina", {Permisos.CatalogoVer, Permisos.MenusVer, Permisos.RecetasEditar, Permisos.MinutasEditar, Permisos.ProduccionEditar})}
     End Module
 
     Public Module PoliticaClave
