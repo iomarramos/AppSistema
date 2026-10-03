@@ -4,8 +4,7 @@ Imports AppSistema.Dominio.Numerico
 Imports AppSistema.Dominio.Seguridad
 
 ''' <summary>Ficha de receta: versiones (borrador, aprobada, retirada), ingredientes, variantes permitidas y costo simulado.</summary>
-Public Class FormRecetas
-    Inherits Form
+Partial Public Class FormRecetas
 
     Private ReadOnly _sesion As SesionUsuario
     Private ReadOnly _servicio As ServicioRecetas
@@ -15,7 +14,13 @@ Public Class FormRecetas
     Private ReadOnly _versiones As DataGridView = Ui.NuevaGrilla()
     Private ReadOnly _ingredientes As DataGridView = Ui.NuevaGrilla()
 
+    Public Sub New()
+        InitializeComponent()
+    End Sub
+
     Public Sub New(cadena As String, sesion As SesionUsuario)
+        InitializeComponent()
+        Controls.Clear()
         _sesion = sesion
         _servicio = New ServicioRecetas(cadena, sesion)
         _catalogo = New ServicioCatalogo(cadena, sesion)
