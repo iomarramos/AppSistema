@@ -11,6 +11,7 @@ Imports AppSistema.Dominio.Numerico
 '''   migrar                      aplica las migraciones pendientes
 '''   crear-empresa               crea empresa, primera operación, almacén y administrador
 '''   crear-usuario-sede NOMBRE   crea el usuario de base que usan las computadoras de la sede
+'''   crear-dueno                 crea el dueño del sistema (administrador general) con su clave personal
 '''   convertir-sgp ARCHIVO [DIR] convierte el listado de productos del SGP (sin base de datos)
 '''   importar-sgp ARCHIVO        carga ese listado en el catálogo de una empresa (conexión de sede + usuario)
 '''   importar-catalogo ARCHIVO   carga un CSV de catálogo (p. ej. datos/enlace/catalogo_por_ingrediente.csv)
@@ -112,6 +113,13 @@ Public Module Programa
                     d.AdminClave = PedirClaveConfirmada("Clave del administrador")
                     Dim r = New ServicioInstalacion(conexion).CrearEmpresa(d)
                     Console.WriteLine($"Empresa creada (id {r.EmpresaId}). El administrador ya puede iniciar sesion.")
+
+                Case "crear-dueno"
+                    Dim empresa = Pedir("Codigo de empresa")
+                    Dim login = Pedir("Usuario del dueno")
+                    Dim nombre = Pedir("Nombre del dueno")
+                    Dim id = New ServicioInstalacion(conexion).CrearDueno(empresa, login, nombre, PedirClaveConfirmada("Clave personal del dueno"))
+                    Console.WriteLine($"Dueno del sistema '{login}' listo (id {id}): entra a todas las operaciones con todos los permisos.")
 
                 Case "crear-usuario-sede"
                     If args.Length < 2 Then Throw New ReglaNegocioException("DATO_OBLIGATORIO", "Indique el nombre del usuario de sede.")
@@ -222,7 +230,7 @@ Public Module Programa
     End Sub
 
     Private Sub Ayuda()
-        Console.WriteLine("Uso: AppSistema.Instalador <migrar | crear-empresa | crear-usuario-sede NOMBRE | convertir-sgp ARCHIVO [DIR] | importar-sgp ARCHIVO | importar-catalogo ARCHIVO | importar-recetas ARCHIVO [--aprobar] | importar-inventario ARCHIVO>")
+        Console.WriteLine("Uso: AppSistema.Instalador <migrar | crear-empresa | crear-dueno | crear-usuario-sede NOMBRE | convertir-sgp ARCHIVO [DIR] | importar-sgp ARCHIVO | importar-catalogo ARCHIVO | importar-recetas ARCHIVO [--aprobar] | importar-inventario ARCHIVO>")
         Console.WriteLine("Continuidad: <configurar-sede EMPRESA SEDE | sincronizar EMPRESA [--ahora] | estado-sincronizacion EMPRESA | registrar-sede EMPRESA SEDE NOMBRE | desactivar-sede EMPRESA SEDE | crear-usuario-sincronizacion NOMBRE | reporte-central EMPRESA | respaldar ARCHIVO | restaurar ARCHIVO | conciliar | actualizar ARCHIVO>")
         Console.WriteLine("Datos reales: <importar-precios ARCHIVO | marcar-sin-costo ARCHIVO | cargar-familias ARCHIVO | liberar-productos ARCHIVO | cargar-estructuras ARCHIVO | cargar-ciclo ARCHIVO AAAA-MM-DD DES ALM CEN [--aprobar] [--dias N]>")
         Console.WriteLine("Extensiones: <exportar-resultados AAAA-MM ARCHIVO>")

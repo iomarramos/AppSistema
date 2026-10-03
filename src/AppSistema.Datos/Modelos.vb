@@ -7,6 +7,25 @@ Public NotInheritable Class UsuarioResumen
     Public Property Nombre As String
     Public Property Activo As Boolean
     Public Property Roles As String
+    ''' <summary>Dueño del sistema (administrador general).</summary>
+    Public Property EsDueno As Boolean
+End Class
+
+''' <summary>Hasta qué nivel llega una persona en cada módulo, en una operación ("" = sin acceso).</summary>
+Public NotInheritable Class AccesoModuloDto
+    Public Property Login As String
+    Public Property Nombre As String
+    Public Property Operacion As String
+    Public Property Roles As String
+    Public Property Catalogo As String
+    Public Property Planificacion As String
+    Public Property Produccion As String
+    Public Property Abastecimiento As String
+    Public Property Almacen As String
+    Public Property Inventario As String
+    Public Property Cierres As String
+    Public Property Resultados As String
+    Public Property Administracion As String
 End Class
 
 Public NotInheritable Class RolDto

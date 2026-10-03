@@ -28,6 +28,7 @@ Namespace Seguridad
         Public Const ContratosEditar As String = "CONTRATOS_EDITAR"
         Public Const GastosEditar As String = "GASTOS_EDITAR"
         Public Const ResultadosVer As String = "RESULTADOS_VER"
+        Public Const ComprasConsolidar As String = "COMPRAS_CONSOLIDAR"
 
         Public ReadOnly Property Todos As IReadOnlyList(Of String) = New String() {
             CatalogoVer, CatalogoEditar, CatalogoImportar, ProveedoresEditar, PreciosEditar,
@@ -35,7 +36,7 @@ Namespace Seguridad
             MenusVer, MenusConfigurar, RecetasEditar, RecetasAprobar, MinutasEditar, MinutasAprobar,
             ComprasVer, ComprasEditar, ComprasAprobar, ProduccionEditar,
             InventarioContar, InventarioAprobar, ReportesVer, CierreEjecutar,
-            ContratosVer, ContratosEditar, GastosEditar, ResultadosVer}
+            ContratosVer, ContratosEditar, GastosEditar, ResultadosVer, ComprasConsolidar}
 
         Public Function Descripcion(codigo As String) As String
             Select Case codigo
@@ -65,8 +66,64 @@ Namespace Seguridad
                 Case ContratosEditar : Return "Registrar clientes, contratos, ajustes e ingresos desde contrato"
                 Case GastosEditar : Return "Registrar gastos de personal y operacion"
                 Case ResultadosVer : Return "Consultar el resultado mensual (ingresos, alimentos, gastos y margen)"
+                Case ComprasConsolidar : Return "Consolidar las compras de todas las operaciones por periodo"
                 Case Else : Return codigo
             End Select
+        End Function
+    End Module
+
+    ''' <summary>
+    ''' Módulos del sistema y nivel de cada permiso, para asignar accesos por módulo (qué ve y hasta dónde llega cada
+    ''' persona). Las áreas de Planificación (menús) y Abastecimiento (compras) son módulos distintos.
+    ''' </summary>
+    Public Module Modulos
+        Public Const Catalogo As String = "Catalogo"
+        Public Const Planificacion As String = "Planificacion (menus y recetas)"
+        Public Const Produccion As String = "Produccion"
+        Public Const Abastecimiento As String = "Abastecimiento (compras)"
+        Public Const Almacen As String = "Almacen"
+        Public Const Inventario As String = "Inventario fisico"
+        Public Const Cierres As String = "Cierres y Food Cost"
+        Public Const Resultados As String = "Contratos y resultados"
+        Public Const Administracion As String = "Administracion"
+
+        Public ReadOnly Property Todos As IReadOnlyList(Of String) = New String() {
+            Catalogo, Planificacion, Produccion, Abastecimiento, Almacen, Inventario, Cierres, Resultados, Administracion}
+
+        ''' <summary>Niveles de acceso, de menor a mayor.</summary>
+        Public ReadOnly Property Niveles As IReadOnlyList(Of String) = New String() {"Ver", "Editar", "Aprobar", "Administrar"}
+
+        Public Function ModuloDe(permiso As String) As String
+            Select Case permiso
+                Case Permisos.CatalogoVer, Permisos.CatalogoEditar, Permisos.CatalogoImportar : Return Catalogo
+                Case Permisos.MenusVer, Permisos.MenusConfigurar, Permisos.RecetasEditar, Permisos.RecetasAprobar,
+                     Permisos.MinutasEditar, Permisos.MinutasAprobar : Return Planificacion
+                Case Permisos.ProduccionEditar : Return Produccion
+                Case Permisos.ProveedoresEditar, Permisos.PreciosEditar, Permisos.ComprasVer, Permisos.ComprasEditar,
+                     Permisos.ComprasAprobar, Permisos.ComprasConsolidar : Return Abastecimiento
+                Case Permisos.StockContabilizar : Return Almacen
+                Case Permisos.InventarioContar, Permisos.InventarioAprobar : Return Inventario
+                Case Permisos.ReportesVer, Permisos.CierreEjecutar : Return Cierres
+                Case Permisos.ContratosVer, Permisos.ContratosEditar, Permisos.GastosEditar, Permisos.ResultadosVer : Return Resultados
+                Case Else : Return Administracion
+            End Select
+        End Function
+
+        Public Function NivelDe(permiso As String) As String
+            Select Case permiso
+                Case Permisos.CatalogoVer, Permisos.MenusVer, Permisos.ComprasVer, Permisos.ReportesVer, Permisos.ContratosVer,
+                     Permisos.ResultadosVer, Permisos.AuditoriaVer : Return "Ver"
+                Case Permisos.RecetasAprobar, Permisos.MinutasAprobar, Permisos.ComprasAprobar, Permisos.InventarioAprobar,
+                     Permisos.CierreEjecutar, Permisos.ComprasConsolidar : Return "Aprobar"
+                Case Permisos.UsuariosAdministrar, Permisos.MenusConfigurar, Permisos.CatalogoImportar : Return "Administrar"
+                Case Else : Return "Editar"
+            End Select
+        End Function
+
+        ''' <summary>Nivel más alto que dan los permisos en el módulo ("" si ninguno).</summary>
+        Public Function NivelEnModulo(permisos As IEnumerable(Of String), modulo As String) As String
+            Dim niveles = permisos.Where(Function(p) ModuloDe(p) = modulo).Select(Function(p) Array.IndexOf(Modulos.Niveles.ToArray(), NivelDe(p))).ToList()
+            Return If(niveles.Count = 0, "", Modulos.Niveles(niveles.Max()))
         End Function
     End Module
 
@@ -85,13 +142,21 @@ Namespace Seguridad
     ''' <summary>Roles que se crean con cada empresa. El administrador puede crear roles propios con los permisos que elija (etapa 9).</summary>
     Public Module RolesBase
         Public Const Administrador As String = "ADMIN"
+        Public Const Planificacion As String = "PLANIFICACION"
+        Public Const Abastecimiento As String = "ABASTECIMIENTO"
 
         Public ReadOnly Property Todos As IReadOnlyList(Of RolBase) = New RolBase() {
             New RolBase(Administrador, "Administrador", Permisos.Todos),
             New RolBase("SUPERVISOR", "Supervisor", Permisos.Todos.Where(Function(p) p <> Permisos.UsuariosAdministrar)),
             New RolBase("ALMACEN", "Almacen", {Permisos.CatalogoVer, Permisos.StockContabilizar, Permisos.MenusVer, Permisos.ComprasVer, Permisos.ComprasEditar, Permisos.InventarioContar}),
             New RolBase("COCINA", "Cocina", {Permisos.CatalogoVer, Permisos.MenusVer, Permisos.RecetasEditar, Permisos.MinutasEditar, Permisos.ProduccionEditar}),
-            New RolBase("FINANZAS", "Finanzas y contratos", {Permisos.ReportesVer, Permisos.ContratosVer, Permisos.ContratosEditar, Permisos.GastosEditar, Permisos.ResultadosVer})}
+            New RolBase("FINANZAS", "Finanzas y contratos", {Permisos.ReportesVer, Permisos.ContratosVer, Permisos.ContratosEditar, Permisos.GastosEditar, Permisos.ResultadosVer}),
+            New RolBase(Planificacion, "Planificacion (menu, factores, costo y pax)",
+                        {Permisos.CatalogoVer, Permisos.MenusVer, Permisos.MenusConfigurar, Permisos.RecetasEditar, Permisos.RecetasAprobar,
+                         Permisos.MinutasEditar, Permisos.MinutasAprobar, Permisos.ReportesVer}),
+            New RolBase(Abastecimiento, "Abastecimiento (compras y consolidado)",
+                        {Permisos.CatalogoVer, Permisos.CatalogoEditar, Permisos.ProveedoresEditar, Permisos.PreciosEditar, Permisos.MenusVer,
+                         Permisos.ComprasVer, Permisos.ComprasEditar, Permisos.ComprasAprobar, Permisos.ComprasConsolidar})}
 
         ''' <summary>True si el código es de un rol que crea el sistema (no se modifica desde la aplicación).</summary>
         Public Function EsRolBase(codigo As String) As Boolean

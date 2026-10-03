@@ -24,13 +24,14 @@ Todas las pantallas **compilan, pero ninguna se ejecutó en Windows todavía** (
 | Menús > Servicios y estructuras | MENUS_CONFIGURAR | Estructura teórica, factor teórico y Food Cost objetivo | 🟡 |
 | Menús > Importar recetas | RECETAS_EDITAR | Solo acepta archivos de recetas | 🟡 |
 | Menús > Producción | MENUS_VER | Requerimientos, producción, merma, venta real y consumo: PRODUCCION_EDITAR · Entregar: STOCK_CONTABILIZAR · Teórico vs real e imprimir requerimiento: todos | 🟡 |
+| Compras > Consolidado de compras (todas las operaciones) | COMPRAS_CONSOLIDAR | **Nueva** (Abastecimiento). Periodo (por defecto, el mes siguiente) y minutas en borrador opcionales; imprimir o exportar | 🟡 |
 | Compras > Previsión y pedidos | COMPRAS_VER | Calcular, pedidos y reservas: COMPRAS_EDITAR · Aprobar y anular: COMPRAS_APROBAR | 🟡 |
 | Almacén > Stock e inventario inicial | CATALOGO_VER | Movimientos: STOCK_CONTABILIZAR · Imprimir kárdex y stock valorizado: todos | 🟡 |
 | Almacén > Inventario físico | INVENTARIO_CONTAR | Revisar y autorizar ajuste: INVENTARIO_APROBAR · Imprimir hoja de conteo y resultado: todos | 🟡 |
 | Cierres y control > Pendientes, cierres y Food Cost | REPORTES_VER | Cerrar, ingresos, venta por estructura y objetivo: CIERRE_EJECUTAR | 🟡 |
 | Cierres y control > Contratos y clientes | CONTRATOS_VER | Editar: CONTRATOS_EDITAR | 🟡 |
 | Cierres y control > Gastos y resultado mensual | RESULTADOS_VER | Gastos: GASTOS_EDITAR | 🟡 |
-| Administración > Usuarios y roles | USUARIOS_ADMINISTRAR | Incluye roles propios | 🟡 |
+| Administración > Usuarios y roles | USUARIOS_ADMINISTRAR | Roles propios por módulo y nivel; asignar en cualquier operación propia; **Accesos por módulo**; dar o quitar el rango de dueño (solo el dueño) | 🟡 |
 | Administración > Operaciones y almacenes | USUARIOS_ADMINISTRAR | **Nueva** | 🟡 |
 | Administración > Auditoría | AUDITORIA_VER | **Nueva**, solo lectura | 🟡 |
 | Administración > Sincronización y respaldo (TI) | USUARIOS_ADMINISTRAR | **Nueva**. Además pide la conexión del propietario de la base (no se guarda). Sede: estado de la cola, configurar, enviar ahora, respaldar y conciliación. Central: sedes, registrar (la credencial se muestra una vez) y desactivar | 🟡 |
@@ -41,28 +42,35 @@ Los menús sin ninguna opción para el usuario ya no se muestran.
 
 ### Qué ve cada rol base
 
-| Menú | ADMIN | SUPERVISOR | ALMACEN | COCINA | FINANZAS |
-|---|---|---|---|---|---|
-| Catálogo (ver) | ✔ | ✔ | ✔ | ✔ | — |
-| Catálogo (editar, importar, precios) | ✔ | ✔ | — | — | — |
-| Recetas / Minutas / Producción (ver) | ✔ | ✔ | ✔ | ✔ | — |
-| Recetas y minutas (editar) | ✔ | ✔ | — | ✔ | — |
-| Recetas y minutas (aprobar), factores de la operación | ✔ | ✔ | — | — | — |
-| Servicios y estructuras | ✔ | ✔ | — | — | — |
-| Producción: registrar, venta real, consumo | ✔ | ✔ | — | ✔ | — |
-| Producción: entregar (almacén) | ✔ | ✔ | ✔ | — | — |
-| Compras (ver y preparar) | ✔ | ✔ | ✔ | — | — |
-| Compras (aprobar) | ✔ | ✔ | — | — | — |
-| Almacén: stock y movimientos | ✔ | ✔ | ✔ | ver | — |
-| Inventario físico: contar | ✔ | ✔ | ✔ | — | — |
-| Inventario físico: autorizar | ✔ | ✔ | — | — | — |
-| Cierres (ver) | ✔ | ✔ | — | — | ✔ |
-| Cierres (ejecutar) | ✔ | ✔ | — | — | — |
-| Contratos, gastos y resultado | ✔ | ✔ | — | — | ✔ |
-| Usuarios, operaciones y almacenes | ✔ | — | — | — | — |
-| Carga de datos reales | ✔ | ✔ | — | — | — |
-| Sincronización y respaldo (TI) | ✔ | — | — | — | — |
-| Auditoría | ✔ | ✔ | — | — | — |
+El **dueño del sistema** (administrador general, V020) tiene todo, en todas las operaciones. Se crea con `AppSistema.Instalador crear-dueno` y su clave personal.
+
+| Menú | DUEÑO | ADMIN | SUPERVISOR | PLANIFICACIÓN | ABASTECIMIENTO | ALMACEN | COCINA | FINANZAS |
+|---|---|---|---|---|---|---|---|---|
+| Catálogo (ver) | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | — |
+| Catálogo (editar), proveedores y precios | ✔ | ✔ | ✔ | — | ✔ | — | — | — |
+| Recetas, minutas, costos y necesidades (ver) | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | — |
+| Recetas y minutas (editar y aprobar), factores, pax | ✔ | ✔ | ✔ | ✔ | — | — | editar | — |
+| Servicios y estructuras | ✔ | ✔ | ✔ | ✔ | — | — | — | — |
+| Producción: registrar, venta real, consumo | ✔ | ✔ | ✔ | — | — | — | ✔ | — |
+| Producción: entregar (almacén) | ✔ | ✔ | ✔ | — | — | ✔ | — | — |
+| Compras: previsión y pedidos (ver y preparar) | ✔ | ✔ | ✔ | — | ✔ | ✔ | — | — |
+| Compras (aprobar) | ✔ | ✔ | ✔ | — | ✔ | — | — | — |
+| **Consolidado de compras (todas las operaciones)** | ✔ | ✔ | ✔ | — | ✔ | — | — | — |
+| Almacén: stock y movimientos | ✔ | ✔ | ✔ | — | — | ✔ | ver | — |
+| Inventario físico: contar / autorizar | ✔ | ✔ | ✔ | — | — | contar | — | — |
+| Cierres y Food Cost (ver) | ✔ | ✔ | ✔ | ✔ | — | — | — | ✔ |
+| Cierres (ejecutar) | ✔ | ✔ | ✔ | — | — | — | — | — |
+| Contratos, gastos y resultado | ✔ | ✔ | ✔ | — | — | — | — | ✔ |
+| Usuarios, operaciones y almacenes; accesos por módulo | ✔ | ✔ | — | — | — | — | — | — |
+| Dar o quitar el rango de dueño | ✔ | — | — | — | — | — | — | — |
+| Carga de datos reales | ✔ | ✔ | ✔ | — | — | — | — | — |
+| Sincronización y respaldo (TI) | ✔ | ✔ | — | — | — | — | — | — |
+| Auditoría | ✔ | ✔ | ✔ | — | — | — | — | — |
+
+**Privilegios:**
+* quien administra usuarios solo puede dar permisos que él mismo tiene en esa operación (`ESCALADA_NO_PERMITIDA`);
+* el dueño no tiene límite;
+* solo el dueño otorga el rango de dueño, y la base también lo exige.
 
 Además, el administrador puede crear **roles propios** con los permisos que elija.
 
@@ -117,6 +125,8 @@ Cada reporte sale con el botón **Imprimir…** de su pantalla. Se puede imprimi
 | Continuidad (cola, sincronización, respaldo, restauración, actualización), con pantalla para TI | ✅ (falta el piloto) |
 | Contratos, gastos, resultado y roles propios | ✅ |
 | Datos reales del SGP ordenados y cargables (`datos/real/`), desde la consola o la pantalla de carga; archivo equivocado rechazado | ✅ |
+| Dueño del sistema, roles por área (Planificación y Abastecimiento), accesos por módulo y nivel, sin escalada de privilegios | ✅ |
+| Consolidado de compras por periodo entre todas las operaciones | ✅ |
 | D02 producto activo por operación (Catálogo, carga masiva, costeo y pedidos) y D03 precios sin IGV | ✅ |
 | Reportes imprimibles y exportables (HTML para imprimir o PDF, CSV para Excel), con el permiso de la pantalla de origen | ✅ |
 

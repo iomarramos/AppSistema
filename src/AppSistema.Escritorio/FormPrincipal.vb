@@ -50,7 +50,8 @@ Public Class FormPrincipal
             _sesion = f.Sesion
         End Using
         ConstruirMenu()
-        _etiquetaEstado.Text = $"Empresa {_sesion.EmpresaCodigo}  |  Operacion {_sesion.Operacion}  |  Usuario {_sesion.NombreUsuario} ({_sesion.Login})"
+        _etiquetaEstado.Text = $"Empresa {_sesion.EmpresaCodigo}  |  Operacion {_sesion.Operacion}  |  Usuario {_sesion.NombreUsuario} ({_sesion.Login})" &
+                               If(_sesion.EsDueno, "  |  DUENO DEL SISTEMA", "")
         If _sesion.Tiene(Permisos.ReportesVer) Then
             ' Distingue lo confirmado en la sede de lo ya recibido por la central; se refresca cada 5 minutos.
             Dim envio As New ToolStripStatusLabel()
@@ -91,6 +92,7 @@ Public Class FormPrincipal
 
         Dim compras As New ToolStripMenuItem("C&ompras")
         Agregar(compras, "&Prevision y pedidos", Permisos.ComprasVer, Function() New FormCompras(cadena, _sesion))
+        Agregar(compras, "&Consolidado de compras (todas las operaciones)", Permisos.ComprasConsolidar, Function() New FormConsolidado(cadena, _sesion))
 
         Dim cierres As New ToolStripMenuItem("Cie&rres y control")
         Agregar(cierres, "&Pendientes, cierres y Food Cost", Permisos.ReportesVer, Function() New FormCierres(cadena, _sesion))

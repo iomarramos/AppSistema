@@ -29,9 +29,10 @@ VB.NET + WinForms (.NET 8) en **Windows 10 o superior**, con **PostgreSQL** como
    set APPSISTEMA_CONEXION_PROPIETARIO=Host=localhost;Database=appsistema;Username=postgres;Password=...
    AppSistema.Instalador migrar
    AppSistema.Instalador crear-empresa
+   AppSistema.Instalador crear-dueno
    AppSistema.Instalador crear-usuario-sede app_sede
    ```
-   No existen usuarios ni claves por defecto: la clave del administrador se define en `crear-empresa`.
+   No existen usuarios ni claves por defecto. La clave del administrador se define en `crear-empresa` y la clave personal del **dueño del sistema** en `crear-dueno`. El dueño entra a todas las operaciones con todos los permisos y, desde Administración > Usuarios y roles, decide qué módulos y hasta qué nivel tiene cada persona.
 3. (Opcional) Cargar catálogo y recetas del SGP: `set APPSISTEMA_CONEXION=...app_sede...`, luego `AppSistema.Instalador importar-catalogo catalogo_por_ingrediente.csv` `AppSistema.Instalador importar-recetas recetas_enlazadas.csv --aprobar` y `AppSistema.Instalador importar-inventario inventario_inicial.csv` (detalle en [`datos/enlace/LEEME.md`](datos/enlace/LEEME.md)). También desde la aplicación: Catálogo > Importar y Menús > Importar recetas.
 4. En cada computadora, abrir **AppSistema**, indicar servidor, base, `app_sede` y su clave (se guarda cifrada con DPAPI en `%PROGRAMDATA%\AppSistema\conexion.json`) e iniciar sesión con empresa, usuario y clave.
 

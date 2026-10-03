@@ -35,6 +35,10 @@ Public NotInheritable Class ServicioAdministracion
     Private Sub AsignarRolInterno(u As UnidadDeTrabajo, usuarioId As Long, operacionId As Long, rolCodigo As String)
         Dim rolId = u.Escalar("SELECT id FROM rol WHERE codigo = @c", "c", rolCodigo)
         If rolId Is Nothing Then Throw New ReglaNegocioException("ROL_NO_ENCONTRADO", $"No existe el rol {rolCodigo}.")
+        ' Nadie da más de lo que tiene: los permisos del rol deben estar entre los de quien asigna en esa operación.
+        Dim delRol = u.Consultar("SELECT p.codigo FROM rol_permiso rp JOIN permiso p ON p.id = rp.permiso_id WHERE rp.rol_id = @r",
+                                 Function(rd) rd.GetString(0), "r", rolId)
+        ExigirSinEscalada(u, delRol, operacionId)
         u.Ejecutar("INSERT INTO usuario_operacion_rol(empresa_id, usuario_id, operacion_id, rol_id) VALUES (@e, @u, @o, @r)",
                    "e", Sesion.EmpresaId, "u", usuarioId, "o", operacionId, "r", rolId)
     End Sub
@@ -61,6 +65,7 @@ Public NotInheritable Class ServicioAdministracion
         If desconocido IsNot Nothing Then Throw New ReglaNegocioException("DATO_INVALIDO", $"Permiso desconocido: {desconocido}.")
         EnTransaccion(Permisos.UsuariosAdministrar,
             Function(u)
+                ExigirSinEscalada(u, lista, Sesion.OperacionId.Value)
                 Dim id = u.EscalarLong("INSERT INTO rol(empresa_id, codigo, nombre) VALUES (@e, @c, @n) " &
                                        "ON CONFLICT (empresa_id, codigo) DO UPDATE SET nombre = EXCLUDED.nombre RETURNING id",
                                        "e", Sesion.EmpresaId, "c", codigo, "n", Requerido(nombre, "nombre"))
@@ -84,8 +89,67 @@ Public NotInheritable Class ServicioAdministracion
             End Function)
     End Sub
 
-    ''' <summary>Evita dejar la empresa sin nadie que pueda administrar usuarios.</summary>
+    ''' <summary>
+    ''' Privilegios hasta donde decide el dueño: quien asigna solo puede dar permisos que él mismo tiene en esa operación.
+    ''' El dueño del sistema no tiene ese límite.
+    ''' </summary>
+    Private Sub ExigirSinEscalada(u As UnidadDeTrabajo, permisosPedidos As IEnumerable(Of String), operacionId As Long)
+        If Sesion.EsDueno Then Return
+        Dim propios = New HashSet(Of String)(u.Consultar(
+            "SELECT DISTINCT p.codigo FROM usuario_operacion_rol uor JOIN rol_permiso rp ON rp.rol_id = uor.rol_id " &
+            "JOIN permiso p ON p.id = rp.permiso_id WHERE uor.usuario_id = @u AND uor.operacion_id = @o",
+            Function(rd) rd.GetString(0), "u", Sesion.UsuarioId, "o", operacionId))
+        Dim faltan = permisosPedidos.Where(Function(p) Not propios.Contains(p)).Distinct().ToList()
+        If faltan.Count > 0 Then
+            Throw New ReglaNegocioException("ESCALADA_NO_PERMITIDA",
+                $"No puede dar permisos que usted no tiene en esa operacion: {String.Join(", ", faltan.Select(AddressOf Permisos.Descripcion))}.")
+        End If
+    End Sub
+
+    ''' <summary>Solo el dueño del sistema otorga o quita el rango de dueño (la base también lo exige, V020).</summary>
+    Public Sub MarcarDueno(usuarioId As Long, esDueno As Boolean)
+        If Not Sesion.EsDueno Then Throw New ReglaNegocioException("SOLO_DUENO", "Solo el dueno del sistema puede otorgar o quitar ese rango.")
+        If usuarioId = Sesion.UsuarioId AndAlso Not esDueno Then
+            Throw New ReglaNegocioException("OPERACION_NO_PERMITIDA", "No puede quitarse a si mismo el rango de dueno.")
+        End If
+        EnTransaccion(Permisos.UsuariosAdministrar,
+            Function(u)
+                If u.Ejecutar("UPDATE usuario SET es_dueno = @d WHERE id = @u", "d", esDueno, "u", usuarioId) = 0 Then
+                    Throw New ReglaNegocioException("NO_ENCONTRADO", "El usuario no existe.")
+                End If
+                Return 0
+            End Function)
+    End Sub
+
+    ''' <summary>Hasta qué nivel llega cada persona en cada módulo y operación (el dueño, en todas).</summary>
+    Public Function AccesosPorModulo() As List(Of AccesoModuloDto)
+        Return EnTransaccion(Permisos.UsuariosAdministrar,
+            Function(u)
+                Dim filas = u.Consultar(
+                    "SELECT us.login, us.nombre, o.codigo || ' - ' || o.nombre, us.es_dueno, " &
+                    "       COALESCE(string_agg(DISTINCT r.codigo, ', '), ''), COALESCE(array_agg(DISTINCT p.codigo) FILTER (WHERE p.codigo IS NOT NULL), '{}') " &
+                    "FROM usuario us CROSS JOIN operacion o " &
+                    "LEFT JOIN usuario_operacion_rol uor ON uor.usuario_id = us.id AND uor.operacion_id = o.id " &
+                    "LEFT JOIN rol r ON r.id = uor.rol_id LEFT JOIN rol_permiso rp ON rp.rol_id = r.id LEFT JOIN permiso p ON p.id = rp.permiso_id " &
+                    "WHERE us.activo = 1 AND o.activo = 1 GROUP BY us.login, us.nombre, o.codigo, o.nombre, us.es_dueno " &
+                    "HAVING us.es_dueno OR count(uor.id) > 0 ORDER BY us.login, o.codigo",
+                    Function(rd) (Login:=rd.GetString(0), Nombre:=rd.GetString(1), Operacion:=rd.GetString(2), Dueno:=rd.GetBoolean(3),
+                                  Roles:=rd.GetString(4), Permisos:=DirectCast(rd.GetValue(5), String())))
+                Return filas.Select(Function(f)
+                                        Dim ps As IEnumerable(Of String) = If(f.Dueno, Permisos.Todos, f.Permisos)
+                                        Dim n = Function(m As String) Modulos.NivelEnModulo(ps, m)
+                                        Return New AccesoModuloDto With {
+                                            .Login = f.Login, .Nombre = f.Nombre, .Operacion = f.Operacion, .Roles = If(f.Dueno, "DUENO DEL SISTEMA", f.Roles),
+                                            .Catalogo = n(Modulos.Catalogo), .Planificacion = n(Modulos.Planificacion), .Produccion = n(Modulos.Produccion),
+                                            .Abastecimiento = n(Modulos.Abastecimiento), .Almacen = n(Modulos.Almacen), .Inventario = n(Modulos.Inventario),
+                                            .Cierres = n(Modulos.Cierres), .Resultados = n(Modulos.Resultados), .Administracion = n(Modulos.Administracion)}
+                                    End Function).ToList()
+            End Function)
+    End Function
+
+    ''' <summary>Evita dejar la empresa sin nadie que pueda administrar usuarios (el dueño cuenta).</summary>
     Private Shared Sub ExigirAdministrador(u As UnidadDeTrabajo)
+        If u.Escalar("SELECT 1 FROM usuario WHERE es_dueno AND activo = 1 LIMIT 1") IsNot Nothing Then Return
         If u.Escalar("SELECT 1 FROM usuario_operacion_rol uor JOIN usuario us ON us.id = uor.usuario_id AND us.activo = 1 " &
                      "JOIN rol_permiso rp ON rp.rol_id = uor.rol_id JOIN permiso p ON p.id = rp.permiso_id WHERE p.codigo = @p LIMIT 1",
                      "p", Permisos.UsuariosAdministrar) Is Nothing Then
@@ -97,6 +161,9 @@ Public NotInheritable Class ServicioAdministracion
         If usuarioId = Sesion.UsuarioId Then Throw New ReglaNegocioException("OPERACION_NO_PERMITIDA", "No puede desactivar su propio usuario.")
         EnTransaccion(Permisos.UsuariosAdministrar,
             Function(u)
+                If Not Sesion.EsDueno AndAlso CBool(If(u.Escalar("SELECT es_dueno FROM usuario WHERE id = @u", "u", usuarioId), False)) Then
+                    Throw New ReglaNegocioException("SOLO_DUENO", "Solo el dueno del sistema puede desactivar a otro dueno.")
+                End If
                 If u.Ejecutar("UPDATE usuario SET activo = 0 WHERE id = @u", "u", usuarioId) = 0 Then
                     Throw New ReglaNegocioException("NO_ENCONTRADO", "El usuario no existe.")
                 End If
@@ -108,14 +175,14 @@ Public NotInheritable Class ServicioAdministracion
     Public Function ListarUsuarios() As List(Of UsuarioResumen)
         Return EnTransaccion(Permisos.UsuariosAdministrar,
             Function(u) u.Consultar(
-                "SELECT us.id, us.login, us.nombre, us.activo = 1 AS activo, " &
+                "SELECT us.id, us.login, us.nombre, us.activo = 1 AS activo, us.es_dueno, " &
                 "COALESCE(string_agg(DISTINCT o.codigo || ':' || r.codigo, ', '), '') AS roles " &
                 "FROM usuario us LEFT JOIN usuario_operacion_rol uor ON uor.empresa_id = us.empresa_id AND uor.usuario_id = us.id " &
                 "LEFT JOIN rol r ON r.empresa_id = uor.empresa_id AND r.id = uor.rol_id " &
                 "LEFT JOIN operacion o ON o.empresa_id = uor.empresa_id AND o.id = uor.operacion_id " &
-                "GROUP BY us.id, us.login, us.nombre, us.activo ORDER BY us.login",
+                "GROUP BY us.id, us.login, us.nombre, us.activo, us.es_dueno ORDER BY us.login",
                 Function(rd) New UsuarioResumen With {.Id = rd.GetInt64(0), .Login = rd.GetString(1), .Nombre = rd.GetString(2),
-                                                     .Activo = rd.GetBoolean(3), .Roles = rd.GetString(4)}))
+                                                     .Activo = rd.GetBoolean(3), .EsDueno = rd.GetBoolean(4), .Roles = rd.GetString(5)}))
     End Function
 
     Public Function CrearOperacion(codigo As String, nombre As String) As Long

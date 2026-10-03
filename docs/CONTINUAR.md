@@ -40,7 +40,7 @@ Plataforma: VB.NET + WinForms en Windows 10+ y PostgreSQL. Unas 20 PC; falta con
 | Reportes imprimibles y exportables (minuta del día, requerimiento, kárdex, inventario, stock valorizado) | Hecho: se imprimen desde el navegador o se exportan a CSV para Excel |
 | Interfaz WinForms | **Compila, pero nunca se ejecutó en Windows.** Réplica visual de las pantallas: https://claude.ai/artifact/LqViLBPDyFwUqMktDxNqaz |
 
-Última batería de pruebas: 69 aserciones SQL, 91 de dominio, 92 de integración e instalador de punta a punta, todo verde. Migraciones V001–V019.
+Última batería de pruebas: 69 aserciones SQL, 91 de dominio, 92 de integración e instalador de punta a punta, todo verde. Migraciones V001–V020.
 
 ## Decisiones del usuario (no reabrir)
 
@@ -70,6 +70,10 @@ Plataforma: VB.NET + WinForms en Windows 10+ y PostgreSQL. Unas 20 PC; falta con
 * **D03 (2026-10-03):** los precios **no incluyen IGV**; la base lo exige (V018).
 * **Bulto de pedido (2026-10-03):** los sacos son individuales; si no hay múltiplo, se pide de a uno.
 * **Familias (2026-10-03):** se usan las del SGP en tres niveles: familia › subfamilia › grupo.
+* **Dueño y áreas (2026-10-03):**
+  * el dueño del sistema es el administrador general: tiene clave personal y todos los permisos en todas las operaciones, y decide qué módulos y hasta qué nivel tiene cada persona;
+  * hay dos áreas separadas: **Planificación** arma el menú con los factores teóricos, los costos del día y los pax a vender; **Abastecimiento** consolida las compras de todas las operaciones por periodo, por ejemplo un mes;
+  * el sistema es para las sedes locales y los sitios remotos propios.
 * **D10 (2026-10-03):** por ahora es **una sola sede**, pero puede ampliarse a varias. Se mantiene un servidor por sede con la central opcional, y el resultado consolidado de varias sedes queda para cuando se amplíe.
 
 ## Propuestas aplicadas que falta confirmar

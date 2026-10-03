@@ -53,12 +53,15 @@ Public NotInheritable Class ServicioAcceso
             End Using
 
             Using u As New UnidadDeTrabajo(_cadena, empresaId, usuarioId)
+                ' El dueño del sistema entra a todas las operaciones activas; los demás, a las que tienen algún rol.
+                ' to_jsonb: una base aún sin V020 (antes de actualizar) no tiene la columna; ahí nadie es dueño.
+                Dim esDueno = CBool(u.Escalar("SELECT COALESCE((to_jsonb(us) ->> 'es_dueno')::boolean, false) FROM usuario us WHERE us.id = @u", "u", usuarioId))
                 Dim operaciones = u.Consultar(
-                    "SELECT DISTINCT o.id, o.codigo, o.nombre FROM usuario_operacion_rol r " &
-                    "JOIN operacion o ON o.empresa_id = r.empresa_id AND o.id = r.operacion_id " &
-                    "WHERE r.usuario_id = @u AND o.activo = 1 ORDER BY o.nombre",
-                    Function(rd) New OperacionDisponible(rd.GetInt64(0), rd.GetString(1), rd.GetString(2)), "u", usuarioId)
-                Return New SesionUsuario(usuarioId, login.Trim(), nombre, empresaId, empresaCodigo.Trim(), operaciones, Nothing, Nothing)
+                    "SELECT DISTINCT o.id, o.codigo, o.nombre FROM operacion o " &
+                    "WHERE o.activo = 1 AND (@d OR EXISTS (SELECT 1 FROM usuario_operacion_rol r WHERE r.operacion_id = o.id AND r.usuario_id = @u)) " &
+                    "ORDER BY o.nombre",
+                    Function(rd) New OperacionDisponible(rd.GetInt64(0), rd.GetString(1), rd.GetString(2)), "u", usuarioId, "d", esDueno)
+                Return New SesionUsuario(usuarioId, login.Trim(), nombre, empresaId, empresaCodigo.Trim(), operaciones, Nothing, Nothing, esDueno)
             End Using
         Catch ex As PostgresException
             Throw ErroresBD.Traducir(ex)
@@ -70,6 +73,7 @@ Public NotInheritable Class ServicioAcceso
         If sesion Is Nothing Then Throw New ArgumentNullException(NameOf(sesion))
         Dim op = sesion.Operaciones.FirstOrDefault(Function(o) o.Id = operacionId)
         If op Is Nothing Then Throw New ReglaNegocioException("SIN_PERMISO", "El usuario no tiene acceso a esa operacion.")
+        If sesion.EsDueno Then Return sesion.ConOperacion(op, Permisos.Todos)
         Try
             Using u = UnidadDeTrabajo.ParaSesion(_cadena, sesion)
                 Dim permisos = u.Consultar(

@@ -29,9 +29,13 @@ Public NotInheritable Class SesionUsuario
     Public ReadOnly Property Operaciones As IReadOnlyList(Of OperacionDisponible)
     Public ReadOnly Property Operacion As OperacionDisponible
     Public ReadOnly Property Permisos As IReadOnlyCollection(Of String)
+    ''' <summary>Dueño del sistema: todos los permisos en todas las operaciones de la empresa (V020).</summary>
+    Public ReadOnly Property EsDueno As Boolean
 
     Friend Sub New(usuarioId As Long, login As String, nombreUsuario As String, empresaId As Long, empresaCodigo As String,
-                   operaciones As IReadOnlyList(Of OperacionDisponible), operacion As OperacionDisponible, permisos As IEnumerable(Of String))
+                   operaciones As IReadOnlyList(Of OperacionDisponible), operacion As OperacionDisponible, permisos As IEnumerable(Of String),
+                   Optional esDueno As Boolean = False)
+        Me.EsDueno = esDueno
         Me.UsuarioId = usuarioId
         Me.Login = login
         Me.NombreUsuario = nombreUsuario
@@ -62,6 +66,6 @@ Public NotInheritable Class SesionUsuario
     End Sub
 
     Friend Function ConOperacion(operacion As OperacionDisponible, permisos As IEnumerable(Of String)) As SesionUsuario
-        Return New SesionUsuario(UsuarioId, Login, NombreUsuario, EmpresaId, EmpresaCodigo, Operaciones, operacion, permisos)
+        Return New SesionUsuario(UsuarioId, Login, NombreUsuario, EmpresaId, EmpresaCodigo, Operaciones, operacion, permisos, EsDueno)
     End Function
 End Class

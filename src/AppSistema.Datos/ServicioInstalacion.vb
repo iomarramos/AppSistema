@@ -85,6 +85,33 @@ Public NotInheritable Class ServicioInstalacion
     ''' Tras una actualización: crea en cada empresa los permisos nuevos del sistema y los asigna al rol ADMIN.
     ''' Los demás roles no cambian (lo decide el administrador). Idempotente; devuelve cuántos permisos creó.
     ''' </summary>
+    ''' <summary>
+    ''' Crea el dueño del sistema (administrador general) con su clave personal, o da ese rango a un usuario existente y
+    ''' le fija la clave. El dueño entra a todas las operaciones con todos los permisos. Se hace con la conexión del
+    ''' propietario: desde la aplicación solo otro dueño puede otorgarlo.
+    ''' </summary>
+    Public Function CrearDueno(empresaCodigo As String, login As String, nombre As String, clave As String) As Long
+        If String.IsNullOrWhiteSpace(login) OrElse String.IsNullOrWhiteSpace(nombre) Then
+            Throw New ReglaNegocioException("DATO_OBLIGATORIO", "Usuario y nombre son obligatorios.")
+        End If
+        PoliticaClave.Validar(clave)
+        Try
+            Using u As New UnidadDeTrabajo(_cadenaPropietario, Nothing, Nothing)
+                Dim empresa = u.Escalar("SELECT id FROM empresa WHERE codigo = @c", "c", empresaCodigo.Trim())
+                If empresa Is Nothing Then Throw New ReglaNegocioException("DATO_INVALIDO", $"La empresa '{empresaCodigo}' no existe.")
+                Dim id = u.EscalarLong(
+                    "INSERT INTO usuario(empresa_id, nombre, login, password_hash, es_dueno) VALUES (@e, @n, @l, @h, true) " &
+                    "ON CONFLICT (empresa_id, login) DO UPDATE SET es_dueno = true, nombre = EXCLUDED.nombre, password_hash = EXCLUDED.password_hash, activo = 1 " &
+                    "RETURNING id",
+                    "e", empresa, "n", nombre.Trim(), "l", login.Trim(), "h", ClaveSegura.Crear(clave))
+                u.Confirmar()
+                Return id
+            End Using
+        Catch ex As PostgresException
+            Throw ErroresBD.Traducir(ex)
+        End Try
+    End Function
+
     Public Function SincronizarPermisos() As Integer
         Try
             Using u As New UnidadDeTrabajo(_cadenaPropietario, Nothing, Nothing)
