@@ -29,7 +29,7 @@ Imports AppSistema.Dominio.Numerico
 '''   conciliar                           muestra la fotografía de conciliación de la base
 '''   actualizar ARCHIVO                  respalda, aplica las migraciones pendientes y concilia saldos e historia
 ''' Datos reales (datos/real/, generados por herramientas/ordenar_datos_reales.py):
-'''   importar-precios ARCHIVO            precios por presentación (proveedor SGP); conexión de sede + usuario
+'''   importar-precios ARCHIVO            precios por presentación (proveedor de referencia REF); conexión de sede + usuario
 '''   marcar-sin-costo ARCHIVO            insumos que no se compran (agua para receta): se costean en S/ 0
 '''   cargar-familias ARCHIVO             familia › subfamilia › grupo del SGP por presentación
 '''   liberar-productos ARCHIVO           producto activo por ingrediente en la operación (D02: su precio se costea)

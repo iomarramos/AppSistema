@@ -14,7 +14,7 @@ Regenerar los dos últimos: `dotnet run --project src/AppSistema.Instalador -- c
 
 Cada línea del SGP pasa a ser:
 
-* **producto base** `SGP00001…`, numerado en el orden del archivo, con su **unidad base** (KG, L o UND);
+* **producto base** `PRD00001…`, numerado en el orden del archivo, con su **unidad base** (KG, L o UND);
 * **variante** con el mismo código. `tipo_envase` = la presentación del SGP. `contenido_por_envase` = `pro_facing` **sin cambios**;
 * **empaque de compra** = la presentación del SGP. Es la **unidad mínima de pedido del almacén**: 1 envase, mínimo 1, múltiplo 1.
 

@@ -15,7 +15,7 @@
 
 Ejemplo: `ACEITE VEGETAL CIELO 5 LT`, BID, stock 42, precio 34,12 se registra así:
 
-* cantidad: 42 × 5 L = **210 L** del ingrediente ACEITE VEGETAL (variante SGP00010);
+* cantidad: 42 × 5 L = **210 L** del ingrediente ACEITE VEGETAL (variante PRD00010);
 * valor: 42 × 34,12 = **S/ 1 433,04**.
 
 ## Cómo se registra

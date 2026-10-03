@@ -36,7 +36,7 @@ End Class
 Public NotInheritable Class ServicioCargaReal
     Inherits ServicioConSesion
 
-    Public Const ProveedorPrecios As String = "SGP"
+    Public Const ProveedorPrecios As String = "REF"
 
     Public Sub New(cadenaConexion As String, sesion As SesionUsuario)
         MyBase.New(cadenaConexion, sesion)
@@ -75,7 +75,7 @@ Public NotInheritable Class ServicioCargaReal
     ' ---------- Precios ----------
 
     ''' <summary>
-    ''' precios_sgp.csv: un precio por presentación (variante SGP) desde su fecha, del proveedor "SGP". Una presentación que ya
+    ''' precios_sgp.csv: un precio por presentación (producto PRDnnnnn) desde su fecha, del proveedor de referencia "REF". Una presentación que ya
     ''' tiene precio de ese proveedor no se toca (regla del usuario: sin precio no se inventa; con precio no se pisa).
     ''' </summary>
     Public Function ImportarPrecios(texto As String) As ResultadoCargaReal
@@ -86,7 +86,7 @@ Public NotInheritable Class ServicioCargaReal
                 Dim proveedor = u.Escalar("SELECT id FROM proveedor WHERE codigo = @c", "c", ProveedorPrecios)
                 If proveedor Is Nothing Then
                     proveedor = u.EscalarLong("INSERT INTO proveedor(empresa_id, codigo, nombre, es_caja_chica) VALUES (@e, @c, @n, 0) RETURNING id",
-                                              "e", Sesion.EmpresaId, "c", ProveedorPrecios, "n", "Precios SGP (ultimo precio de compra e inventario)")
+                                              "e", Sesion.EmpresaId, "c", ProveedorPrecios, "n", "Precios de referencia (ultima compra e inventario)")
                 End If
                 Dim empaques = u.Consultar("SELECT v.codigo, e.codigo, e.id, e.envases_por_empaque FROM empaque_compra e JOIN variante_producto v ON v.id = e.variante_id",
                                            Function(rd) (Clave:=rd.GetString(0) & "|" & rd.GetString(1), Id:=rd.GetInt64(2), Envases:=rd.GetInt64(3))).

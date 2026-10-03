@@ -87,7 +87,7 @@ Public Class FormCatalogo
         Ui.Ejecutar(Me, Sub() Ui.Mostrar(_variantes, _servicio.ListarVariantes(p.Id),
                                          "Codigo|Codigo", "MarcaNombre|Marca", "DescripcionComercial|Descripcion comercial",
                                          "TipoEnvase|Envase", "ContenidoBasePorEnvaseU6|Contenido por envase (" & p.UnidadCodigo & ")", "Activo|Activo",
-                                         "ActivoEnOperacion|Activo en la operacion (su precio se costea)", "Familia|Familia SGP"))
+                                         "ActivoEnOperacion|Activo en la operacion (su precio se costea)", "Familia|Familia"))
     End Sub
 
     Private Sub CargarEmpaques()

@@ -46,7 +46,7 @@ Namespace Importacion
     '''   (tolerancia 3 %). Si no hay tamaño: código 1 o 23 → KG, código 26 → L, factor 1 o entero → UND.
     ''' - Cuando el nombre contradice el factor se carga igual con el factor del SGP y se deja una observación.
     ''' - La presentación del SGP es la unidad mínima de pedido del almacén: empaque de 1 envase, mínimo 1, múltiplo 1.
-    ''' - Códigos SGP00001… en el orden del archivo; mismo archivo → mismos códigos.
+    ''' - Códigos PRD00001… en el orden del archivo; mismo archivo → mismos códigos.
     ''' </summary>
     Public Module ConversorSgp
 
@@ -115,7 +115,7 @@ Namespace Importacion
                 p.UnidadBase = DeducirUnidadBase(nombre, codUni, factor, obs)
                 p.Observacion = obs
                 vistos(clave) = p
-                p.Codigo = "SGP" & (r.Productos.Count + 1).ToString("00000", CultureInfo.InvariantCulture)
+                p.Codigo = "PRD" & (r.Productos.Count + 1).ToString("00000", CultureInfo.InvariantCulture)
                 r.Productos.Add(p)
                 porNombre(nombre) = If(porNombre.ContainsKey(nombre), porNombre(nombre) + 1, 1)
             Next

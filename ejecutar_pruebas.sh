@@ -55,7 +55,7 @@ done
 for vez in 1 2; do
   printf 'DEMO\nadmin\nDemo-Clave-2026\n' | dotnet run --project src/AppSistema.Instalador -v q -- liberar-productos datos/real/productos_activos.csv 2>&1 | tail -1
 done
-psql -d "$DB" -tAc "SELECT 'ingredientes: ' || count(DISTINCT p.id) || ', productos SGP como variantes: ' || count(v.id) FROM producto_base p LEFT JOIN variante_producto v ON v.producto_base_id = p.id AND v.codigo LIKE 'SGP%'"
+psql -d "$DB" -tAc "SELECT 'ingredientes: ' || count(DISTINCT p.id) || ', productos como variantes: ' || count(v.id) FROM producto_base p LEFT JOIN variante_producto v ON v.producto_base_id = p.id AND v.codigo LIKE 'PRD%'"
 psql -d "$DB" -tAc "SELECT 'recetas aprobadas: ' || count(*) FROM receta_version WHERE estado = 'aprobada'"
 printf 'DEMO\nadmin\nDemo-Clave-2026\n2026-10-01\nSI\n' \
   | dotnet run --project src/AppSistema.Instalador -v q -- importar-inventario datos/inventario/inventario_inicial.csv | tail -1

@@ -6,11 +6,11 @@ Public Class ImportacionInventarioTests
     <Fact>
     Public Sub Lee_stock_y_precio_y_rechaza_cero_negativos_y_repetidos()
         Dim csv = "variante_codigo;descripcion;stock_envases;precio_envase" & vbLf &
-                  "SGP00010;ACEITE;42;34.12" & vbLf &
-                  "SGP00020;HIERBA BUENA;7.04;6,91" & vbLf &
-                  "SGP00030;X;0;1" & vbLf &
-                  "SGP00010;ACEITE;1;1" & vbLf &
-                  "SGP00040;Y;1;-2" & vbLf
+                  "PRD00010;ACEITE;42;34.12" & vbLf &
+                  "PRD00020;HIERBA BUENA;7.04;6,91" & vbLf &
+                  "PRD00030;X;0;1" & vbLf &
+                  "PRD00010;ACEITE;1;1" & vbLf &
+                  "PRD00040;Y;1;-2" & vbLf
         Dim r = LectorInventarioInicial.Leer(csv)
         Assert.Equal(2, r.Lineas.Count)
         Assert.Equal(7040000L, r.Lineas(1).StockEnvasesU6)

@@ -66,7 +66,7 @@ Public Class ImportacionSgpTests
                                        "CAJA CHICA - TOMATE CHERRY" & vbTab & "31" & vbTab & "1" & vbLf &
                                        "SAL  DE  COCINA" & vbTab & "x" & vbTab & "1" & vbLf)
         Assert.Equal(1, r.RepetidasIdenticas)
-        Assert.Equal("SGP00001,SGP00002", String.Join(",", r.Productos.Select(Function(p) p.Codigo)))
+        Assert.Equal("PRD00001,PRD00002", String.Join(",", r.Productos.Select(Function(p) p.Codigo)))
         Assert.Equal("CAJA CHICA - TOMATE CHERRY (PAQUETE x 1 UND)", r.Productos(0).Nombre)
         Assert.Equal("CAJA CHICA - TOMATE CHERRY (KILOGRAMO x 1 KG)", r.Productos(1).Nombre)
         Assert.Equal("CAJA CHICA", r.Productos(0).Categoria)
