@@ -1,13 +1,12 @@
 Imports System.Windows.Forms
 Imports AppSistema.Datos
 
-''' <summary>Pantalla de acceso: empresa, usuario y clave; después, elección de la operación de trabajo.</summary>
-Public Class FormAcceso
-    Inherits Form
+''' <summary>
+''' Pantalla de acceso: empresa, usuario y clave; después, elección de la operación de trabajo. Los controles se diseñan
+''' en FormAcceso.Designer.vb (Diseñador de Visual Studio); aquí va la lógica.
+''' </summary>
+Partial Public Class FormAcceso
 
-    Private ReadOnly _empresa As New TextBox With {.Width = 260}
-    Private ReadOnly _usuario As New TextBox With {.Width = 260}
-    Private ReadOnly _clave As New TextBox With {.Width = 260, .UseSystemPasswordChar = True}
     Private _config As Configuracion
 
     Public Property Sesion As SesionUsuario
@@ -17,48 +16,25 @@ Public Class FormAcceso
         End Get
     End Property
 
+    ''' <summary>Solo para el Diseñador de Visual Studio.</summary>
+    Public Sub New()
+        Me.New(Nothing)
+    End Sub
+
     Public Sub New(config As Configuracion)
+        InitializeComponent()
         _config = config
-        Text = "AppSistema - Acceso"
-        Name = "FormAcceso"
-        FormBorderStyle = FormBorderStyle.FixedDialog
-        StartPosition = FormStartPosition.CenterScreen
-        MaximizeBox = False : MinimizeBox = False
-        AutoSize = True : AutoSizeMode = AutoSizeMode.GrowAndShrink
-
-        Dim tabla As New TableLayoutPanel With {.ColumnCount = 2, .AutoSize = True, .Padding = New Padding(16), .Dock = DockStyle.Fill}
-        tabla.Controls.Add(New Label With {.Text = "Sistema de menus, compras e inventarios", .AutoSize = True,
-                                           .Font = New Drawing.Font(Font.FontFamily, 11, Drawing.FontStyle.Bold), .Margin = New Padding(3, 3, 3, 12)}, 0, 0)
-        tabla.SetColumnSpan(tabla.GetControlFromPosition(0, 0), 2)
-        _empresa.Name = "txtEmpresa" : _empresa.AccessibleName = "Empresa"
-        _usuario.Name = "txtUsuario" : _usuario.AccessibleName = "Usuario"
-        _clave.Name = "txtClave" : _clave.AccessibleName = "Clave"
-        AgregarFila(tabla, "Empresa", _empresa, 1)
-        AgregarFila(tabla, "Usuario", _usuario, 2)
-        AgregarFila(tabla, "Clave", _clave, 3)
+        lblTitulo.Font = Tema.FuenteTitulo
         _empresa.Text = If(config?.EmpresaPredeterminada, "")
-
-        Dim entrar As New Button With {.Text = "Entrar", .AutoSize = True, .Name = "btnEntrar", .AccessibleName = "Iniciar sesion"}
-        Dim salir As New Button With {.Text = "Salir", .AutoSize = True, .DialogResult = DialogResult.Cancel, .Name = "btnSalir", .AccessibleName = "Salir"}
-        Dim conexion As New Button With {.Text = "Conexion...", .AutoSize = True, .Name = "btnConexion", .AccessibleName = "Conexion con el servidor"}
-        AddHandler entrar.Click, AddressOf Entrar_Click
-        AddHandler conexion.Click, Sub()
-                                       Dim nueva = FormPrincipal.EditarConexion(Me, _config)
-                                       If nueva IsNot Nothing Then _config = nueva
-                                   End Sub
-        AcceptButton = entrar : CancelButton = salir
-        Dim botones As New FlowLayoutPanel With {.FlowDirection = FlowDirection.RightToLeft, .AutoSize = True, .Dock = DockStyle.Bottom, .Padding = New Padding(12)}
-        botones.Controls.AddRange({salir, entrar, conexion})
-        Controls.Add(tabla) : Controls.Add(botones)
         AddHandler Shown, Sub() If _empresa.Text = "" Then _empresa.Focus() Else _usuario.Focus()
     End Sub
 
-    Private Shared Sub AgregarFila(tabla As TableLayoutPanel, etiqueta As String, control As Control, fila As Integer)
-        tabla.Controls.Add(New Label With {.Text = etiqueta, .AutoSize = True, .Anchor = AnchorStyles.Left, .Margin = New Padding(3, 7, 12, 3)}, 0, fila)
-        tabla.Controls.Add(control, 1, fila)
+    Private Sub btnConexion_Click(sender As Object, e As EventArgs) Handles btnConexion.Click
+        Dim nueva = FormPrincipal.EditarConexion(Me, _config)
+        If nueva IsNot Nothing Then _config = nueva
     End Sub
 
-    Private Sub Entrar_Click(sender As Object, e As EventArgs)
+    Private Sub Entrar_Click(sender As Object, e As EventArgs) Handles btnEntrar.Click
         If _config Is Nothing Then
             Ui.Informar(Me, "Configure primero la conexion con el servidor de la sede.")
             Return

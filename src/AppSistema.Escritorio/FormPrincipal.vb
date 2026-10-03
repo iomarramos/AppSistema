@@ -2,28 +2,19 @@ Imports System.Windows.Forms
 Imports AppSistema.Datos
 Imports AppSistema.Dominio.Seguridad
 
-''' <summary>Ventana principal (MDI): menú según permisos y barra de estado con empresa, operación y usuario.</summary>
-Public Class FormPrincipal
-    Inherits Form
+''' <summary>
+''' Ventana principal (MDI): menú según permisos y barra de estado con empresa, operación y usuario. El menú y la barra
+''' se diseñan en FormPrincipal.Designer.vb (Diseñador de Visual Studio); aquí van los permisos, el tema y las acciones.
+''' </summary>
+Partial Public Class FormPrincipal
 
     Private _config As Configuracion
     Private _sesion As SesionUsuario
-    Private ReadOnly _menu As New MenuStrip()
-    Private ReadOnly _estado As New StatusStrip()
-    Private ReadOnly _etiquetaEstado As New ToolStripStatusLabel With {.Spring = True, .TextAlign = Drawing.ContentAlignment.MiddleLeft}
 
     Public Sub New()
-        Text = "AppSistema"
-        Name = "FormPrincipal"
-        _menu.Name = "menuPrincipal" : _estado.Name = "barraEstado" : _etiquetaEstado.Name = "lblEstado"
-        IsMdiContainer = True
-        WindowState = FormWindowState.Maximized
-        MainMenuStrip = _menu
-        _estado.Items.Add(_etiquetaEstado)
-        _estado.Items.Add(New ToolStripStatusLabel("Version " & GetType(FormPrincipal).Assembly.GetName().Version.ToString(3)))
-        Controls.Add(_menu) : Controls.Add(_estado)
+        InitializeComponent()
+        lblVersion.Text = "Version " & GetType(FormPrincipal).Assembly.GetName().Version.ToString(3)
         _menu.BackColor = Tema.Fondo
-        _menu.Padding = New Padding(6, 3, 0, 3)
         _estado.BackColor = Tema.SuperficieFuerte
         For Each mdi In Controls.OfType(Of MdiClient)()
             mdi.BackColor = Drawing.Color.FromArgb(243, 243, 243)
@@ -72,71 +63,60 @@ Public Class FormPrincipal
         End If
     End Sub
 
+    ''' <summary>Activa cada opción del menú según el permiso de su pantalla; un menú sin opciones permitidas no se muestra.</summary>
     Private Sub ConstruirMenu()
-        _menu.Items.Clear()
         Dim cadena = _config.CadenaConexion()
 
-        Dim catalogo As New ToolStripMenuItem("&Catalogo")
-        Agregar(catalogo, "&Productos, variantes y empaques", Permisos.CatalogoVer, Function() New FormCatalogo(cadena, _sesion))
-        Agregar(catalogo, "Pro&veedores y precios", Permisos.CatalogoVer, Function() New FormProveedores(cadena, _sesion))
-        Agregar(catalogo, "&Importar catalogo...", Permisos.CatalogoImportar, Function() New FormImportacion(cadena, _sesion, ModoImportacion.Catalogo))
+        Opcion(mnuProductosVariantesYEmpaques, Permisos.CatalogoVer, Function() New FormCatalogo(cadena, _sesion))
+        Opcion(mnuProveedoresYPrecios, Permisos.CatalogoVer, Function() New FormProveedores(cadena, _sesion))
+        Opcion(mnuImportarCatalogo, Permisos.CatalogoImportar, Function() New FormImportacion(cadena, _sesion, ModoImportacion.Catalogo))
 
-        Dim menus As New ToolStripMenuItem("&Menus")
-        Agregar(menus, "&Recetas", Permisos.MenusVer, Function() New FormRecetas(cadena, _sesion))
-        Agregar(menus, "&Minutas y necesidades", Permisos.MenusVer, Function() New FormMinutas(cadena, _sesion))
-        Agregar(menus, "&Servicios y estructuras", Permisos.MenusConfigurar, Function() New FormServicios(cadena, _sesion))
-        Agregar(menus, "&Importar recetas...", Permisos.RecetasEditar, Function() New FormImportacion(cadena, _sesion, ModoImportacion.Recetas))
-        Agregar(menus, "&Produccion", Permisos.MenusVer, Function() New FormProduccion(cadena, _sesion))
+        Opcion(mnuRecetas, Permisos.MenusVer, Function() New FormRecetas(cadena, _sesion))
+        Opcion(mnuMinutasYNecesidades, Permisos.MenusVer, Function() New FormMinutas(cadena, _sesion))
+        Opcion(mnuServiciosYEstructuras, Permisos.MenusConfigurar, Function() New FormServicios(cadena, _sesion))
+        Opcion(mnuImportarRecetas, Permisos.RecetasEditar, Function() New FormImportacion(cadena, _sesion, ModoImportacion.Recetas))
+        Opcion(mnuProduccion, Permisos.MenusVer, Function() New FormProduccion(cadena, _sesion))
 
-        Dim almacen As New ToolStripMenuItem("A&lmacen")
-        Agregar(almacen, "&Stock e inventario inicial", Permisos.CatalogoVer, Function() New FormStock(cadena, _sesion))
-        Agregar(almacen, "&Inventario fisico", Permisos.InventarioContar, Function() New FormInventarios(cadena, _sesion))
+        Opcion(mnuStockEInventarioInicial, Permisos.CatalogoVer, Function() New FormStock(cadena, _sesion))
+        Opcion(mnuInventarioFisico, Permisos.InventarioContar, Function() New FormInventarios(cadena, _sesion))
 
-        Dim compras As New ToolStripMenuItem("C&ompras")
-        Agregar(compras, "&Prevision y pedidos", Permisos.ComprasVer, Function() New FormCompras(cadena, _sesion))
-        Agregar(compras, "&Consolidado de compras (todas las operaciones)", Permisos.ComprasConsolidar, Function() New FormConsolidado(cadena, _sesion))
+        Opcion(mnuPrevisionYPedidos, Permisos.ComprasVer, Function() New FormCompras(cadena, _sesion))
+        Opcion(mnuConsolidadoDeComprasTodasLasOperaciones, Permisos.ComprasConsolidar, Function() New FormConsolidado(cadena, _sesion))
 
-        Dim cierres As New ToolStripMenuItem("Cie&rres y control")
-        Agregar(cierres, "&Pendientes, cierres y Food Cost", Permisos.ReportesVer, Function() New FormCierres(cadena, _sesion))
-        Agregar(cierres, "&Contratos y clientes", Permisos.ContratosVer, Function() New FormContratos(cadena, _sesion))
-        Agregar(cierres, "&Gastos y resultado mensual", Permisos.ResultadosVer, Function() New FormResultados(cadena, _sesion))
+        Opcion(mnuPendientesCierresYFoodCost, Permisos.ReportesVer, Function() New FormCierres(cadena, _sesion))
+        Opcion(mnuContratosYClientes, Permisos.ContratosVer, Function() New FormContratos(cadena, _sesion))
+        Opcion(mnuGastosYResultadoMensual, Permisos.ResultadosVer, Function() New FormResultados(cadena, _sesion))
 
-        Dim admin As New ToolStripMenuItem("&Administracion")
-        Agregar(admin, "&Usuarios y roles", Permisos.UsuariosAdministrar, Function() New FormUsuarios(cadena, _sesion))
-        Agregar(admin, "&Matriz de acceso", Permisos.UsuariosAdministrar, Function() New FormMatrizAcceso(cadena, _sesion))
-        Agregar(admin, "&Operaciones y almacenes", Permisos.UsuariosAdministrar, Function() New FormOperaciones(cadena, _sesion))
-        Agregar(admin, "&Auditoria", Permisos.AuditoriaVer, Function() New FormAuditoria(cadena, _sesion))
-        Agregar(admin, "&Carga de datos reales", Permisos.CatalogoImportar, Function() New FormCargaReal(cadena, _sesion))
-        Agregar(admin, "&Sincronizacion y respaldo (TI)", Permisos.UsuariosAdministrar, Function() New FormContinuidad(_config, _sesion))
+        Opcion(mnuUsuariosYRoles, Permisos.UsuariosAdministrar, Function() New FormUsuarios(cadena, _sesion))
+        Opcion(mnuMatrizDeAcceso, Permisos.UsuariosAdministrar, Function() New FormMatrizAcceso(cadena, _sesion))
+        Opcion(mnuOperacionesYAlmacenes, Permisos.UsuariosAdministrar, Function() New FormOperaciones(cadena, _sesion))
+        Opcion(mnuAuditoria, Permisos.AuditoriaVer, Function() New FormAuditoria(cadena, _sesion))
+        Opcion(mnuCargaDeDatosReales, Permisos.CatalogoImportar, Function() New FormCargaReal(cadena, _sesion))
+        Opcion(mnuSincronizacionYRespaldoTI, Permisos.UsuariosAdministrar, Function() New FormContinuidad(_config, _sesion))
 
-        Dim sesionMenu As New ToolStripMenuItem("&Sesion")
-        sesionMenu.DropDownItems.Add("Cambiar &clave...", Nothing, Sub() CambiarClave())
-        sesionMenu.DropDownItems.Add("&Conexion con el servidor...", Nothing, Sub()
-                                                                                  Dim nueva = EditarConexion(Me, _config)
-                                                                                  If nueva IsNot Nothing Then Ui.Informar(Me, "La nueva conexion se usara al volver a iniciar la aplicacion.")
-                                                                              End Sub)
-        sesionMenu.DropDownItems.Add(New ToolStripSeparator())
-        sesionMenu.DropDownItems.Add("&Salir", Nothing, Sub() Close())
-
-        Dim ventanas As New ToolStripMenuItem("&Ventanas")
-        _menu.MdiWindowListItem = ventanas
         ' Solo se muestran los menús en los que el usuario tiene alguna opción (Sesión y Ventanas siempre).
-        For Each m In {catalogo, menus, almacen, compras, cierres, admin, sesionMenu, ventanas}
-            m.Name = Identificadores.DesdeTexto("mnu", m.Text)
-            m.AccessibleName = Identificadores.NombreAccesible(m.Text)
+        For Each m In {mnuCatalogo, mnuMenus, mnuCompras, mnuAlmacen, mnuCierresYControl, mnuAdministracion}
+            m.Available = m.DropDownItems.OfType(Of ToolStripMenuItem)().Any(Function(i) i.Available)
         Next
-        For Each item In sesionMenu.DropDownItems.OfType(Of ToolStripMenuItem)()
-            item.Name = Identificadores.DesdeTexto("mnu", item.Text)
+        ' Nombre accesible = texto visible (sin "&" ni "..."): es lo que lee UI Automation (pruebas E2E y lectores de pantalla).
+        For Each item In TodasLasOpciones(_menu.Items)
             item.AccessibleName = Identificadores.NombreAccesible(item.Text)
         Next
-        _menu.Items.AddRange({catalogo, menus, compras, almacen, cierres, admin}.Where(Function(m) m.DropDownItems.Count > 0).ToArray())
-        _menu.Items.AddRange({sesionMenu, ventanas})
     End Sub
 
-    ''' <summary>Opción de menú visible solo si el usuario tiene el permiso. Reutiliza la ventana si ya está abierta.</summary>
-    Private Sub Agregar(menu As ToolStripMenuItem, texto As String, permiso As String, crear As Func(Of Form))
-        If Not _sesion.Tiene(permiso) Then Return
-        Dim item As New ToolStripMenuItem(texto) With {.Name = Identificadores.DesdeTexto("mnu", texto), .AccessibleName = Identificadores.NombreAccesible(texto)}
+    Private Shared Iterator Function TodasLasOpciones(items As ToolStripItemCollection) As IEnumerable(Of ToolStripMenuItem)
+        For Each item In items.OfType(Of ToolStripMenuItem)()
+            Yield item
+            For Each hijo In TodasLasOpciones(item.DropDownItems)
+                Yield hijo
+            Next
+        Next
+    End Function
+
+    ''' <summary>Opción de menú disponible solo si el usuario tiene el permiso. Reutiliza la ventana si ya está abierta.</summary>
+    Private Sub Opcion(item As ToolStripMenuItem, permiso As String, crear As Func(Of Form))
+        item.Available = _sesion.Tiene(permiso)
+        If Not item.Available Then Return
         Dim abierta As Form = Nothing
         AddHandler item.Click, Sub()
                                    If abierta IsNot Nothing AndAlso Not abierta.IsDisposed Then
@@ -151,7 +131,19 @@ Public Class FormPrincipal
                                                        abierta.Show()
                                                    End Sub)
                                End Sub
-        menu.DropDownItems.Add(item)
+    End Sub
+
+    Private Sub mnuCambiarClave_Click(sender As Object, e As EventArgs) Handles mnuCambiarClave.Click
+        CambiarClave()
+    End Sub
+
+    Private Sub mnuConexionConElServidor_Click(sender As Object, e As EventArgs) Handles mnuConexionConElServidor.Click
+        Dim nueva = EditarConexion(Me, _config)
+        If nueva IsNot Nothing Then Ui.Informar(Me, "La nueva conexion se usara al volver a iniciar la aplicacion.")
+    End Sub
+
+    Private Sub mnuSalir_Click(sender As Object, e As EventArgs) Handles mnuSalir.Click
+        Close()
     End Sub
 
     Private Sub CambiarClave()

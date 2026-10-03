@@ -42,6 +42,17 @@ Del manual *SGP Local – Para Operaciones* (Sodexo Perú, V006) se toma la estr
   * los que empiezan por Anular, Eliminar, Quitar, Desactivar o Retirar van en rojo;
   * los estados que se colorean (aprobada, borrador, faltante, etc.) están en `Tonos`.
 
+### Editar una pantalla en Visual Studio (Diseñador)
+
+Las pantallas convertidas tienen dos archivos:
+
+* `FormX.Designer.vb`, que se edita **con el Diseñador**: controles, posición, tamaño, textos y nombres (`Name` = identificador para las pruebas E2E, por ejemplo `btnEntrar`). No se escribe a mano.
+* `FormX.vb`, que se edita **con el código**: permisos (qué se ve según el rol), tema, carga de datos y eventos (`Handles btnX.Click`).
+
+Para abrir el Diseñador, doble clic en `FormX.vb` en el Explorador de soluciones (o clic derecho > Ver diseñador, Mayús+F7). Si se cambia el `Name` de un control, hay que actualizar la prueba E2E que lo usa. Los colores y fuentes que se pongan en el Diseñador se sobrescriben al abrir la ventana: el estilo sale de `Tema.vb`.
+
+Ya convertidas: Acceso y Principal. Las demás se convierten por etapas; mientras tanto, su Diseñador sale vacío y se editan por código (clic derecho > Ver código, F7).
+
 ## Base de datos (PostgreSQL)
 
 Revisión contra convenciones públicas de PostgreSQL (guía de revisión SQL de Bytebase y convenciones de desarrollo de PostgreSQL):
