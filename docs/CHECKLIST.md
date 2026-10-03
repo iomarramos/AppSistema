@@ -1,6 +1,6 @@
 # Checklist de avance
 
-Actualizado: 2026-10-03, 09:55 hora de Lima. Se actualiza en cada entrega.
+Actualizado: 2026-10-03, 10:40 hora de Lima. Se actualiza en cada entrega.
 
 **Leyenda**
 
@@ -26,7 +26,7 @@ Todas las pantallas **compilan, pero ninguna se ejecutó en Windows todavía** (
 | Menús > Producción | MENUS_VER | Requerimientos, producción, merma, venta real y consumo: PRODUCCION_EDITAR · Entregar: STOCK_CONTABILIZAR · Teórico vs real e imprimir requerimiento: todos | 🟡 |
 | Compras > Consolidado de compras (todas las operaciones) | COMPRAS_CONSOLIDAR | **Nueva** (Abastecimiento). Periodo (por defecto, el mes siguiente) y minutas en borrador opcionales; imprimir o exportar | 🟡 |
 | Compras > Previsión y pedidos | COMPRAS_VER | Calcular, pedidos y reservas: COMPRAS_EDITAR · Aprobar y anular: COMPRAS_APROBAR | 🟡 |
-| Almacén > Stock e inventario inicial | CATALOGO_VER | Movimientos: STOCK_CONTABILIZAR · Imprimir kárdex y stock valorizado: todos | 🟡 |
+| Almacén > Stock e inventario inicial | CATALOGO_VER | Movimientos: STOCK_CONTABILIZAR · Imprimir kárdex, stock valorizado y **registro de inventario permanente valorizado (SUNAT 13.1)**: todos | 🟡 |
 | Almacén > Inventario físico | INVENTARIO_CONTAR | Revisar y autorizar ajuste: INVENTARIO_APROBAR · Imprimir hoja de conteo y resultado: todos | 🟡 |
 | Cierres y control > Pendientes, cierres y Food Cost | REPORTES_VER | Cerrar, ingresos, venta por estructura y objetivo: CIERRE_EJECUTAR | 🟡 |
 | Cierres y control > Contratos y clientes | CONTRATOS_VER | Editar: CONTRATOS_EDITAR | 🟡 |
@@ -148,7 +148,9 @@ Cada reporte sale con el botón **Imprimir…** de su pantalla. Se puede imprimi
 | Consolidado de compras por periodo entre todas las operaciones | ✅ |
 | D02 producto activo por operación (Catálogo, carga masiva, costeo y pedidos) y D03 precios sin IGV | ✅ |
 | Reportes imprimibles y exportables (HTML para imprimir o PDF, CSV para Excel), con el permiso de la pantalla de origen | ✅ |
-| Comparativo teórico → plan real → realizado (fórmula del SGP, probada con sus cifras: `PlanVsRealTests`) | ✅ |
+| Comparativo teórico → plan real → realizado (fórmula del SGP, probada con sus cifras: `PlanVsRealTests`) y costo piso y techo por factores | ✅ |
+| Registro de inventario permanente valorizado, formato 13.1 de SUNAT (tablas 5, 6, 10 y 12) | ✅ |
+| Requerimiento con bulto en decimales (presentación activa) | ✅ |
 | **Planificación y Abastecimiento Central, fase 1 (seguridad):** superusuario, módulo → pantalla → acción → alcance (operación, zona o todas), matriz de acceso, roles centrales, stock y factores validados en la base (T53, T54, T61, T62, T63) | ✅ |
 
 ## 4. Pendiente por crear o confirmar
@@ -172,6 +174,7 @@ Cada reporte sale con el botón **Imprimir…** de su pantalla. Se puede imprimi
 | 17 | ⬜ **Planificación y Abastecimiento Central, fases 2–10** (`docs/ARQUITECTURA_PLANIFICACION_CENTRAL.md`): planificación teórica con versiones, liberación, plan operativo, programación del día del chef, requerimiento y adicional, ejecución real, 3 comparativos, aprendizaje de factores, compras globales con almacén central y tránsito, controles reutilizables | Programación (fase 1 hecha) |
 | 18 | 🟡 **Corte del requerimiento interno con retrasos permitidos** (respuesta del usuario): hora configurable por operación; lo tardío se acepta marcado TARDÍO; tiempo de llegada por zona desde el central. Falta la hora por defecto y los días por zona; se programa en las fases 4–5 y 8–9 | Usuario (dato) · Programación |
 | 19 | ✅ **Zonas:** Costa, Sierra y Selva (solo esos valores). Se elige en Operaciones y almacenes | Usuario (respondido) |
-| 20 | 🟡 **Modelo objetivo del SGP** (`datos/plan_real/`): leído y verificado (10 de 10 reglas cuadran). Por construir, dentro de las fases: cuadrícula mensual de planificación (2), reporte de frecuencia, requisición por rango con preparación (4–5), comparativo de tres niveles (6; fórmula ya hecha), productos sin movimiento y registro permanente valorizado, servicios lonchera, rancho, venta directa y consumo fijo | Programación · Usuario (nutrientes, cena de octubre, piso y techo) |
+| 21 | ⬜ **Nutrientes** (aporte por receta, % aprovechamiento y cocción): ningún archivo recibido trae valores; falta la tabla de composición por ingrediente | Usuario (tabla de nutrientes) |
+| 20 | 🟡 **Modelo objetivo del SGP** (`datos/plan_real/`): leído y verificado (11 de 11 reglas cuadran, con la cena real de octubre). Hecho además: costo piso y techo por factores, bulto en decimales en el requerimiento y registro SUNAT 13.1. Por construir, dentro de las fases: cuadrícula mensual de planificación (2), reporte de frecuencia, requisición por rango con preparación (4–5), comparativo de tres niveles (6; fórmula ya hecha), productos sin movimiento y registro permanente valorizado, servicios lonchera, rancho, venta directa y consumo fijo | Programación · Usuario (nutrientes, cena de octubre, piso y techo) |
 | 11 | ⬜ Piloto de un mes en una sede (`docs/PILOTO_ETAPA_8.md`) | Sede real |
 | 12 | ⬜ Integraciones (SAP, ADS, SGO) | Especificación del cliente |

@@ -42,7 +42,8 @@ Public Class FormStock
         Controls.Add(Ui.BarraBotones(New Label With {.Text = "Almacen", .AutoSize = True, .Margin = New Padding(3, 9, 3, 3)}, _almacen,
                                      New Label With {.Text = "Buscar", .AutoSize = True, .Margin = New Padding(3, 9, 3, 3)}, _buscar,
                                      Ui.Boton("Ver", AddressOf Cargar), Ui.Boton("Kardex...", AddressOf Kardex), Ui.Boton("Documentos...", AddressOf Documentos),
-                                     Ui.Boton("Imprimir stock...", AddressOf ImprimirStock)))
+                                     Ui.Boton("Imprimir stock...", AddressOf ImprimirStock),
+                                     Ui.Boton("Registro SUNAT 13.1...", AddressOf RegistroSunat)))
         AddHandler _almacen.SelectedIndexChanged, Sub() Cargar()
         AddHandler _buscar.KeyDown, Sub(s, e) If e.KeyCode = Keys.Enter Then Cargar()
         AddHandler Load, Sub() Ui.Ejecutar(Me,
@@ -193,6 +194,21 @@ Public Class FormStock
         If Almacen Is Nothing Then Return
         Dim almacenId = Almacen.Id
         SalidaReporte.Emitir(Me, Function() _reportes.StockValorizado(almacenId))
+    End Sub
+
+    Private Sub RegistroSunat()
+        If Almacen Is Nothing Then Return
+        Dim almacenId = Almacen.Id
+        Dim inicio = New Date(Date.Today.Year, Date.Today.Month, 1)
+        Using d As New DialogoCampos("Registro de inventario permanente valorizado (formato 13.1)")
+            d.Fecha("desde", "Desde", inicio).Fecha("hasta", "Hasta", inicio.AddMonths(1).AddDays(-1))
+            d.Opciones("tipo", "Tipo de existencia (tabla 5)", {"03", "01", "02", "04", "05", "99"}.Select(Function(c) CObj(New Opcion(Of String)(c, AppSistema.Dominio.Sunat.TablasSunat.TipoExistencia(c)))),
+                       Nothing)
+            If d.ShowDialog(Me) <> DialogResult.OK Then Return
+            Dim desde = d.FechaElegida("desde").Value, hasta = d.FechaElegida("hasta").Value
+            Dim tipo = If(d.Elegido(Of Opcion(Of String))("tipo")?.Valor, "03")
+            SalidaReporte.Emitir(Me, Function() _reportes.RegistroInventarioPermanente(almacenId, desde, hasta, tipo))
+        End Using
     End Sub
 
     Private Sub Documentos()

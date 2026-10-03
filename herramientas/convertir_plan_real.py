@@ -22,10 +22,16 @@ MENU = os.path.join(ORIGEN, 'MENU_REAL_Y__TEORICO.xlsx')
 COSTOS = os.path.join(ORIGEN, 'Costo_Plan._Teorico_-_Plan._Real_-_Realizado_Alimentacion.xlsx')
 REQUISICION = os.path.join(ORIGEN, 'REQUISICION.xlsx')
 
-# Hoja -> (nivel, servicio). "Hoja7" no tiene nombre: por su estructura (25 componentes, como la cena) es el plan real de la cena.
+# (archivo, hoja) -> (nivel, servicio). "Hoja7" no tiene nombre: por su estructura (25 componentes, como la cena) es el
+# plan real de la cena; repite agosto y no trae octubre, que llegó aparte en MENU_REAL_CENA.xlsx (2026-10-03).
 HOJAS_MENU = {
-    'DESAYUNO_TEORICA': ('TEORICO', 'DESAYUNO'), 'ALMUERZO_TEORICA': ('TEORICO', 'ALMUERZO'), 'CENA_TEORICA': ('TEORICO', 'CENA'),
-    'DESAYUNO_REAL': ('REAL', 'DESAYUNO'), 'ALMUERZO_REAL': ('REAL', 'ALMUERZO'), 'Hoja7': ('REAL', 'CENA'),
+    ('MENU_REAL_Y__TEORICO.xlsx', 'DESAYUNO_TEORICA'): ('TEORICO', 'DESAYUNO'),
+    ('MENU_REAL_Y__TEORICO.xlsx', 'ALMUERZO_TEORICA'): ('TEORICO', 'ALMUERZO'),
+    ('MENU_REAL_Y__TEORICO.xlsx', 'CENA_TEORICA'): ('TEORICO', 'CENA'),
+    ('MENU_REAL_Y__TEORICO.xlsx', 'DESAYUNO_REAL'): ('REAL', 'DESAYUNO'),
+    ('MENU_REAL_Y__TEORICO.xlsx', 'ALMUERZO_REAL'): ('REAL', 'ALMUERZO'),
+    ('MENU_REAL_Y__TEORICO.xlsx', 'Hoja7'): ('REAL', 'CENA'),
+    ('MENU_REAL_CENA.xlsx', 'Hoja2'): ('REAL', 'CENA'),
 }
 
 observaciones = []
@@ -67,23 +73,25 @@ def fmt(v, dec=6):
 
 # ---------------------------------------------------------------- menú teórico y plan real
 def leer_menu():
-    wb = openpyxl.load_workbook(MENU, data_only=True)
+    libros = {}
     platos, dias = [], []
-    for hoja, (nivel, servicio) in HOJAS_MENU.items():
-        filas = list(wb[hoja].iter_rows(values_only=True))
+    vistos = {}
+    for (archivo, hoja), (nivel, servicio) in HOJAS_MENU.items():
+        if archivo not in libros:
+            libros[archivo] = openpyxl.load_workbook(os.path.join(ORIGEN, archivo), data_only=True)
+        filas = list(libros[archivo][hoja].iter_rows(values_only=True))
         inicios = [i for i, r in enumerate(filas) if r[1] == 'Estructura Servicio']
-        vistos = {}
         for ini in inicios:
             enc = filas[ini]
             fin = next(i for i in range(ini, len(filas)) if filas[i][1] == 'Comensales')
             cols = [j for j, c in enumerate(enc) if fecha_de(c)]
             fechas = [fecha_de(enc[j]) for j in cols]
-            mes = fechas[0].strftime('%Y-%m')
+            mes = (nivel, servicio, fechas[0].strftime('%Y-%m'))
             firma = tuple(str(filas[k][cols[0]]) for k in range(ini + 1, fin))
             if mes in vistos:
                 igual = vistos[mes] == firma
-                observaciones.append(f'{hoja}: el bloque de la fila {ini + 1} repite el mes {mes}'
-                                     + (' con el mismo contenido (se omite; falta el otro mes)' if igual else ' con otro contenido (se omite)'))
+                observaciones.append(f'{archivo} / {hoja}: el bloque de la fila {ini + 1} repite {nivel} {servicio} {mes[2]}'
+                                     + (' con el mismo contenido (se omite)' if igual else ' con otro contenido (se omite)'))
                 continue
             vistos[mes] = firma
             for j, f in zip(cols, fechas):
@@ -192,6 +200,33 @@ def enlazar_recetas(platos, requisicion):
     for r in requisicion:
         sgp.setdefault(r[4], r[5])
     return [[cod, nombre, app.get(norm(nombre), '')] for cod, nombre in sorted(sgp.items(), key=lambda x: x[1])]
+
+
+# ---------------------------------------------------------------- costo piso y techo por factores
+def piso_techo(platos, dias):
+    """Por nivel, servicio y mes: factor de cada componente = Σ raciones ÷ Σ comensales del mes. Con ese factor,
+    piso = Σ factor × costo por ración más barato del componente; techo = Σ factor × el más caro; medio = Σ raciones ×
+    costo ÷ Σ comensales. Devuelve también cuántos días quedaron dentro de la banda."""
+    filas = []
+    claves = sorted({(d[0], d[1], d[2][:7]) for d in dias})
+    for nivel, servicio, mes in claves:
+        ds = [d for d in dias if (d[0], d[1], d[2][:7]) == (nivel, servicio, mes) and d[4]]
+        com = sum(float(d[4]) for d in ds)
+        if com <= 0:
+            continue
+        comp = defaultdict(lambda: [0.0, [], 0.0])
+        for p in platos:
+            if (p[0], p[1], p[2][:7]) == (nivel, servicio, mes) and p[7] and p[9]:
+                c = comp[p[4]]
+                c[0] += float(p[7]); c[1].append(float(p[9])); c[2] += float(p[7]) * float(p[9])
+        piso = sum(c[0] / com * min(c[1]) for c in comp.values())
+        techo = sum(c[0] / com * max(c[1]) for c in comp.values())
+        medio = sum(c[2] for c in comp.values()) / com
+        costos = [float(d[3]) for d in ds if d[3]]
+        dentro = sum(1 for x in costos if piso - 0.005 <= x <= techo + 0.005)
+        filas.append([nivel, servicio, mes, len(comp), f'{piso:.2f}', f'{medio:.2f}', f'{techo:.2f}',
+                      f'{min(costos):.2f}', f'{max(costos):.2f}', f'{dentro}/{len(costos)}'])
+    return filas
 
 
 # ---------------------------------------------------------------- verificaciones
@@ -320,7 +355,13 @@ def main():
     recetas = enlazar_recetas(platos, requisicion)
     escribir('codigos_sgp_recetas.csv', ['receta_codigo_sgp', 'receta', 'receta_codigo_app'], recetas)
 
+    banda = piso_techo(platos, dias)
+    escribir('costo_piso_techo.csv', ['nivel', 'servicio', 'mes', 'componentes', 'costo_piso', 'costo_medio', 'costo_techo',
+                                      'dia_mas_barato', 'dia_mas_caro', 'dias_dentro'], banda)
     verificar(platos, dias, costos, requisicion)
+    validacion.append(('OK ' if all(b[9].split('/')[0] == b[9].split('/')[1] for b in banda) else 'REV')
+                      + f' Costo piso y techo por factores: los días de cada servicio y mes quedan dentro de su banda '
+                        f'({sum(int(b[9].split("/")[0]) for b in banda)} de {sum(int(b[9].split("/")[1]) for b in banda)})')
 
     resumen = [
         titulo,

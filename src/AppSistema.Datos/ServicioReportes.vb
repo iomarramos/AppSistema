@@ -2,6 +2,7 @@ Imports AppSistema.Dominio
 Imports AppSistema.Dominio.Calculos
 Imports AppSistema.Dominio.Numerico
 Imports AppSistema.Dominio.Seguridad
+Imports AppSistema.Dominio.Stock
 
 ''' <summary>
 ''' Reportes imprimibles o exportables: minuta del día, requerimiento a almacén, kárdex valorizado, hoja y resultado de
@@ -114,10 +115,26 @@ Public NotInheritable Class ServicioReportes
         r.Dato("Estado", q.Estado)
         r.Dato("Almacen", q.Almacen)
         r.Dato("Servicio", If(q.FechaMinuta.HasValue, $"{q.Servicio} del {q.FechaMinuta.Value:dd/MM/yyyy}", q.Servicio))
-        Dim s = r.Seccion("", C("Producto"), C("Unidad"), C("Previsto", FormatoColumna.Cantidad), C("Solicitado", FormatoColumna.Cantidad), C("Entregado"))
+        ' Bulto en decimales, como la requisición del SGP (usuario, 2026-10-03): solicitado ÷ contenido de la presentación
+        ' activa en la operación (D02). Sin presentación activa queda vacío.
+        Dim activas = EnTransaccion(Permisos.MenusVer,
+            Function(u) u.Consultar(
+                "SELECT po.producto_base_id, v.contenido_base_por_envase_u6, v.tipo_envase, v.descripcion_comercial FROM producto_operacion po " &
+                "JOIN variante_producto v ON v.id = po.variante_id WHERE po.operacion_id = @o",
+                Function(rd) (Producto:=rd.GetInt64(0), ContenidoU6:=rd.GetInt64(1), Envase:=rd.GetString(2), Presentacion:=rd.GetString(3)), "o", op) _
+                .ToDictionary(Function(x) x.Producto))
+        Dim s = r.Seccion("", C("Producto"), C("Unidad"), C("Previsto", FormatoColumna.Cantidad), C("Solicitado", FormatoColumna.Cantidad),
+                          C("Presentacion activa"), C("Bulto", FormatoColumna.Cantidad), C("Envase"), C("Entregado"))
         For Each l In New ServicioProduccion(CadenaConexion, Sesion).ListarLineas(requerimientoId)
-            s.Agregar(l.ProductoDescripcion, l.Unidad, l.PrevistoU6, l.SolicitadoU6, Nothing)
+            Dim a As (Producto As Long, ContenidoU6 As Long, Envase As String, Presentacion As String) = Nothing
+            If activas.TryGetValue(l.ProductoBaseId, a) Then
+                s.Agregar(l.ProductoDescripcion, l.Unidad, l.PrevistoU6, l.SolicitadoU6, a.Presentacion,
+                          EscalaU6.MultiplicarDividir(l.SolicitadoU6, EscalaU6.Factor, a.ContenidoU6), a.Envase, Nothing)
+            Else
+                s.Agregar(l.ProductoDescripcion, l.Unidad, l.PrevistoU6, l.SolicitadoU6, Nothing, Nothing, Nothing, Nothing)
+            End If
         Next
+        r.Notas.Add("Bulto = solicitado / contenido de la presentacion activa, en decimales (como la requisicion del SGP).")
         r.Notas.Add("Se entrega la presentacion completa (D12); lo entregado a cocina se da por consumido.")
         r.Firmas.AddRange({"Solicitado por (cocina)", "Entregado por (almacen)", "Recibido por"})
         Return r
@@ -210,6 +227,94 @@ Public NotInheritable Class ServicioReportes
             s.Agregar(x.VarianteCodigo, x.ProductoDescripcion, x.VarianteDescripcion, x.Unidad, x.CantidadBaseU6, x.CostoPromedioU6, x.ValorU6)
         Next
         s.Totales = {"TOTAL", $"{saldos.Count} presentaciones", Nothing, Nothing, Nothing, Nothing, saldos.Sum(Function(x) x.ValorU6)}
+        Return r
+    End Function
+
+    ' ---------- Registro de inventario permanente valorizado (SUNAT, formato 13.1) ----------
+
+    ''' <summary>
+    ''' Formato 13.1 de SUNAT del almacén en el periodo: por cada existencia con saldo o movimiento, el saldo inicial y
+    ''' cada entrada y salida con su comprobante (tabla 10), tipo de operación (tabla 12), cantidad, costo unitario y costo
+    ''' total, y el saldo corrido. Cantidades en la unidad base del producto; valuación por promedio móvil (D01).
+    ''' </summary>
+    ''' <param name="tipoExistencia">Tabla 5 (01 mercaderías, 03 materias primas…). Por defecto 03.</param>
+    Public Function RegistroInventarioPermanente(almacenId As Long, desde As Date, hasta As Date, Optional tipoExistencia As String = "03") As Reporte
+        If hasta < desde Then Throw New ReglaNegocioException("DATO_INVALIDO", "El periodo termina antes de empezar.")
+        Dim tipo = Sunat.TablasSunat.TipoExistencia(tipoExistencia)
+        Dim op = Sesion.OperacionId
+        Dim datos = EnTransaccion(Permisos.CatalogoVer,
+            Function(u)
+                Dim almacen = u.Escalar("SELECT codigo || ' - ' || nombre FROM almacen WHERE id = @a AND operacion_id = @o", "a", almacenId, "o", op)
+                If almacen Is Nothing Then Throw New ReglaNegocioException("OPERACION_AJENA", "El almacen no pertenece a la operacion seleccionada.")
+                Dim empresa = u.Consultar("SELECT nombre, COALESCE(identificacion_fiscal, '') FROM empresa WHERE id = @e",
+                                          Function(rd) (Nombre:=rd.GetString(0), Ruc:=rd.GetString(1)), "e", Sesion.EmpresaId).Single()
+                Dim iniciales = u.Consultar(
+                    "SELECT variante_id, sum(signo * cantidad_base_u6)::bigint, sum(signo * valor_u6)::bigint FROM movimiento_stock " &
+                    "WHERE almacen_id = @a AND fecha < @d GROUP BY variante_id HAVING sum(signo * cantidad_base_u6) <> 0 OR sum(signo * valor_u6) <> 0",
+                    Function(rd) (Variante:=rd.GetInt64(0), Cant:=rd.GetInt64(1), Valor:=rd.GetInt64(2)), "a", almacenId, "d", desde.Date) _
+                    .ToDictionary(Function(x) x.Variante)
+                Dim movimientos = u.Consultar(
+                    "SELECT m.variante_id, m.fecha, d.numero, d.tipo, m.signo, m.cantidad_base_u6, m.valor_u6, r.tipo_documento, r.numero_documento " &
+                    "FROM movimiento_stock m JOIN documento_stock_detalle l ON l.id = m.documento_detalle_id JOIN documento_stock d ON d.id = l.documento_id " &
+                    "LEFT JOIN recepcion r ON r.id = d.recepcion_id " &
+                    "WHERE m.almacen_id = @a AND m.fecha BETWEEN @d AND @h ORDER BY m.variante_id, m.fecha, m.secuencia, m.id",
+                    Function(rd) (Variante:=rd.GetInt64(0), Fecha:=rd.GetDateTime(1), Numero:=rd.GetString(2), Tipo:=rd.GetString(3), Signo:=rd.GetInt64(4),
+                                  Cant:=rd.GetInt64(5), Valor:=rd.GetInt64(6), Comprobante:=rd.TextoONada("tipo_documento"), NumeroComprobante:=rd.TextoONada("numero_documento")),
+                    "a", almacenId, "d", desde.Date, "h", hasta.Date)
+                Dim ids = iniciales.Keys.Union(movimientos.Select(Function(m) m.Variante)).Distinct().ToArray()
+                Dim variantes = u.Consultar(
+                    "SELECT v.id, v.codigo, v.descripcion_comercial, um.codigo FROM variante_producto v JOIN producto_base p ON p.id = v.producto_base_id " &
+                    "JOIN unidad_medida um ON um.id = p.unidad_base_id WHERE v.id = ANY(@ids) ORDER BY v.codigo",
+                    Function(rd) (Id:=rd.GetInt64(0), Codigo:=rd.GetString(1), Descripcion:=rd.GetString(2), Unidad:=rd.GetString(3)), "ids", ids)
+                Return (Almacen:=CStr(almacen), Empresa:=empresa, Iniciales:=iniciales, Movimientos:=movimientos, Variantes:=variantes)
+            End Function)
+
+        Dim r = Nuevo("Registro de inventario permanente valorizado")
+        r.Dato("Formato", "FORMATO 13.1: REGISTRO DE INVENTARIO PERMANENTE VALORIZADO - DETALLE DEL INVENTARIO VALORIZADO")
+        r.Dato("Periodo", If(desde.Day = 1 AndAlso hasta = desde.AddMonths(1).AddDays(-1), desde.ToString("MM/yyyy"), $"{desde:dd/MM/yyyy} al {hasta:dd/MM/yyyy}"))
+        r.Dato("RUC", If(datos.Empresa.Ruc = "", "(sin RUC registrado en la empresa)", datos.Empresa.Ruc))
+        r.Dato("Apellidos y nombres, denominacion o razon social", datos.Empresa.Nombre)
+        r.Dato("Establecimiento", datos.Almacen)
+        r.Dato("Metodo de valuacion", Sunat.TablasSunat.MetodoValuacion)
+        Dim totalEntradas As Long = 0, totalSalidas As Long = 0, totalSaldo As Long = 0
+        For Each v In datos.Variantes
+            Dim s = r.Seccion($"Codigo de la existencia: {v.Codigo} | Tipo (tabla 5): {tipo} | Descripcion: {v.Descripcion} | " &
+                              $"Unidad de medida (tabla 6): {Sunat.TablasSunat.UnidadMedida(v.Unidad)}",
+                              C("Fecha", FormatoColumna.Fecha), C("Tipo comprobante (tabla 10)"), C("Serie"), C("Numero"), C("Tipo de operacion (tabla 12)"),
+                              C("Entradas cantidad", FormatoColumna.Cantidad), C("Entradas costo unitario", FormatoColumna.Dinero), C("Entradas costo total", FormatoColumna.Dinero),
+                              C("Salidas cantidad", FormatoColumna.Cantidad), C("Salidas costo unitario", FormatoColumna.Dinero), C("Salidas costo total", FormatoColumna.Dinero),
+                              C("Saldo cantidad", FormatoColumna.Cantidad), C("Saldo costo unitario", FormatoColumna.Dinero), C("Saldo costo total", FormatoColumna.Dinero))
+            Dim ini As (Variante As Long, Cant As Long, Valor As Long) = Nothing
+            Dim cant As Long = 0, valor As Long = 0
+            If datos.Iniciales.TryGetValue(v.Id, ini) Then cant = ini.Cant : valor = ini.Valor
+            s.Agregar(desde.Date, "00", "", "SALDO INICIAL", Sunat.TablasSunat.TipoOperacion("apertura"), Nothing, Nothing, Nothing, Nothing, Nothing, Nothing,
+                      cant, Valoracion.CostoUnitarioU6(valor, cant), valor)
+            Dim entCant As Long = 0, entValor As Long = 0, salCant As Long = 0, salValor As Long = 0
+            For Each m In datos.Movimientos.Where(Function(x) x.Variante = v.Id)
+                cant += m.Signo * m.Cant
+                valor += m.Signo * m.Valor
+                Dim externo = m.Comprobante IsNot Nothing
+                Dim sn = If(externo, Sunat.TablasSunat.SerieYNumero(m.NumeroComprobante), ("", m.Numero))
+                Dim unitario = Valoracion.CostoUnitarioU6(m.Valor, m.Cant)
+                If m.Signo > 0 Then
+                    entCant += m.Cant : entValor += m.Valor
+                    s.Agregar(m.Fecha, If(externo, Sunat.TablasSunat.TipoComprobante(m.Comprobante), "00"), sn.Item1, sn.Item2, Sunat.TablasSunat.TipoOperacion(m.Tipo),
+                              m.Cant, unitario, m.Valor, Nothing, Nothing, Nothing, cant, Valoracion.CostoUnitarioU6(valor, cant), valor)
+                Else
+                    salCant += m.Cant : salValor += m.Valor
+                    s.Agregar(m.Fecha, "00", "", m.Numero, Sunat.TablasSunat.TipoOperacion(m.Tipo),
+                              Nothing, Nothing, Nothing, m.Cant, unitario, m.Valor, cant, Valoracion.CostoUnitarioU6(valor, cant), valor)
+                End If
+            Next
+            s.Totales = {"TOTALES", Nothing, Nothing, Nothing, Nothing, entCant, Nothing, entValor, salCant, Nothing, salValor, cant, Valoracion.CostoUnitarioU6(valor, cant), valor}
+            totalEntradas += entValor : totalSalidas += salValor : totalSaldo += valor
+        Next
+        r.Dato("Existencias", datos.Variantes.Count.ToString())
+        r.Dato("Total entradas (S/)", Soles(totalEntradas))
+        r.Dato("Total salidas (S/)", Soles(totalSalidas))
+        r.Dato("Saldo final valorizado (S/)", Soles(totalSaldo))
+        r.Notas.Add("Tablas de SUNAT: 5 tipo de existencia, 6 unidad de medida, 10 tipo de comprobante (00 = documento interno) y 12 tipo de operacion.")
+        r.Notas.Add("Cantidades en la unidad base del producto. Valuacion por promedio movil: entradas a su costo y salidas al costo promedio vigente (D01).")
         Return r
     End Function
 

@@ -77,6 +77,11 @@ Public Class ReportesTests
             Assert.Equal("atendido", Dato(q, "Estado"))
             Assert.Equal(U(5D), q.Secciones(0).Filas.Single()(2))
             Assert.Contains("Entregado por (almacen)", q.Firmas)
+            ' Bulto en decimales con la presentación activa (bidón de 4 L): 5 L = 1,25 bidones. Sin activa, vacío.
+            Call New ServicioCatalogo(bd.CadenaAplicacion, s).ActivarEnOperacion(bd.VarianteAceiteId)
+            Dim conBulto = reportes.Requerimiento(req).Secciones(0).Filas.Single()
+            Assert.Equal(U(1.25D), conBulto(5))
+            Assert.Equal("bidon", conBulto(6))
 
             ' Kárdex de la botella: apertura 10 L, entrega 5 L, saldo 5 L a S/8.
             Dim k = reportes.Kardex(bd.A.AlmacenId, botella, Fecha, Fecha)
@@ -113,6 +118,54 @@ Public Class ReportesTests
             Dim cocina As New ServicioReportes(bd.CadenaAplicacion, bd.Sesion("A", "cocina", "Cocina-Clave-2026"))
             Assert.Equal("SIN_PERMISO", Assert.Throws(Of ReglaNegocioException)(Function() cocina.Inventario(inv, True)).Codigo)
             Assert.Equal("Minuta Almuerzo 2026-10-02", cocina.MinutaDelDia(minuta).Titulo)
+        End Using
+    End Sub
+
+    <FactPostgres>
+    Public Sub El_registro_de_inventario_permanente_valorizado_sale_en_el_formato_13_1_de_SUNAT()
+        Using bd = BaseDatosPrueba.Crear()
+            bd.EjecutarAdmin("UPDATE empresa SET identificacion_fiscal = '20100000001' WHERE codigo = 'A'")
+            Dim s = bd.Sesion("A")
+            Dim stock As New ServicioStock(bd.CadenaAplicacion, s)
+            ' Saldo inicial al 30/09: 10 L a S/ 8. En octubre entra 5 L a S/ 10 y salen 4 L a producción.
+            stock.Contabilizar(New DocumentoStockNuevo(bd.A.AlmacenId, TipoDocumentoStock.Apertura, New Date(2026, 9, 30), "AP-1",
+                                                       {New LineaDocumentoStock(bd.VarianteAceiteId, U(10D), U(8D))}))
+            stock.Contabilizar(New DocumentoStockNuevo(bd.A.AlmacenId, TipoDocumentoStock.Recepcion, New Date(2026, 10, 1), "RC-1",
+                                                       {New LineaDocumentoStock(bd.VarianteAceiteId, U(5D), U(10D))}))
+            Call New ServicioAlmacen(bd.CadenaAplicacion, s).SalidaProduccion(bd.A.AlmacenId, New Date(2026, 10, 2),
+                                                                             {New LineaSalida With {.VarianteId = bd.VarianteAceiteId, .CantidadBaseU6 = U(4D)}})
+            Dim reportes As New ServicioReportes(bd.CadenaAplicacion, s)
+            Dim r = reportes.RegistroInventarioPermanente(bd.A.AlmacenId, New Date(2026, 10, 1), New Date(2026, 10, 31))
+
+            Assert.StartsWith("FORMATO 13.1", Dato(r, "Formato"))
+            Assert.Equal("10/2026", Dato(r, "Periodo"))
+            Assert.Equal("20100000001", Dato(r, "RUC"))
+            Assert.Equal("PROMEDIO PONDERADO (MOVIL)", Dato(r, "Metodo de valuacion"))
+            Dim sec = r.Secciones.Single()
+            Assert.Contains("ACE-A-4L", sec.Titulo)
+            Assert.Contains("03 MATERIAS PRIMAS", sec.Titulo)
+            Assert.Contains("08 LITROS", sec.Titulo)
+            Assert.Equal(3, sec.Filas.Count)
+            ' Saldo inicial (tabla 12: 16), compra (02) y salida a producción (10), con saldo corrido al promedio móvil.
+            Assert.Equal("SALDO INICIAL|16 SALDO INICIAL|" & U(10D) & "|" & U(80D), String.Join("|", sec.Filas(0)(3), sec.Filas(0)(4), sec.Filas(0)(11), sec.Filas(0)(13)))
+            Assert.Equal("02 COMPRA|" & U(5D) & "|" & U(50D) & "|" & U(15D) & "|" & U(130D),
+                         String.Join("|", sec.Filas(1)(4), sec.Filas(1)(5), sec.Filas(1)(7), sec.Filas(1)(11), sec.Filas(1)(13)))
+            Dim salida = sec.Filas(2)
+            Assert.Equal("10 SALIDA A PRODUCCION", salida(4))
+            Assert.Equal(U(4D), salida(8))
+            Assert.Equal(34.67D, Math.Round(EscalaU6.ADecimal(CLng(salida(10))), 2))      ' 4 L × 8,6667
+            Assert.Equal(U(11D), salida(11))
+            Assert.Equal(U(130D) - CLng(salida(10)), salida(13))
+            Assert.Equal(U(5D), sec.Totales(5))
+            Assert.Equal(U(4D), sec.Totales(8))
+            Assert.Contains("FORMATO 13.1", r.ACsv())
+
+            ' Sin movimientos ni saldo en el periodo anterior al primer documento: no hay existencias.
+            Assert.Empty(reportes.RegistroInventarioPermanente(bd.A.AlmacenId, New Date(2026, 8, 1), New Date(2026, 8, 31)).Secciones)
+            Assert.Equal("DATO_INVALIDO", Assert.Throws(Of ReglaNegocioException)(
+                Function() reportes.RegistroInventarioPermanente(bd.A.AlmacenId, New Date(2026, 10, 1), New Date(2026, 10, 31), "07")).Codigo)
+            Assert.Equal("OPERACION_AJENA", Assert.Throws(Of ReglaNegocioException)(
+                Function() New ServicioReportes(bd.CadenaAplicacion, s).RegistroInventarioPermanente(bd.B.AlmacenId, New Date(2026, 10, 1), New Date(2026, 10, 31))).Codigo)
         End Using
     End Sub
 

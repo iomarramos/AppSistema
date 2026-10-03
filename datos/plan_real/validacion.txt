@@ -1,5 +1,5 @@
 Costo Plan. Teorico - Plan. Real - Realizado (Alimentación) 08/2026
-Menú: 10404 platos en 521 días-servicio (REAL ALMUERZO: 92, REAL CENA: 61, REAL DESAYUNO: 92, TEORICO ALMUERZO: 92, TEORICO CENA: 92, TEORICO DESAYUNO: 92)
+Menú: 11046 platos en 552 días-servicio (REAL ALMUERZO: 92, REAL CENA: 92, REAL DESAYUNO: 92, TEORICO ALMUERZO: 92, TEORICO CENA: 92, TEORICO DESAYUNO: 92)
 Comparativo: 465 filas por día en 10 servicios
 Requisición: 2778 líneas de producto, 57 servicios-día, 230 recetas
 Productos de la requisición enlazados al catálogo por descripción: 256 de 256
@@ -7,15 +7,16 @@ Recetas SGP enlazadas a las recetas cargadas por nombre: 553 de 628
 
 Verificaciones:
 OK  Teórico: costo minuta día = Σ(raciones × costo por ración) ÷ comensales (±0,02): 276 de 276
-OK  Plan real: Por.(%) = raciones ÷ comensales (±0,0005): 4884 de 4884
-OK  Plan real: costo minuta día = Σ(raciones × costo por ración) ÷ comensales (±0,02): 245 de 245
+OK  Plan real: Por.(%) = raciones ÷ comensales (±0,0005): 5526 de 5526
+OK  Plan real: costo minuta día = Σ(raciones × costo por ración) ÷ comensales (±0,02): 276 de 276
 OK  Comparativo: desviación plan = costo bandeja real − teórico: 465 de 465
 OK  Comparativo: desviación realizado = costo bandeja realizado − real (días con realizado): 465 de 465
 OK  Comparativo: costo bandeja = costo total ÷ raciones: 465 de 465
 OK  Comparativo teorico = costo minuta día del menú: 192 de 192
-OK  Comparativo real = costo minuta día del menú: 189 de 189
+OK  Comparativo real = costo minuta día del menú: 192 de 192
 OK  Requisición: despacho = cantidad bruta por ración × raciones (con el redondeo a 4 decimales): 2778 de 2778
-OK  Requisición: raciones = las del plan real del mismo servicio, día y receta: 254 de 254 — 7 servicios-día de la requisición no tienen plan real en el archivo
+OK  Requisición: raciones = las del plan real del mismo servicio, día y receta: 380 de 380
+OK  Costo piso y techo por factores: los días de cada servicio y mes quedan dentro de su banda (552 de 552)
 
 Observaciones:
-Hoja7: el bloque de la fila 65 repite el mes 2026-08 con el mismo contenido (se omite; falta el otro mes)
+MENU_REAL_Y__TEORICO.xlsx / Hoja7: el bloque de la fila 65 repite REAL CENA 2026-08 con el mismo contenido (se omite)

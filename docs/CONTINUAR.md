@@ -1,6 +1,6 @@
 # Cómo continuar (traspaso a una nueva conversación)
 
-Actualizado: 2026-10-03, 09:55 hora de Lima (14:55 UTC).
+Actualizado: 2026-10-03, 10:40 hora de Lima (15:40 UTC).
 
 | | |
 |---|---|
@@ -43,7 +43,7 @@ Plataforma: VB.NET + WinForms en Windows 10+ y PostgreSQL. Unas 20 PC; falta con
 | Reportes imprimibles y exportables (minuta del día, requerimiento, kárdex, inventario, stock valorizado) | Hecho: se imprimen desde el navegador o se exportan a CSV para Excel |
 | Interfaz WinForms | **Compila, pero nunca se ejecutó en Windows.** Réplica visual de las pantallas: https://claude.ai/artifact/LqViLBPDyFwUqMktDxNqaz |
 
-Última batería de pruebas: 69 aserciones SQL, 96 de dominio, 97 de integración e instalador de punta a punta, todo verde. Migraciones V001–V021.
+Última batería de pruebas: 69 aserciones SQL, 98 de dominio, 98 de integración e instalador de punta a punta, todo verde. Migraciones V001–V021.
 
 ## Decisiones del usuario (no reabrir)
 
@@ -83,6 +83,11 @@ Plataforma: VB.NET + WinForms en Windows 10+ y PostgreSQL. Unas 20 PC; falta con
   * **existe un almacén central** y las sedes se agrupan en **Costa, Sierra y Selva** (`operacion.zona`; un rol puede valer en toda su zona);
   * **"el sistema debe permitir retrasos"**: el corte del requerimiento interno es configurable por operación y no bloquea; lo tardío se acepta marcado como TARDÍO (hora, persona, motivo), y la distribución desde el central usa un tiempo de llegada por zona;
   * la liberación funciona primero en el mismo servidor; el canal remoto a otras sedes queda para la fase 3b.
+* **Modelo del SGP (2026-10-03):**
+  * costo **piso y techo** por factores: piso = Σ factor × ración más barata del componente; techo = Σ factor × la más cara (alerta, no bloquea);
+  * el **bulto** de la requisición va en **decimales**;
+  * el **registro de inventario permanente valorizado** sale en el **formato 13.1 de SUNAT**;
+  * los **nutrientes** van desde el inicio; se calculan por receta cuando llegue la tabla de composición.
 * **D10 (2026-10-03):** por ahora es **una sola sede**, pero puede ampliarse a varias. Se mantiene un servidor por sede con la central opcional, y el resultado consolidado de varias sedes queda para cuando se amplíe.
 
 ## Propuestas aplicadas que falta confirmar
@@ -92,7 +97,7 @@ Plataforma: VB.NET + WinForms en Windows 10+ y PostgreSQL. Unas 20 PC; falta con
 
 ## Preguntas abiertas al usuario
 
-0. **Modelo del SGP (`datos/plan_real/LEEME.md`):** el plan real de la cena de octubre (la `Hoja7` repite agosto); tabla de nutrientes y % de aprovechamiento y cocción; costo piso y techo por servicio; requisición con bulto fraccionado o presentación completa (D12).
+0. **Nutrientes:** ningún Excel recibido trae valores (solo la captura de la ventana "Aporte"). Hace falta la tabla de composición por ingrediente (energía, agua, proteínas, grasa, carbohidratos…, por 100 g) y los % de aprovechamiento y cocción; con eso se calcula el aporte de cada receta.
 0. **Hora de corte por defecto del requerimiento interno** (se permiten retrasos: lo tardío se acepta marcado) y **días de llegada desde el almacén central a Costa, Sierra y Selva**.
 
 1. Revisar `datos/real/ingredientes_por_revisar.csv`: 85 ingredientes de receta sin producto seguro. Los principales:

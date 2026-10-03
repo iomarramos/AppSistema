@@ -62,6 +62,31 @@ Namespace Calculos
             Return EscalaU6.MultiplicarDividir(raciones, 10000, comensales)
         End Function
 
+        ''' <summary>
+        ''' Costo piso y techo del servicio según sus factores (usuario, 2026-10-03): el factor de cada componente es
+        ''' Σ raciones ÷ Σ comensales del periodo; piso = Σ factor × la ración más barata del componente y techo = Σ factor ×
+        ''' la más cara. Con los menús del SGP de agosto a octubre, los 552 días quedan dentro de su banda
+        ''' (datos/plan_real/costo_piso_techo.csv). Nothing sin comensales.
+        ''' </summary>
+        Public Function BandaCosto(componentes As IEnumerable(Of (Raciones As Long, CostoMinimoU6 As Long, CostoMaximoU6 As Long)),
+                                   comensales As Long) As (PisoU6 As Long, TechoU6 As Long)?
+            If comensales <= 0 Then Return Nothing
+            Dim piso As Long = 0, techo As Long = 0
+            For Each c In componentes
+                If c.Raciones < 0 OrElse c.CostoMinimoU6 < 0 OrElse c.CostoMaximoU6 < c.CostoMinimoU6 Then
+                    Throw New ReglaNegocioException("DATO_INVALIDO", "Raciones y costos deben ser validos (minimo <= maximo).")
+                End If
+                piso += c.Raciones * c.CostoMinimoU6
+                techo += c.Raciones * c.CostoMaximoU6
+            Next
+            Return (EscalaU6.MultiplicarDividir(piso, 1, comensales), EscalaU6.MultiplicarDividir(techo, 1, comensales))
+        End Function
+
+        ''' <summary>True si el costo bandeja del día está entre el piso y el techo (incluidos). Sirve para alertar, no bloquea.</summary>
+        Public Function DentroDeBanda(costoBandejaU6 As Long, banda As (PisoU6 As Long, TechoU6 As Long)) As Boolean
+            Return costoBandejaU6 >= banda.PisoU6 AndAlso costoBandejaU6 <= banda.TechoU6
+        End Function
+
         Public Function Comparar(teorico As NivelCosto, planReal As NivelCosto, realizado As NivelCosto?) As ComparativoTresNiveles
             Dim r As New ComparativoTresNiveles With {.Teorico = teorico, .PlanReal = planReal}
             Dim cbt = teorico.CostoBandejaU6, cbp = planReal.CostoBandejaU6
