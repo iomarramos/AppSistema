@@ -12,6 +12,13 @@ Public NotInheritable Class EstructuraDto
     Public Property Codigo As String
     Public Property Nombre As String
     Public Property Orden As Long
+    ''' <summary>Parte de los comensales que consume el componente (10000 = 100 %).</summary>
+    Public Property FactorConsumoBp As Long = 10000
+    Public ReadOnly Property FactorConsumoTexto As String
+        Get
+            Return (FactorConsumoBp / 100D).ToString("0.##") & " %"
+        End Get
+    End Property
 End Class
 
 ''' <summary>Servicio + régimen que presta la operación de la sesión (a lo que se asigna una minuta).</summary>
@@ -22,6 +29,13 @@ Public NotInheritable Class OperacionServicioDto
     Public Property RegimenId As Long
     Public Property RegimenNombre As String
     Public Property CostoObjetivoRacionU6 As Long?
+    ''' <summary>Food Cost objetivo (48 % = 4800); Nothing = 48 % por defecto.</summary>
+    Public Property FoodCostObjetivoBp As Long?
+    Public ReadOnly Property FoodCostObjetivoTexto As String
+        Get
+            Return If(FoodCostObjetivoBp.HasValue, (FoodCostObjetivoBp.Value / 100D).ToString("0.##") & " %", "48 % (por defecto)")
+        End Get
+    End Property
 End Class
 
 Public NotInheritable Class RecetaDto
@@ -92,6 +106,23 @@ Public NotInheritable Class MinutaDto
     Public Property Comensales As Long
     Public Property Estado As String
     Public Property MonedaCosteo As String
+    ''' <summary>Costo previsto de la estructura (al aprobar).</summary>
+    Public Property CostoPrevistoU6 As Long?
+    ''' <summary>Venta = costo previsto / Food Cost objetivo (al aprobar).</summary>
+    Public Property VentaPrevistaU6 As Long?
+    Public Property FoodCostObjetivoBp As Long?
+    Public ReadOnly Property PrecioVentaComensalU6 As Long?
+        Get
+            If Not VentaPrevistaU6.HasValue OrElse Comensales <= 0 Then Return Nothing
+            Return AppSistema.Dominio.Numerico.EscalaU6.MultiplicarDividir(VentaPrevistaU6.Value, 1, Comensales)
+        End Get
+    End Property
+    Public ReadOnly Property CostoComensalU6 As Long?
+        Get
+            If Not CostoPrevistoU6.HasValue OrElse Comensales <= 0 Then Return Nothing
+            Return AppSistema.Dominio.Numerico.EscalaU6.MultiplicarDividir(CostoPrevistoU6.Value, 1, Comensales)
+        End Get
+    End Property
 End Class
 
 Public NotInheritable Class PlatoDto

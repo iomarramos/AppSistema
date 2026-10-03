@@ -60,7 +60,8 @@ Public Class FormMinutas
     Private Sub CargarMinutas()
         Ui.Ejecutar(Me, Sub() Ui.Mostrar(_minutas, _servicio.ListarMinutas(_desde.Value, _hasta.Value),
                                          "Fecha|Fecha", "ServicioNombre|Servicio", "RegimenNombre|Regimen", "Comensales|Comensales",
-                                         "Estado|Estado", "MonedaCosteo|Moneda"))
+                                         "Estado|Estado", "MonedaCosteo|Moneda", "CostoPrevistoU6|Costo previsto", "CostoComensalU6|Costo por comensal",
+                                         "VentaPrevistaU6|Venta (costo / FC objetivo)", "PrecioVentaComensalU6|Precio de venta por comensal"))
     End Sub
 
     Private Sub CargarDetalle()
@@ -108,12 +109,18 @@ Public Class FormMinutas
                 Dim recetas = _recetas.BuscarRecetas("").Where(Function(r) r.VersionAprobadaId.HasValue).ToList()
                 If estructuras.Count = 0 OrElse recetas.Count = 0 Then Ui.Informar(Me, "Faltan estructuras del servicio o recetas aprobadas.") : Return
                 Using d As New DialogoCampos("Agregar plato")
-                    d.Opciones("estructura", "Estructura", estructuras.Select(Function(x) CObj(New Opcion(Of EstructuraDto)(x, x.Nombre)))) _
+                    d.Opciones("estructura", "Estructura", estructuras.Select(Function(x) CObj(New Opcion(Of EstructuraDto)(x, $"{x.Nombre} (factor {x.FactorConsumoTexto})")))) _
                      .Opciones("receta", "Receta (version aprobada)", recetas.Select(Function(x) CObj(New Opcion(Of RecetaDto)(x, $"{x.Codigo} - {x.Nombre} (v{x.VersionAprobada})")))) _
-                     .Texto("raciones", "Raciones", m.Comensales.ToString())
+                     .Texto("reparto", "Reparto de la alternativa % (jugo A 50 + jugo B 50)", "100") _
+                     .Texto("raciones", "Raciones (vacio = comensales x factor x reparto)", "")
                     If d.ShowDialog(Me) <> DialogResult.OK Then Return
-                    _servicio.AgregarPlato(m.Id, d.Elegido(Of Opcion(Of EstructuraDto))("estructura").Valor.Id,
-                                           d.Elegido(Of Opcion(Of RecetaDto))("receta").Valor.VersionAprobadaId.Value, Ui.LeerEntero(d.Valor("raciones"), "raciones"))
+                    Dim estructura = d.Elegido(Of Opcion(Of EstructuraDto))("estructura").Valor.Id
+                    Dim version = d.Elegido(Of Opcion(Of RecetaDto))("receta").Valor.VersionAprobadaId.Value
+                    If d.Valor("raciones") = "" Then
+                        _servicio.AgregarPlatoPorFactor(m.Id, estructura, version, FormServicios.PorcentajeABp(d.Valor("reparto"), "reparto"))
+                    Else
+                        _servicio.AgregarPlato(m.Id, estructura, version, Ui.LeerEntero(d.Valor("raciones"), "raciones"))
+                    End If
                 End Using
             End Sub)
         CargarDetalle()

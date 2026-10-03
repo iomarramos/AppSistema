@@ -35,12 +35,31 @@ Public NotInheritable Class ServicioMinutas
     End Function
 
     ''' <summary>Componente del servicio (sopa, fondo, bebida…) en el orden en que se sirve.</summary>
-    Public Function CrearEstructura(servicioId As Long, codigo As String, nombre As String, orden As Long) As Long
+    ''' <param name="factorConsumoBp">Qué parte de los comensales consume el componente (100 % = 10000; complementos 30–70 %).</param>
+    Public Function CrearEstructura(servicioId As Long, codigo As String, nombre As String, orden As Long, Optional factorConsumoBp As Long = 10000) As Long
         Return EnTransaccion(Permisos.MenusConfigurar,
-            Function(u) u.EscalarLong("INSERT INTO estructura_servicio(empresa_id, servicio_id, codigo, nombre, orden) VALUES (@e, @s, @c, @n, @o) RETURNING id",
+            Function(u) u.EscalarLong("INSERT INTO estructura_servicio(empresa_id, servicio_id, codigo, nombre, orden, factor_consumo_bp) VALUES (@e, @s, @c, @n, @o, @f) RETURNING id",
                                       "e", Sesion.EmpresaId, "s", servicioId, "c", ServicioAdministracion.Requerido(codigo, "codigo"),
-                                      "n", ServicioAdministracion.Requerido(nombre, "nombre"), "o", orden))
+                                      "n", ServicioAdministracion.Requerido(nombre, "nombre"), "o", orden, "f", factorConsumoBp))
     End Function
+
+    ''' <summary>Cambia el factor de consumo del componente (aplica a las minutas que se planifiquen después).</summary>
+    Public Sub FijarFactorConsumo(estructuraId As Long, factorConsumoBp As Long)
+        EnTransaccion(Permisos.MenusConfigurar,
+            Function(u) ServicioRecetas.ExigirFila(u.Ejecutar("UPDATE estructura_servicio SET factor_consumo_bp = @f WHERE id = @id", "f", factorConsumoBp, "id", estructuraId)))
+    End Sub
+
+    ''' <summary>Food Cost objetivo del servicio en la operación (48 % = 4800; vacío = 48 % por defecto).</summary>
+    Public Sub FijarFoodCostObjetivo(operacionServicioId As Long, objetivoBp As Long?)
+        If objetivoBp.HasValue AndAlso (objetivoBp.Value <= 0 OrElse objetivoBp.Value > 10000) Then Throw New ReglaNegocioException("DATO_INVALIDO", "El objetivo va de 0,01 % a 100 %.")
+        Dim op = OperacionId
+        EnTransaccion(Permisos.MenusConfigurar,
+            Function(u)
+                ExigirServicioDeOperacion(u, operacionServicioId, op)
+                Return u.Ejecutar("UPDATE operacion_servicio SET food_cost_objetivo_bp = @b WHERE id = @os",
+                                  "b", If(objetivoBp.HasValue, CObj(objetivoBp.Value), Nothing), "os", operacionServicioId)
+            End Function)
+    End Sub
 
     ''' <summary>La operación de la sesión presta este servicio con este régimen.</summary>
     Public Function AsignarServicio(servicioId As Long, regimenId As Long, costoObjetivoRacionU6 As Long?) As Long
@@ -69,20 +88,21 @@ Public NotInheritable Class ServicioMinutas
 
     Public Function ListarEstructuras(servicioId As Long) As List(Of EstructuraDto)
         Return EnTransaccion(Permisos.MenusVer,
-            Function(u) u.Consultar("SELECT id, servicio_id, codigo, nombre, orden FROM estructura_servicio WHERE servicio_id = @s ORDER BY orden, id",
+            Function(u) u.Consultar("SELECT id, servicio_id, codigo, nombre, orden, factor_consumo_bp FROM estructura_servicio WHERE servicio_id = @s ORDER BY orden, id",
                                     Function(rd) New EstructuraDto With {.Id = rd.GetInt64(0), .ServicioId = rd.GetInt64(1), .Codigo = rd.GetString(2),
-                                                                         .Nombre = rd.GetString(3), .Orden = rd.GetInt64(4)}, "s", servicioId))
+                                                                         .Nombre = rd.GetString(3), .Orden = rd.GetInt64(4), .FactorConsumoBp = rd.GetInt64(5)}, "s", servicioId))
     End Function
 
     Public Function ListarServiciosDeOperacion() As List(Of OperacionServicioDto)
         Dim op = OperacionId
         Return EnTransaccion(Permisos.MenusVer,
             Function(u) u.Consultar(
-                "SELECT os.id, s.id, s.nombre, r.id, r.nombre, os.costo_objetivo_racion_u6 FROM operacion_servicio os " &
+                "SELECT os.id, s.id, s.nombre, r.id, r.nombre, os.costo_objetivo_racion_u6, os.food_cost_objetivo_bp FROM operacion_servicio os " &
                 "JOIN servicio s ON s.id = os.servicio_id JOIN regimen r ON r.id = os.regimen_id WHERE os.operacion_id = @o ORDER BY s.nombre, r.nombre",
                 Function(rd) New OperacionServicioDto With {.Id = rd.GetInt64(0), .ServicioId = rd.GetInt64(1), .ServicioNombre = rd.GetString(2),
                                                            .RegimenId = rd.GetInt64(3), .RegimenNombre = rd.GetString(4),
-                                                           .CostoObjetivoRacionU6 = If(rd.IsDBNull(5), CType(Nothing, Long?), rd.GetInt64(5))}, "o", op))
+                                                           .CostoObjetivoRacionU6 = If(rd.IsDBNull(5), CType(Nothing, Long?), rd.GetInt64(5)),
+                                                           .FoodCostObjetivoBp = If(rd.IsDBNull(6), CType(Nothing, Long?), rd.GetInt64(6))}, "o", op))
     End Function
 
     ' ---------- Minutas ----------
@@ -110,6 +130,24 @@ Public NotInheritable Class ServicioMinutas
                                      "VALUES (@e, @m, @s, @v, @r) RETURNING id",
                                      "e", Sesion.EmpresaId, "m", minutaId, "s", estructuraId, "v", recetaVersionId, "r", raciones)
             End Function)
+    End Function
+
+    ''' <summary>
+    ''' Agrega la alternativa con raciones = comensales × factor del componente × reparto (p. ej. jugo A 50 % y jugo B 50 %).
+    ''' </summary>
+    Public Function AgregarPlatoPorFactor(minutaId As Long, estructuraId As Long, recetaVersionId As Long, Optional repartoBp As Long = 10000) As Long
+        Dim op = OperacionId
+        Dim raciones = EnTransaccion(Permisos.MinutasEditar,
+            Function(u)
+                ExigirMinutaDeOperacion(u, minutaId, op)
+                Dim comensales = u.EscalarLong("SELECT comensales FROM minuta WHERE id = @m", "m", minutaId)
+                Dim factor = u.Escalar("SELECT es.factor_consumo_bp FROM estructura_servicio es JOIN operacion_servicio os ON os.servicio_id = es.servicio_id " &
+                                       "JOIN minuta m ON m.operacion_servicio_id = os.id WHERE m.id = @m AND es.id = @es", "m", minutaId, "es", estructuraId)
+                If factor Is Nothing Then Throw New ReglaNegocioException("ESTRUCTURA_DE_OTRO_SERVICIO", "El componente no pertenece al servicio de la minuta.")
+                Return VentaEstructura.Raciones(comensales, CLng(factor), repartoBp)
+            End Function)
+        If raciones <= 0 Then Throw New ReglaNegocioException("CANTIDAD_INVALIDA", "Con ese factor y reparto no quedan raciones.")
+        Return AgregarPlato(minutaId, estructuraId, recetaVersionId, raciones)
     End Function
 
     Public Sub QuitarPlato(platoId As Long)
@@ -170,7 +208,18 @@ Public NotInheritable Class ServicioMinutas
                     u.Ejecutar("UPDATE minuta_estructura_fija SET costo_previsto_unitario_u6 = @c WHERE id = @id",
                                "c", CosteoBD.CostoProducto(u, f.Producto, fecha, moneda), "id", f.Id)
                 Next
-                Return u.Ejecutar("UPDATE minuta SET estado = 'aprobada', moneda_costeo = @mo WHERE id = @m", "mo", moneda.Trim(), "m", minutaId)
+                ' Costo previsto de la estructura y venta = costo / Food Cost objetivo (D13). Con algún costo pendiente no se inventa la venta.
+                Dim costoTotal = u.Escalar(
+                    "SELECT CASE WHEN bool_and(x.c IS NOT NULL) THEN sum(x.c) END FROM (" &
+                    "  SELECT d.costo_previsto_racion_u6 * d.raciones AS c FROM minuta_detalle d WHERE d.minuta_id = @m " &
+                    "  UNION ALL SELECT round(f.costo_previsto_unitario_u6::numeric * f.cantidad_base_u6 / 1000000)::bigint FROM minuta_estructura_fija f WHERE f.minuta_id = @m) x",
+                    "m", minutaId)
+                Dim objetivo = CLng(If(u.Escalar("SELECT os.food_cost_objetivo_bp FROM minuta m JOIN operacion_servicio os ON os.id = m.operacion_servicio_id WHERE m.id = @m",
+                                                 "m", minutaId), VentaEstructura.ObjetivoPorDefectoBp))
+                Dim costoU6 = If(costoTotal Is Nothing, CType(Nothing, Long?), Convert.ToInt64(costoTotal))
+                Return u.Ejecutar("UPDATE minuta SET estado = 'aprobada', moneda_costeo = @mo, costo_previsto_u6 = @c, venta_prevista_u6 = @v, food_cost_objetivo_bp = @o WHERE id = @m",
+                                  "mo", moneda.Trim(), "c", If(costoU6.HasValue, CObj(costoU6.Value), Nothing),
+                                  "v", If(costoU6.HasValue, CObj(VentaEstructura.Venta(costoU6.Value, objetivo)), Nothing), "o", objetivo, "m", minutaId)
             End Function)
     End Sub
 
@@ -178,12 +227,15 @@ Public NotInheritable Class ServicioMinutas
         Dim op = OperacionId
         Return EnTransaccion(Permisos.MenusVer,
             Function(u) u.Consultar(
-                "SELECT m.id, m.operacion_servicio_id, s.nombre, r.nombre, m.fecha, m.comensales, m.estado, m.moneda_costeo FROM minuta m " &
+                "SELECT m.id, m.operacion_servicio_id, s.nombre, r.nombre, m.fecha, m.comensales, m.estado, m.moneda_costeo, m.costo_previsto_u6, m.venta_prevista_u6, " &
+                "m.food_cost_objetivo_bp FROM minuta m " &
                 "JOIN operacion_servicio os ON os.id = m.operacion_servicio_id JOIN servicio s ON s.id = os.servicio_id JOIN regimen r ON r.id = os.regimen_id " &
                 "WHERE os.operacion_id = @o AND m.fecha BETWEEN @d AND @h ORDER BY m.fecha, s.nombre",
                 Function(rd) New MinutaDto With {.Id = rd.GetInt64(0), .OperacionServicioId = rd.GetInt64(1), .ServicioNombre = rd.GetString(2),
                                                  .RegimenNombre = rd.GetString(3), .Fecha = rd.GetDateTime(4), .Comensales = rd.GetInt64(5),
-                                                 .Estado = rd.GetString(6), .MonedaCosteo = rd.TextoONada("moneda_costeo")},
+                                                 .Estado = rd.GetString(6), .MonedaCosteo = rd.TextoONada("moneda_costeo"),
+                                                 .CostoPrevistoU6 = rd.LongONada("costo_previsto_u6"), .VentaPrevistaU6 = rd.LongONada("venta_prevista_u6"),
+                                                 .FoodCostObjetivoBp = rd.LongONada("food_cost_objetivo_bp")},
                 "o", op, "d", desde.Date, "h", hasta.Date))
     End Function
 

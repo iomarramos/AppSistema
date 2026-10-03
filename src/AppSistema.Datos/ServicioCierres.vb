@@ -152,9 +152,53 @@ Public NotInheritable Class ServicioCierres
             End Function)
     End Sub
 
+    ''' <summary>
+    ''' Venta del mes de cada servicio desde la estructura (D13): suma de la venta prevista de sus minutas aprobadas
+    ''' (costo previsto / Food Cost objetivo). No reemplaza un ingreso manual ni uno de contrato. Repetible.
+    ''' </summary>
+    Public Function GenerarVentaDesdeMinutas(anio As Integer, mes As Integer) As List(Of IngresoGeneradoDto)
+        Dim o = Op
+        Return EnTransaccion(Permisos.CierreEjecutar,
+            Function(u)
+                Dim periodoId = Periodo(u, o, anio, mes)
+                Dim desde As New Date(anio, mes, 1), hasta = New Date(anio, mes, 1).AddMonths(1).AddDays(-1)
+                Dim r As New List(Of IngresoGeneradoDto)
+                For Each s In u.Consultar(
+                    "SELECT os.id, s.nombre || ' - ' || rg.nombre, i.origen, " &
+                    "  count(m.id) AS minutas, count(m.id) FILTER (WHERE m.venta_prevista_u6 IS NULL) AS sin_venta, COALESCE(sum(m.venta_prevista_u6), 0)::bigint AS venta, " &
+                    "  string_agg(DISTINCT (m.food_cost_objetivo_bp / 100.0)::numeric(6,2)::text, ', ') AS objetivos " &
+                    "FROM operacion_servicio os JOIN servicio s ON s.id = os.servicio_id JOIN regimen rg ON rg.id = os.regimen_id " &
+                    "LEFT JOIN ingreso_servicio i ON i.operacion_servicio_id = os.id AND i.periodo_id = @p " &
+                    "LEFT JOIN minuta m ON m.operacion_servicio_id = os.id AND m.estado IN ('aprobada','cerrada') AND m.fecha BETWEEN @d AND @h " &
+                    "WHERE os.operacion_id = @o GROUP BY os.id, s.nombre, rg.nombre, i.origen ORDER BY 2",
+                    Function(rd) (Id:=rd.GetInt64(0), Nombre:=rd.GetString(1), Origen:=rd.TextoONada("origen"), Minutas:=rd.GetInt64(3),
+                                  SinVenta:=rd.GetInt64(4), Venta:=rd.GetInt64(5), Objetivos:=rd.TextoONada("objetivos")),
+                    "p", periodoId, "d", desde, "h", hasta, "o", o)
+                    If s.Minutas = 0 Then
+                        r.Add(New IngresoGeneradoDto With {.Servicio = s.Nombre, .Estado = "sin minutas", .Detalle = "No hay minutas aprobadas en el mes"})
+                        Continue For
+                    End If
+                    If s.Origen = "manual" OrElse s.Origen = "contrato" Then
+                        r.Add(New IngresoGeneradoDto With {.Servicio = s.Nombre, .ImporteU6 = s.Venta, .Estado = s.Origen & " conservado",
+                                                           .Detalle = $"Ya hay un ingreso de origen {s.Origen}; no se reemplaza"})
+                        Continue For
+                    End If
+                    Dim fuente = $"Estructura: {s.Minutas} minutas, Food Cost objetivo {s.Objetivos} %" &
+                                 If(s.SinVenta > 0, $"; {s.SinVenta} minutas sin venta por costo pendiente", "")
+                    u.Ejecutar("INSERT INTO ingreso_servicio(empresa_id, operacion_servicio_id, periodo_id, importe_neto_u6, ajustes_u6, moneda, fuente, origen) " &
+                               "VALUES (@e, @os, @p, @i, 0, (SELECT moneda FROM empresa WHERE id = @e), @f, 'estructura') " &
+                               "ON CONFLICT (empresa_id, operacion_servicio_id, periodo_id) DO UPDATE SET importe_neto_u6 = EXCLUDED.importe_neto_u6, fuente = EXCLUDED.fuente " &
+                               "WHERE ingreso_servicio.origen = 'estructura'",
+                               "e", Sesion.EmpresaId, "os", s.Id, "p", periodoId, "i", s.Venta, "f", fuente)
+                    r.Add(New IngresoGeneradoDto With {.Servicio = s.Nombre, .ImporteU6 = s.Venta, .Estado = If(s.SinVenta > 0, "generado con pendientes", "generado"), .Detalle = fuente})
+                Next
+                Return r
+            End Function)
+    End Function
+
     ''' <summary>Objetivo de Food Cost del servicio en puntos básicos (40 % = 4000).</summary>
     Public Sub FijarObjetivo(operacionServicioId As Long, objetivoBp As Long?)
-        If objetivoBp.HasValue AndAlso (objetivoBp.Value < 0 OrElse objetivoBp.Value > 10000) Then Throw New ReglaNegocioException("DATO_INVALIDO", "El objetivo va de 0 % a 100 %.")
+        If objetivoBp.HasValue AndAlso (objetivoBp.Value <= 0 OrElse objetivoBp.Value > 10000) Then Throw New ReglaNegocioException("DATO_INVALIDO", "El objetivo va de 0,01 % a 100 %.")
         Dim o = Op
         EnTransaccion(Permisos.CierreEjecutar,
             Function(u)
@@ -256,7 +300,7 @@ Public NotInheritable Class ServicioCierres
             "  (SELECT i.importe_neto_u6 + i.ajustes_u6 FROM ingreso_servicio i JOIN periodo_mensual pm ON pm.id = i.periodo_id " &
             "    WHERE i.operacion_servicio_id = os.id AND pm.anio = @a AND pm.mes = @m) " &
             "FROM operacion_servicio os JOIN servicio s ON s.id = os.servicio_id JOIN regimen rg ON rg.id = os.regimen_id WHERE os.operacion_id = @o ORDER BY s.nombre, rg.nombre",
-            Function(rd) (Id:=rd.GetInt64(0), Servicio:=rd.GetString(1), Regimen:=rd.GetString(2), Objetivo:=If(rd.IsDBNull(3), CType(Nothing, Long?), rd.GetInt64(3)),
+            Function(rd) (Id:=rd.GetInt64(0), Servicio:=rd.GetString(1), Regimen:=rd.GetString(2), Objetivo:=CType(If(rd.IsDBNull(3), VentaEstructura.ObjetivoPorDefectoBp, rd.GetInt64(3)), Long?),
                           Raciones:=rd.GetInt64(4), Costo:=rd.GetInt64(5), Ingreso:=If(rd.IsDBNull(6), CType(Nothing, Long?), rd.GetInt64(6))),
             "o", o, "d", desde, "h", hasta, "a", anio, "m", mes)
             Dim fc = FoodCost.Calcular(s.Costo, If(s.Ingreso, 0L), s.Objetivo)

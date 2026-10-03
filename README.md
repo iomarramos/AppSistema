@@ -45,6 +45,10 @@ Cada sede trabaja con su propio servidor: si se corta internet, las PC de la sed
 
 **Respaldo:** `AppSistema.Instalador respaldar D:\respaldos\sede.dump` (deja además `sede.dump.conciliacion`). **Restauración** en una base nueva y vacía: `AppSistema.Instalador restaurar D:\respaldos\sede.dump`, que compara recuentos, saldos y referencias con el respaldo. Si `pg_dump`/`pg_restore` no están en el PATH, indique su carpeta en `APPSISTEMA_PG_BIN` (p. ej. `C:\Program Files\PostgreSQL\16\bin`).
 
+### Venta y Food Cost (D13)
+
+En **Menús > Servicios y estructuras** cada componente del servicio (bebida, jugo, pan, fondo, complementos…) lleva su **factor de consumo** (100 % plato caliente; 30–70 % complementos) y cada servicio su **Food Cost objetivo** (48 % por defecto). En la minuta, cada alternativa se agrega con su **reparto** (jugo A 50 %, jugo B 50 %) y las raciones salen solas. Al aprobar, la minuta guarda su costo previsto y su **venta = costo / objetivo** (precio por comensal visible). En **Cierres**, *Generar venta (estructura)* carga la venta del mes y el Food Cost real queda como consumo real / venta.
+
 ### Contratos, gastos y resultado (opcional)
 
 En **Cierres > Contratos y clientes** se registran clientes y contratos con el importe mensual de cada servicio; un cambio de tarifa se registra como *ajuste* desde una fecha. *Generar ingresos del mes* calcula el ingreso de cada servicio (prorrateado por días) sin reemplazar un ingreso registrado a mano. En **Cierres > Gastos y resultado mensual** se registran gastos (personal, operación, administración, otros) y se ve el margen por servicio; *Exportar CSV* entrega el resultado con el formato de [`docs/INTEGRACION_RESULTADOS.md`](docs/INTEGRACION_RESULTADOS.md). El administrador puede crear roles propios en **Administración > Usuarios y roles**.

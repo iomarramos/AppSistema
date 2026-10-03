@@ -19,10 +19,10 @@ Public Class FormServicios
         izquierda.Controls.Add(Ui.BarraBotones(Ui.Boton("Nuevo servicio", AddressOf NuevoServicio), Ui.Boton("Nuevo regimen", AddressOf NuevoRegimen)))
         Dim derecha As New SplitContainer With {.Dock = DockStyle.Fill, .Orientation = Orientation.Horizontal}
         derecha.Panel1.Controls.Add(_estructuras)
-        derecha.Panel1.Controls.Add(Ui.BarraBotones(Ui.Boton("Nueva estructura", AddressOf NuevaEstructura)))
-        derecha.Panel1.Controls.Add(New Label With {.Text = "Estructura del servicio (orden en que se sirve)", .Dock = DockStyle.Top, .Padding = New Padding(4)})
+        derecha.Panel1.Controls.Add(Ui.BarraBotones(Ui.Boton("Nueva estructura", AddressOf NuevaEstructura), Ui.Boton("Factor de consumo...", AddressOf CambiarFactor)))
+        derecha.Panel1.Controls.Add(New Label With {.Text = "Estructura del servicio (orden en que se sirve). Factor de consumo = parte de los comensales que toma el componente.", .Dock = DockStyle.Top, .Padding = New Padding(4)})
         derecha.Panel2.Controls.Add(_operacion)
-        derecha.Panel2.Controls.Add(Ui.BarraBotones(Ui.Boton("Asignar servicio a la operacion", AddressOf Asignar)))
+        derecha.Panel2.Controls.Add(Ui.BarraBotones(Ui.Boton("Asignar servicio a la operacion", AddressOf Asignar), Ui.Boton("Food Cost objetivo...", AddressOf FijarObjetivo)))
         derecha.Panel2.Controls.Add(New Label With {.Text = "Servicios que presta " & sesion.Operacion.Nombre, .Dock = DockStyle.Top, .Padding = New Padding(4)})
         Dim division As New SplitContainer With {.Dock = DockStyle.Fill}
         division.Panel1.Controls.Add(izquierda) : division.Panel2.Controls.Add(derecha)
@@ -37,14 +37,14 @@ Public Class FormServicios
             Sub()
                 Ui.Mostrar(_servicios, _servicio.ListarServicios(), "Codigo|Codigo", "Nombre|Servicio")
                 Ui.Mostrar(_operacion, _servicio.ListarServiciosDeOperacion(), "ServicioNombre|Servicio", "RegimenNombre|Regimen",
-                           "CostoObjetivoRacionU6|Costo objetivo por racion")
+                           "CostoObjetivoRacionU6|Costo objetivo por racion", "FoodCostObjetivoTexto|Food Cost objetivo")
             End Sub)
     End Sub
 
     Private Sub CargarEstructuras()
         Dim s = Ui.Seleccionado(Of ServicioDto)(_servicios)
         If s Is Nothing Then _estructuras.DataSource = Nothing : Return
-        Ui.Ejecutar(Me, Sub() Ui.Mostrar(_estructuras, _servicio.ListarEstructuras(s.Id), "Orden|Orden", "Codigo|Codigo", "Nombre|Nombre"))
+        Ui.Ejecutar(Me, Sub() Ui.Mostrar(_estructuras, _servicio.ListarEstructuras(s.Id), "Orden|Orden", "Codigo|Codigo", "Nombre|Nombre", "FactorConsumoTexto|Factor de consumo"))
     End Sub
 
     Private Sub NuevoServicio()
@@ -68,11 +68,40 @@ Public Class FormServicios
         Dim s = Ui.Seleccionado(Of ServicioDto)(_servicios)
         If s Is Nothing Then Ui.Informar(Me, "Seleccione un servicio.") : Return
         Using d As New DialogoCampos("Estructura de " & s.Nombre)
-            d.Texto("codigo", "Codigo").Texto("nombre", "Nombre (sopa, fondo, bebida...)").Texto("orden", "Orden", (_estructuras.Rows.Count + 1).ToString())
+            d.Texto("codigo", "Codigo").Texto("nombre", "Nombre (bebida, jugo, pan, fondo, complemento...)").Texto("orden", "Orden", (_estructuras.Rows.Count + 1).ToString()) _
+             .Texto("factor", "Factor de consumo % (100 plato caliente; 30-70 complementos)", "100")
             If d.ShowDialog(Me) <> DialogResult.OK Then Return
-            Ui.Ejecutar(Me, Sub() _servicio.CrearEstructura(s.Id, d.Valor("codigo"), d.Valor("nombre"), Ui.LeerEntero(d.Valor("orden"), "orden")))
+            Ui.Ejecutar(Me, Sub() _servicio.CrearEstructura(s.Id, d.Valor("codigo"), d.Valor("nombre"), Ui.LeerEntero(d.Valor("orden"), "orden"),
+                                                             PorcentajeABp(d.Valor("factor"), "factor")))
         End Using
         CargarEstructuras()
+    End Sub
+
+    ''' <summary>"70" o "70,5" (%) → puntos básicos.</summary>
+    Friend Shared Function PorcentajeABp(texto As String, campo As String) As Long
+        Return Ui.LeerU6(texto, campo) \ 10000L
+    End Function
+
+    Private Sub CambiarFactor()
+        Dim e = Ui.Seleccionado(Of EstructuraDto)(_estructuras)
+        If e Is Nothing Then Ui.Informar(Me, "Seleccione un componente de la estructura.") : Return
+        Using d As New DialogoCampos("Factor de consumo de " & e.Nombre)
+            d.Texto("factor", "Factor de consumo %", (e.FactorConsumoBp / 100D).ToString("0.##"))
+            If d.ShowDialog(Me) <> DialogResult.OK Then Return
+            Ui.Ejecutar(Me, Sub() _servicio.FijarFactorConsumo(e.Id, PorcentajeABp(d.Valor("factor"), "factor")))
+        End Using
+        CargarEstructuras()
+    End Sub
+
+    Private Sub FijarObjetivo()
+        Dim os = Ui.Seleccionado(Of OperacionServicioDto)(_operacion)
+        If os Is Nothing Then Ui.Informar(Me, "Seleccione un servicio de la operacion.") : Return
+        Using d As New DialogoCampos($"Food Cost objetivo de {os.ServicioNombre} - {os.RegimenNombre}")
+            d.Texto("objetivo", "Food Cost objetivo % (vacio = 48 %)", If(os.FoodCostObjetivoBp.HasValue, (os.FoodCostObjetivoBp.Value / 100D).ToString("0.##"), ""))
+            If d.ShowDialog(Me) <> DialogResult.OK Then Return
+            Ui.Ejecutar(Me, Sub() _servicio.FijarFoodCostObjetivo(os.Id, If(d.Valor("objetivo") = "", CType(Nothing, Long?), PorcentajeABp(d.Valor("objetivo"), "objetivo"))))
+        End Using
+        Cargar()
     End Sub
 
     Private Sub Asignar()

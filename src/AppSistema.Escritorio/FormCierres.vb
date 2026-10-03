@@ -27,9 +27,9 @@ Public Class FormCierres
                                        Ui.Boton("Actualizar", AddressOf CargarDia), Ui.Boton("Cerrar dia", AddressOf CerrarDia))
         barraDia.Controls(3).Visible = cierra
         Dim barraMes = Ui.BarraBotones(New Label With {.Text = "Mes", .AutoSize = True, .Margin = New Padding(3, 9, 3, 3)}, _mes,
-                                       Ui.Boton("Reporte", AddressOf CargarMes), Ui.Boton("Registrar ingreso...", AddressOf RegistrarIngreso),
+                                       Ui.Boton("Reporte", AddressOf CargarMes), Ui.Boton("Generar venta (estructura)", AddressOf GenerarVenta), Ui.Boton("Registrar ingreso...", AddressOf RegistrarIngreso),
                                        Ui.Boton("Objetivo Food Cost...", AddressOf FijarObjetivo), Ui.Boton("Cerrar mes", AddressOf CerrarMes))
-        For i = 3 To 5 : barraMes.Controls(i).Visible = cierra : Next
+        For i = 3 To 6 : barraMes.Controls(i).Visible = cierra : Next
 
         Dim division As New SplitContainer With {.Dock = DockStyle.Fill, .Orientation = Orientation.Horizontal, .SplitterDistance = 220}
         division.Panel1.Controls.Add(_pendientes)
@@ -41,7 +41,7 @@ Public Class FormCierres
         division.Panel2.Controls.Add(barraMes)
         Controls.Add(division)
         Controls.Add(New Label With {.Dock = DockStyle.Top, .Height = 34, .Padding = New Padding(4),
-            .Text = "Food Cost = costo de alimentos consumidos / ingreso neto del servicio en el mes. Sin ingreso no se calcula. Un dia o mes cerrado ya no admite cambios."})
+            .Text = "Food Cost = costo de alimentos consumidos / venta del servicio. La venta sale de la estructura: costo previsto de las minutas / Food Cost objetivo (48 % por defecto). Un dia o mes cerrado ya no admite cambios."})
         AddHandler _fecha.ValueChanged, Sub() CargarDia()
         AddHandler _mes.ValueChanged, Sub() CargarMes()
         AddHandler Load, Sub()
@@ -98,6 +98,12 @@ Public Class FormCierres
                                 "No se cerro el dia:" & vbCrLf & String.Join(vbCrLf, r.Pendientes.Where(Function(p) p.Bloqueante).Select(Function(p) $"- {p.Detalle}"))))
                         End Sub)
         CargarDia()
+    End Sub
+
+    Private Sub GenerarVenta()
+        Ui.Ejecutar(Me, Sub() Ui.MostrarLista(Me, "Venta desde la estructura", $"Venta de {Mes:00}/{Anio}", _servicio.GenerarVentaDesdeMinutas(Anio, Mes),
+                                              "Servicio|Servicio", "ImporteU6|Venta", "Estado|Estado", "Detalle|Detalle"))
+        CargarMes()
     End Sub
 
     Private Function ServicioElegido() As LineaReporteServicio
