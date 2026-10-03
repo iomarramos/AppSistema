@@ -215,6 +215,8 @@ END $$;
 INSERT INTO empaque_compra(id, empresa_id, variante_id, codigo, descripcion, envases_por_empaque, minimo_empaques, multiplo_empaques)
 VALUES (2,1,2,'CAJA5','Caja 5 L',1,4,3);
 INSERT INTO proveedor(id, empresa_id, codigo, nombre) VALUES (1,1,'P1','Proveedor ejemplo');
+-- V007: el empaque del pedido debe ser uno que el proveedor ofrece.
+INSERT INTO proveedor_empaque(id, empresa_id, proveedor_id, empaque_id) VALUES (2,1,1,2);
 INSERT INTO pedido_compra(id, empresa_id, almacen_id, proveedor_id, numero, tipo, fecha, moneda, usuario_id)
 VALUES (1,1,1,1,'PED1','normal','2026-10-02','PEN',1);
 SELECT pg_temp.debe_fallar('pedido por debajo del minimo (3 < 4)',

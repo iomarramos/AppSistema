@@ -8,6 +8,7 @@ Portado del esquema SQLite v0.3 (59 tablas, 4 vistas) a PostgreSQL 16 (RNF-13).
 | `migraciones/V002__reglas_de_stock.sql` | Los 12 triggers originales en PL/pgSQL + bloqueo de saldo y signo por tipo de documento |
 | `migraciones/V003__proteccion_y_roles.sql` | Cierra las brechas H01–H03, vista de conciliación y rol `app_stock` |
 | `migraciones/V004__acceso_auditoria_aislamiento.sql` | Factor de unidades, bloqueo por intentos, funciones de acceso, auditoría automática sin secretos, presentaciones en uso protegidas, precios sin superposición y aislamiento por empresa con RLS |
+| `migraciones/V007__prevision_y_pedidos.sql` | Previsión y pedido nacen en borrador; detalle y líneas solo en borrador; estados que solo avanzan; aprobar exige líneas y aprobador; empaque ofrecido por el proveedor y del producto de la previsión; una previsión vigente por almacén y horizonte |
 | `migraciones/V006__tecnica_y_correccion_auditoria.sql` | Técnica por ingrediente; corrige `fn_auditar` (un UPDATE sin cambios fallaba fuera de la tabla usuario) |
 | `migraciones/V005__menus_y_recetas.sql` | Versión de receta aprobada inmutable, ingredientes solo en borrador, minuta aprobada inmutable (platos, fijos y costeo), solo recetas aprobadas y estructuras del mismo servicio, coherencia del costeo, auditoría del módulo |
 | `pruebas/01_verificacion.sql` | 67 aserciones (9 de la guía + brechas, signo, rollback, múltiplo, permisos, aislamiento, auditoría, T06, precios, acceso) |

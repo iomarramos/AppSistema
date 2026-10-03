@@ -16,11 +16,15 @@ Namespace Seguridad
         Public Const RecetasAprobar As String = "RECETAS_APROBAR"
         Public Const MinutasEditar As String = "MINUTAS_EDITAR"
         Public Const MinutasAprobar As String = "MINUTAS_APROBAR"
+        Public Const ComprasVer As String = "COMPRAS_VER"
+        Public Const ComprasEditar As String = "COMPRAS_EDITAR"
+        Public Const ComprasAprobar As String = "COMPRAS_APROBAR"
 
         Public ReadOnly Property Todos As IReadOnlyList(Of String) = New String() {
             CatalogoVer, CatalogoEditar, CatalogoImportar, ProveedoresEditar, PreciosEditar,
             StockContabilizar, UsuariosAdministrar, AuditoriaVer,
-            MenusVer, MenusConfigurar, RecetasEditar, RecetasAprobar, MinutasEditar, MinutasAprobar}
+            MenusVer, MenusConfigurar, RecetasEditar, RecetasAprobar, MinutasEditar, MinutasAprobar,
+            ComprasVer, ComprasEditar, ComprasAprobar}
 
         Public Function Descripcion(codigo As String) As String
             Select Case codigo
@@ -38,6 +42,9 @@ Namespace Seguridad
                 Case RecetasAprobar : Return "Aprobar y retirar versiones de receta"
                 Case MinutasEditar : Return "Planificar minutas en borrador"
                 Case MinutasAprobar : Return "Aprobar minutas (fija el costo previsto)"
+                Case ComprasVer : Return "Consultar previsiones y pedidos de compra"
+                Case ComprasEditar : Return "Calcular previsiones, fijar reservas y preparar pedidos"
+                Case ComprasAprobar : Return "Aprobar y anular pedidos de compra"
                 Case Else : Return codigo
             End Select
         End Function
@@ -62,7 +69,7 @@ Namespace Seguridad
         Public ReadOnly Property Todos As IReadOnlyList(Of RolBase) = New RolBase() {
             New RolBase(Administrador, "Administrador", Permisos.Todos),
             New RolBase("SUPERVISOR", "Supervisor", Permisos.Todos.Where(Function(p) p <> Permisos.UsuariosAdministrar)),
-            New RolBase("ALMACEN", "Almacen", {Permisos.CatalogoVer, Permisos.StockContabilizar, Permisos.MenusVer}),
+            New RolBase("ALMACEN", "Almacen", {Permisos.CatalogoVer, Permisos.StockContabilizar, Permisos.MenusVer, Permisos.ComprasVer, Permisos.ComprasEditar}),
             New RolBase("COCINA", "Cocina", {Permisos.CatalogoVer, Permisos.MenusVer, Permisos.RecetasEditar, Permisos.MinutasEditar})}
     End Module
 

@@ -57,6 +57,9 @@ Public Class FormPrincipal
         Agregar(menus, "&Servicios y estructuras", Permisos.MenusConfigurar, Function() New FormServicios(cadena, _sesion))
         Agregar(menus, "&Importar recetas...", Permisos.RecetasEditar, Function() New FormImportacion(cadena, _sesion))
 
+        Dim compras As New ToolStripMenuItem("C&ompras")
+        Agregar(compras, "&Prevision y pedidos", Permisos.ComprasVer, Function() New FormCompras(cadena, _sesion))
+
         Dim admin As New ToolStripMenuItem("&Administracion")
         Agregar(admin, "&Usuarios y roles", Permisos.UsuariosAdministrar, Function() New FormUsuarios(cadena, _sesion))
 
@@ -71,7 +74,7 @@ Public Class FormPrincipal
 
         Dim ventanas As New ToolStripMenuItem("&Ventanas")
         _menu.MdiWindowListItem = ventanas
-        _menu.Items.AddRange({catalogo, menus, admin, sesionMenu, ventanas})
+        _menu.Items.AddRange({catalogo, menus, compras, admin, sesionMenu, ventanas})
     End Sub
 
     ''' <summary>Opción de menú visible solo si el usuario tiene el permiso. Reutiliza la ventana si ya está abierta.</summary>
