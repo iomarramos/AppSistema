@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Pruebas de punta a punta de la aplicación WinForms con UI Automation (FlaUI UIA3). Solo se ejecutan en Windows
+       con APPSISTEMA_E2E=1; en Linux se compilan (EnableWindowsTargeting) para que el CI detecte errores. -->
+  <PropertyGroup>
+    <RootNamespace>AppSistema.E2E.Tests</RootNamespace>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <UseWindowsForms>true</UseWindowsForms>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="FlaUI.Core" Version="4.0.0" />
+    <PackageReference Include="FlaUI.UIA3" Version="4.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\AppSistema.Datos\AppSistema.Datos.vbproj" />
+    <ProjectReference Include="..\..\src\AppSistema.Escritorio\AppSistema.Escritorio.vbproj" />
+  </ItemGroup>
+
+</Project>

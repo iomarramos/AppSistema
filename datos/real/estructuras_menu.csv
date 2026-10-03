@@ -1,0 +1,23 @@
+servicio;orden;codigo;componente;nombre;factor_consumo_pct;alternativas_reparto_pct
+DESAYUNO;1;BEB;BEBIDA CALIENTE;Bebida caliente;100;100
+DESAYUNO;2;JUG;JUGO;Jugo;100;50+50
+DESAYUNO;3;PAN;PAN;Panes;100;100
+DESAYUNO;4;FSO;SOPA;Fondo o sopa;30;100
+DESAYUNO;5;CO1;COMPLEMENTO;Complemento 1 (jamon, aceituna, queso, palta, chicharron de prensa);70;100
+DESAYUNO;6;CO2;COMPLEMENTO;Complemento 2 (otro complemento distinto al 1);30;100
+DESAYUNO;7;HUE;HUEVO;Huevo (frito / a la orden);60;50+50
+DESAYUNO;8;UNT;UNTABLE;Mantequilla / mermelada;60;50+50
+DESAYUNO;9;FRU;FRUTA;Fruta;40;100
+DESAYUNO;10;CER;CEREAL;Cereales / yogurt;30;100
+ALMUERZO;1;ENT;ENTRADA;Entrada;100;100
+ALMUERZO;2;SOP;SOPA;Sopa;100;100
+ALMUERZO;3;FON;FONDO;Plato de fondo;100;70+30
+ALMUERZO;4;GUA;GUARNICION;Guarnicion;100;100
+ALMUERZO;5;REF;REFRESCO;Refresco;100;100
+ALMUERZO;6;POS;POSTRE;Postre;100;100
+ALMUERZO;7;SAL;SALSA Y AJI;Salsas y ajies;50;100
+CENA;1;SOP;SOPA;Sopa;100;100
+CENA;2;FON;FONDO;Plato de fondo;100;100
+CENA;3;GUA;GUARNICION;Guarnicion;100;100
+CENA;4;BEB;BEBIDA CALIENTE;Bebida caliente;100;100
+CENA;5;POS;POSTRE;Postre;100;100

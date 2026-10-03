@@ -1,0 +1,56 @@
+{
+  "tablas": 59,
+  "pruebas": [
+    {
+      "prueba": "Caja 4 × 4 litros equivale a 16 litros",
+      "resultado": "correcto"
+    },
+    {
+      "prueba": "Aislamiento de referencias entre empresas",
+      "resultado": "correcto"
+    },
+    {
+      "prueba": "Entrada y salida concilian stock y kárdex",
+      "resultado": "correcto"
+    },
+    {
+      "prueba": "Movimiento duplicado bloqueado",
+      "resultado": "correcto"
+    },
+    {
+      "prueba": "Libro de movimientos inmutable",
+      "resultado": "correcto"
+    },
+    {
+      "prueba": "Salida mayor que existencias bloqueada",
+      "resultado": "correcto"
+    },
+    {
+      "prueba": "Día cerrado bloquea contabilización",
+      "resultado": "correcto"
+    },
+    {
+      "prueba": "Conteo genera diferencia sin ajustar stock",
+      "resultado": "correcto"
+    },
+    {
+      "prueba": "Integridad y claves foráneas",
+      "resultado": "correcto"
+    }
+  ],
+  "brechas": [
+    {
+      "hallazgo": "Detalle de documento confirmado editable por SQL directo",
+      "resultado": "permitido; requiere protección adicional"
+    },
+    {
+      "hallazgo": "Saldo editable por SQL directo",
+      "resultado": "permitido; requiere protección adicional"
+    },
+    {
+      "hallazgo": "Cabecera confirmada editable por SQL directo",
+      "resultado": "permitido; requiere protección adicional"
+    }
+  ],
+  "alcance": "SQLite en memoria; no valida API, interfaz, concurrencia ni sincronización"
+}

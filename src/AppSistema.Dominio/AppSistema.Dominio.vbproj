@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- netstandard2.0: la misma biblioteca sirve para .NET Framework 4.7.2+ y para .NET moderno,
+       a la espera de definir las versiones de Windows objetivo (P-17). Sin dependencias externas. -->
+  <PropertyGroup>
+    <RootNamespace>AppSistema.Dominio</RootNamespace>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+
+</Project>

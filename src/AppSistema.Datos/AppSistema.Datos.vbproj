@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Npgsql 8 requiere .NET 6+ (Windows 10+ para el cliente de escritorio). Si P-17 exige equipos
+       anteriores habría que usar una versión antigua de Npgsql sobre .NET Framework. -->
+  <PropertyGroup>
+    <RootNamespace>AppSistema.Datos</RootNamespace>
+    <TargetFramework>net8.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Npgsql" Version="8.0.5" />
+  </ItemGroup>
+
+  <!-- Las migraciones viajan dentro de la biblioteca: el instalador no depende de psql. -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\database\postgresql\migraciones\V*.sql" LogicalName="Migraciones.%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AppSistema.Dominio\AppSistema.Dominio.vbproj" />
+  </ItemGroup>
+
+</Project>

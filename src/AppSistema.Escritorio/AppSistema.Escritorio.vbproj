@@ -1,0 +1,100 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Aplicación de escritorio WinForms para Windows 10 o superior (RNF-12.1, RNF-15).
+       EnableWindowsTargeting permite compilarla también fuera de Windows (integración continua). -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <RootNamespace>AppSistema.Escritorio</RootNamespace>
+    <AssemblyName>AppSistema</AssemblyName>
+    <StartupObject>AppSistema.Escritorio.Programa</StartupObject>
+    <MyType>WindowsFormsWithCustomSubMain</MyType>
+    <ApplicationHighDpiMode>SystemAware</ApplicationHighDpiMode>
+    <Version>0.1.0</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
+  </ItemGroup>
+
+  <!-- Todos los formularios tienen una vista compatible con el Diseñador de Visual Studio.
+       Los .Designer.vb quedan anidados bajo su Form en el Explorador de soluciones. -->
+  <ItemGroup>
+    <Compile Update="FormAcceso.Designer.vb">
+      <DependentUpon>FormAcceso.vb</DependentUpon>
+    </Compile>
+    <Compile Update="FormAuditoria.Designer.vb">
+      <DependentUpon>FormAuditoria.vb</DependentUpon>
+    </Compile>
+    <Compile Update="FormCargaReal.Designer.vb">
+      <DependentUpon>FormCargaReal.vb</DependentUpon>
+    </Compile>
+    <Compile Update="FormCatalogo.Designer.vb">
+      <DependentUpon>FormCatalogo.vb</DependentUpon>
+    </Compile>
+    <Compile Update="FormCierres.Designer.vb">
+      <DependentUpon>FormCierres.vb</DependentUpon>
+    </Compile>
+    <Compile Update="FormComparativo.Designer.vb">
+      <DependentUpon>FormComparativo.vb</DependentUpon>
+    </Compile>
+    <Compile Update="FormCompras.Designer.vb">
+      <DependentUpon>FormCompras.vb</DependentUpon>
+    </Compile>
+    <Compile Update="FormConsolidado.Designer.vb">
+      <DependentUpon>FormConsolidado.vb</DependentUpon>
+    </Compile>
+    <Compile Update="FormContinuidad.Designer.vb">
+      <DependentUpon>FormContinuidad.vb</DependentUpon>
+    </Compile>
+    <Compile Update="FormContratos.Designer.vb">
+      <DependentUpon>FormContratos.vb</DependentUpon>
+    </Compile>
+    <Compile Update="FormImportacion.Designer.vb">
+      <DependentUpon>FormImportacion.vb</DependentUpon>
+    </Compile>
+    <Compile Update="FormInventarios.Designer.vb">
+      <DependentUpon>FormInventarios.vb</DependentUpon>
+    </Compile>
+    <Compile Update="FormMatrizAcceso.Designer.vb">
+      <DependentUpon>FormMatrizAcceso.vb</DependentUpon>
+    </Compile>
+    <Compile Update="FormMinutas.Designer.vb">
+      <DependentUpon>FormMinutas.vb</DependentUpon>
+    </Compile>
+    <Compile Update="FormOperaciones.Designer.vb">
+      <DependentUpon>FormOperaciones.vb</DependentUpon>
+    </Compile>
+    <Compile Update="FormPrincipal.Designer.vb">
+      <DependentUpon>FormPrincipal.vb</DependentUpon>
+    </Compile>
+    <Compile Update="FormProduccion.Designer.vb">
+      <DependentUpon>FormProduccion.vb</DependentUpon>
+    </Compile>
+    <Compile Update="FormProveedores.Designer.vb">
+      <DependentUpon>FormProveedores.vb</DependentUpon>
+    </Compile>
+    <Compile Update="FormRecetas.Designer.vb">
+      <DependentUpon>FormRecetas.vb</DependentUpon>
+    </Compile>
+    <Compile Update="FormResultados.Designer.vb">
+      <DependentUpon>FormResultados.vb</DependentUpon>
+    </Compile>
+    <Compile Update="FormServicios.Designer.vb">
+      <DependentUpon>FormServicios.vb</DependentUpon>
+    </Compile>
+    <Compile Update="FormStock.Designer.vb">
+      <DependentUpon>FormStock.vb</DependentUpon>
+    </Compile>
+    <Compile Update="FormUsuarios.Designer.vb">
+      <DependentUpon>FormUsuarios.vb</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AppSistema.Datos\AppSistema.Datos.vbproj" />
+  </ItemGroup>
+
+</Project>
