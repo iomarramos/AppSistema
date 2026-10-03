@@ -78,6 +78,7 @@ Plan: `docs/guia_construccion/04_PLAN_POR_ETAPAS.md`. Decisiones de negocio: `do
 | D13 venta por estructura: desayuno de 500 con factores (100 %, 50/50, 70 %, 30 %) → costo S/ 1 510, venta S/ 3 145,83 al 48 %; consumo real S/ 1 600 → Food Cost 50,86 % | Dominio (`VentaEstructuraTests`) y `VentaEstructuraDatosTests` | Pasa |
 | Teórico vs real: comensales recalculan raciones; factor por operación; venta real 470 de 500; consumo por componente (factor real 63,83 %); costo teórico S/ 1 510 vs real S/ 1 630; producto no planificado detectado; día cerrado protege lo real | `TeoricoRealTests` | Pasa |
 | Datos reales: precios por presentación, agua sin costo, estructuras y ciclo repetibles | `CargaRealTests` e instalador de punta a punta (una semana del ciclo aprobada, todas con venta) | Pasa |
+| Reportes imprimibles y exportables: minuta del día (S/ 40 de costo, S/ 83,33 de venta, necesidad 5 L), requerimiento, kárdex (10 − 5 = 5 L a S/ 8), hoja de conteo sin stock del sistema, resultado con faltante S/ 8 y stock valorizado S/ 104; CSV y HTML escapados; otra empresa y sin permiso rechazados | `ReportesTests` | Pasa |
 | T47 importación repetida y filas inválidas | `ImportacionTests`, `ImportacionSgpTests` (listado real del SGP) | Pasa |
 
 **Todos los casos T01–T48 de la guía tienen prueba**; lo que falta es el piloto en una sede real.
@@ -87,7 +88,7 @@ Plan: `docs/guia_construccion/04_PLAN_POR_ETAPAS.md`. Decisiones de negocio: `do
 ```bash
 ./ejecutar_pruebas.sh
 ```
-Última corrida: 69 aserciones SQL + concurrencia (T24 y carrera de 10 sesiones), 91 pruebas de dominio, 86 de integración, instalador de punta a punta (migrar dos veces + crear empresa + cargar catálogo por ingrediente, las 946 recetas enlazadas y el inventario inicial dos veces + central, sincronización repetida sin duplicar, respaldo, restauración y actualización conciliadas, exportación de resultados) y compilación WinForms sin advertencias. Entorno: Ubuntu 24.04, PostgreSQL 16.14, SDK .NET 8.0.425 oficial de Microsoft. El mismo script corre en GitHub Actions.
+Última corrida: 69 aserciones SQL + concurrencia (T24 y carrera de 10 sesiones), 91 pruebas de dominio, 89 de integración, instalador de punta a punta (migrar dos veces + crear empresa + cargar catálogo por ingrediente, las 946 recetas enlazadas y el inventario inicial dos veces + central, sincronización repetida sin duplicar, respaldo, restauración y actualización conciliadas, exportación de resultados) y compilación WinForms sin advertencias. Entorno: Ubuntu 24.04, PostgreSQL 16.14, SDK .NET 8.0.425 oficial de Microsoft. El mismo script corre en GitHub Actions.
 
 Se comprobó que las pruebas detectan fallos: mutación del redondeo de empaques (6 pruebas fallan), quitar el bloqueo de saldo (concurrencia falla), desactivar el RLS (T02 falla) quitar el control de duplicados y de orden en la central (T42, T43 y T44 fallan) y quitar la protección de contratos (importe editable o mes cerrado alterado: fallan las pruebas de etapa 9).
 

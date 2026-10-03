@@ -36,9 +36,10 @@ Plataforma: VB.NET + WinForms en Windows 10+ y PostgreSQL. Unas 20 PC; falta con
 | Etapa 9 (contratos, gastos, resultado, roles propios) | Hecha |
 | Venta por estructura (D13) y teórico vs real | Hecho |
 | Datos reales del SGP ordenados y cargables (`datos/real/`) | Hecho: 84 minutas de un ciclo de 28 días con costo y venta |
+| Reportes imprimibles y exportables (minuta del día, requerimiento, kárdex, inventario, stock valorizado) | Hecho: se imprimen desde el navegador o se exportan a CSV para Excel |
 | Interfaz WinForms | **Compila, pero nunca se ejecutó en Windows.** Réplica visual de las pantallas: https://claude.ai/artifact/LqViLBPDyFwUqMktDxNqaz |
 
-Última batería de pruebas: 69 aserciones SQL, 91 de dominio, 86 de integración e instalador de punta a punta, todo verde. Migraciones V001–V016.
+Última batería de pruebas: 69 aserciones SQL, 91 de dominio, 89 de integración e instalador de punta a punta, todo verde. Migraciones V001–V016.
 
 ## Decisiones del usuario (no reabrir)
 

@@ -13,6 +13,7 @@ Public Class FormProduccion
     Private ReadOnly _comparativo As ServicioComparativo
     Private ReadOnly _minutas As ServicioMinutas
     Private ReadOnly _catalogo As ServicioCatalogo
+    Private ReadOnly _reportes As ServicioReportes
     Private ReadOnly _almacenes As New List(Of AlmacenResumen)
     Private ReadOnly _fecha As New DateTimePicker With {.Format = DateTimePickerFormat.Short, .Width = 110}
     Private ReadOnly _gMinutas As DataGridView = Ui.NuevaGrilla()
@@ -24,6 +25,7 @@ Public Class FormProduccion
         _comparativo = New ServicioComparativo(cadena, sesion)
         _minutas = New ServicioMinutas(cadena, sesion)
         _catalogo = New ServicioCatalogo(cadena, sesion)
+        _reportes = New ServicioReportes(cadena, sesion)
         Dim admin As New ServicioAdministracion(cadena, sesion)
         Text = "Produccion - " & sesion.Operacion.Nombre
         Dim cocina = sesion.Tiene(Permisos.ProduccionEditar)
@@ -32,7 +34,8 @@ Public Class FormProduccion
                                     Ui.BotonSi(cocina, "Requerimiento adicional...", AddressOf Adicional), Ui.BotonSi(cocina, "Cambiar cantidad...", AddressOf CambiarCantidad),
                                     Ui.BotonSi(cocina, "Anular requerimiento", AddressOf AnularRequerimiento),
                                     Ui.BotonSi(sesion.Tiene(Permisos.StockContabilizar), "Entregar (almacen)", AddressOf Atender),
-                                    Ui.BotonSi(cocina, "Registrar produccion...", AddressOf RegistrarProduccion), Ui.BotonSi(cocina, "Merma...", AddressOf Merma))
+                                    Ui.BotonSi(cocina, "Registrar produccion...", AddressOf RegistrarProduccion), Ui.BotonSi(cocina, "Merma...", AddressOf Merma),
+                                    Ui.Boton("Imprimir requerimiento...", AddressOf ImprimirRequerimiento))
         Dim barraReal = Ui.BarraBotones(New Label With {.Text = "Real del servicio:", .AutoSize = True, .Margin = New Padding(3, 9, 3, 3)},
                                         Ui.BotonSi(cocina, "Venta real...", AddressOf VentaReal), Ui.BotonSi(cocina, "Consumo por componente...", AddressOf ConsumoComponente),
                                         Ui.Boton("Teorico vs real", Sub() Comparar(False)), Ui.Boton("Teorico vs real del mes", Sub() Comparar(True)))
@@ -68,6 +71,12 @@ Public Class FormProduccion
             Return Ui.Seleccionado(Of RequerimientoDto)(_gRequerimientos)
         End Get
     End Property
+
+    Private Sub ImprimirRequerimiento()
+        Dim r = Requerimiento
+        If r Is Nothing Then Ui.Informar(Me, "Seleccione un requerimiento.") : Return
+        SalidaReporte.Emitir(Me, Function() _reportes.Requerimiento(r.Id))
+    End Sub
 
     Private Sub CargarMinutas()
         Ui.Ejecutar(Me, Sub() Ui.Mostrar(_gMinutas, _minutas.ListarMinutas(_fecha.Value, _fecha.Value), "Fecha|Fecha", "ServicioNombre|Servicio",

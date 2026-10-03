@@ -13,6 +13,7 @@ Public Class FormInventarios
 
     Private ReadOnly _servicio As ServicioInventarios
     Private ReadOnly _catalogo As ServicioCatalogo
+    Private ReadOnly _reportes As ServicioReportes
     Private ReadOnly _almacen As New ComboBox With {.DropDownStyle = ComboBoxStyle.DropDownList, .Width = 220}
     Private ReadOnly _ciego As New CheckBox With {.Text = "Conteo ciego", .AutoSize = True, .Margin = New Padding(6, 8, 3, 3)}
     Private ReadOnly _inventarios As DataGridView = Ui.NuevaGrilla()
@@ -22,6 +23,7 @@ Public Class FormInventarios
     Public Sub New(cadena As String, sesion As SesionUsuario)
         _servicio = New ServicioInventarios(cadena, sesion)
         _catalogo = New ServicioCatalogo(cadena, sesion)
+        _reportes = New ServicioReportes(cadena, sesion)
         Dim admin As New ServicioAdministracion(cadena, sesion)
         Text = "Inventario fisico - " & sesion.Operacion.Nombre
         Dim aprueba = sesion.Tiene(Permisos.InventarioAprobar)
@@ -29,7 +31,8 @@ Public Class FormInventarios
                                     Ui.Boton("Nuevo general", Sub() Abrir("general")), Ui.Boton("Nuevo rotativo...", Sub() Abrir("rotativo")),
                                     Ui.Boton("Contar linea...", AddressOf ContarLinea), Ui.Boton("Importar conteo...", AddressOf Importar),
                                     Ui.Boton("Cerrar conteo", Sub() Accion(Sub(i) _servicio.CerrarConteo(i))), Ui.Boton("Recontar", Sub() Accion(Sub(i) _servicio.Recontar(i))),
-                                    Ui.BotonSi(aprueba, "Revisar", Sub() Accion(Sub(i) _servicio.Revisar(i))), Ui.BotonSi(aprueba, "Autorizar ajuste...", AddressOf Autorizar))
+                                    Ui.BotonSi(aprueba, "Revisar", Sub() Accion(Sub(i) _servicio.Revisar(i))), Ui.BotonSi(aprueba, "Autorizar ajuste...", AddressOf Autorizar),
+                                    Ui.Boton("Imprimir hoja de conteo...", Sub() Imprimir(True)), Ui.Boton("Imprimir resultado...", Sub() Imprimir(False)))
         Dim division As New SplitContainer With {.Dock = DockStyle.Fill, .Orientation = Orientation.Horizontal, .SplitterDistance = 140}
         division.Panel1.Controls.Add(_inventarios)
         division.Panel2.Controls.Add(_hoja)
@@ -148,4 +151,10 @@ Public Class FormInventarios
         End Using
         CargarInventarios()
     End Sub
+    Private Sub Imprimir(hojaDeConteo As Boolean)
+        Dim i = Inventario
+        If i Is Nothing Then Ui.Informar(Me, "Seleccione un inventario.") : Return
+        SalidaReporte.Emitir(Me, Function() _reportes.Inventario(i.Id, hojaDeConteo))
+    End Sub
+
 End Class

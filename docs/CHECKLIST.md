@@ -20,13 +20,13 @@ Todas las pantallas **compilan, pero ninguna se ejecutó en Windows todavía** (
 | Catálogo > Proveedores y precios | CATALOGO_VER | Proveedores: PROVEEDORES_EDITAR · Precios: PRECIOS_EDITAR | 🟡 |
 | Catálogo > Importar catálogo | CATALOGO_IMPORTAR | Solo acepta archivos de catálogo o del listado SGP | 🟡 |
 | Menús > Recetas | MENUS_VER | Editar: RECETAS_EDITAR · Aprobar y retirar: RECETAS_APROBAR | 🟡 |
-| Menús > Minutas y necesidades | MENUS_VER | Planificar y cambiar comensales: MINUTAS_EDITAR · Aprobar y factores de la operación: MINUTAS_APROBAR | 🟡 |
+| Menús > Minutas y necesidades | MENUS_VER | Planificar y cambiar comensales: MINUTAS_EDITAR · Aprobar y factores de la operación: MINUTAS_APROBAR · Imprimir minuta: todos | 🟡 |
 | Menús > Servicios y estructuras | MENUS_CONFIGURAR | Estructura teórica, factor teórico y Food Cost objetivo | 🟡 |
 | Menús > Importar recetas | RECETAS_EDITAR | Solo acepta archivos de recetas | 🟡 |
-| Menús > Producción | MENUS_VER | Requerimientos, producción, merma, venta real y consumo: PRODUCCION_EDITAR · Entregar: STOCK_CONTABILIZAR · Teórico vs real: todos | 🟡 |
+| Menús > Producción | MENUS_VER | Requerimientos, producción, merma, venta real y consumo: PRODUCCION_EDITAR · Entregar: STOCK_CONTABILIZAR · Teórico vs real e imprimir requerimiento: todos | 🟡 |
 | Compras > Previsión y pedidos | COMPRAS_VER | Calcular, pedidos y reservas: COMPRAS_EDITAR · Aprobar y anular: COMPRAS_APROBAR | 🟡 |
-| Almacén > Stock e inventario inicial | CATALOGO_VER | Movimientos: STOCK_CONTABILIZAR | 🟡 |
-| Almacén > Inventario físico | INVENTARIO_CONTAR | Revisar y autorizar ajuste: INVENTARIO_APROBAR | 🟡 |
+| Almacén > Stock e inventario inicial | CATALOGO_VER | Movimientos: STOCK_CONTABILIZAR · Imprimir kárdex y stock valorizado: todos | 🟡 |
+| Almacén > Inventario físico | INVENTARIO_CONTAR | Revisar y autorizar ajuste: INVENTARIO_APROBAR · Imprimir hoja de conteo y resultado: todos | 🟡 |
 | Cierres y control > Pendientes, cierres y Food Cost | REPORTES_VER | Cerrar, ingresos, venta por estructura y objetivo: CIERRE_EJECUTAR | 🟡 |
 | Cierres y control > Contratos y clientes | CONTRATOS_VER | Editar: CONTRATOS_EDITAR | 🟡 |
 | Cierres y control > Gastos y resultado mensual | RESULTADOS_VER | Gastos: GASTOS_EDITAR | 🟡 |
@@ -72,6 +72,19 @@ Además, el administrador puede crear **roles propios** con los permisos que eli
 - ✅ **Pantallas que faltaban.** Operaciones y almacenes, y Auditoría. En Catálogo, "Sin costo de compra" y "Corregir contenido".
 - ✅ **Menús vacíos.** Se ocultan.
 
+### Reportes (pendiente 10, entregado el 2026-10-03)
+
+Cada reporte sale con el botón **Imprimir…** de su pantalla. Se puede imprimir desde el navegador (o guardar en PDF) o exportar a CSV para Excel. Exige el mismo permiso que la pantalla de origen y solo muestra datos de la operación elegida. Si un importe no tiene precio, la celda queda vacía (nunca 0).
+
+| Reporte | Dónde | Contenido |
+|---|---|---|
+| Minuta del día | Minutas > Imprimir minuta… | Platos por componente con raciones y costo, fijos, necesidad de insumos para cocina, costo y venta prevista, Food Cost objetivo y firmas |
+| Requerimiento | Producción > Imprimir requerimiento… | Previsto y solicitado por producto, columna para lo entregado y firmas de cocina y almacén |
+| Kárdex | Stock > Kardex… > marcar "Imprimir o exportar" | Saldo inicial, movimientos, saldo corrido, costo promedio y totales |
+| Stock valorizado | Stock > Imprimir stock… | Presentaciones con saldo, costo promedio y valor total |
+| Hoja de conteo | Inventario físico > Imprimir hoja de conteo… | Sin el stock del sistema (conteo ciego), con columnas en blanco para envases y parcial |
+| Resultado de inventario | Inventario físico > Imprimir resultado… | Sistema, físico, diferencia y su valor; faltante, sobrante y firmas |
+
 ## 3. Funcionalidad
 
 | Módulo | Estado |
@@ -89,6 +102,7 @@ Además, el administrador puede crear **roles propios** con los permisos que eli
 | Continuidad (cola, sincronización, respaldo, restauración, actualización) | ✅ (falta el piloto) |
 | Contratos, gastos, resultado y roles propios | ✅ |
 | Datos reales del SGP ordenados y cargables (`datos/real/`) | ✅ |
+| Reportes imprimibles y exportables (HTML para imprimir o PDF, CSV para Excel), con el permiso de la pantalla de origen | ✅ |
 
 ## 4. Pendiente por crear o confirmar
 
@@ -103,6 +117,6 @@ Además, el administrador puede crear **roles propios** con los permisos que eli
 | 7 | ⬜ Pantalla para la carga de datos reales (hoy solo desde el Instalador) | Programación |
 | 8 | ⬜ Pantalla de sincronización y respaldo para TI (hoy solo desde el Instalador y el script de Windows) | Programación |
 | 9 | ⬜ Resultado consolidado de varias sedes en la central | Programación, con D10 |
-| 10 | ⬜ Reportes imprimibles o exportables (minuta del día, requerimiento, kárdex, inventario) | Programación |
+| 10 | 🟡 Reportes imprimibles o exportables: **hecho** (minuta del día, requerimiento, kárdex, hoja de conteo, resultado de inventario y stock valorizado). Falta verlos impresos desde Windows | Programación (hecho) · PC con Windows |
 | 11 | ⬜ Piloto de un mes en una sede (`docs/PILOTO_ETAPA_8.md`) | Sede real |
 | 12 | ⬜ Integraciones (SAP, ADS, SGO) | Especificación del cliente |

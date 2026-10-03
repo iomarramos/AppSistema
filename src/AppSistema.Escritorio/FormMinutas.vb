@@ -10,6 +10,7 @@ Public Class FormMinutas
     Private ReadOnly _recetas As ServicioRecetas
     Private ReadOnly _catalogo As ServicioCatalogo
     Private ReadOnly _comparativo As ServicioComparativo
+    Private ReadOnly _reportes As ServicioReportes
     Private ReadOnly _desde As New DateTimePicker With {.Format = DateTimePickerFormat.Short, .Width = 110}
     Private ReadOnly _hasta As New DateTimePicker With {.Format = DateTimePickerFormat.Short, .Width = 110}
     Private ReadOnly _minutas As DataGridView = Ui.NuevaGrilla()
@@ -21,6 +22,7 @@ Public Class FormMinutas
         _recetas = New ServicioRecetas(cadena, sesion)
         _catalogo = New ServicioCatalogo(cadena, sesion)
         _comparativo = New ServicioComparativo(cadena, sesion)
+        _reportes = New ServicioReportes(cadena, sesion)
         Text = "Minutas - " & sesion.Operacion.Nombre
         _desde.Value = Date.Today.AddDays(-Date.Today.Day + 1)
         _hasta.Value = _desde.Value.AddMonths(1).AddDays(-1)
@@ -34,7 +36,8 @@ Public Class FormMinutas
                                            Ui.BotonSi(edita, "Cambiar comensales...", AddressOf CambiarComensales),
                                            Ui.BotonSi(aprueba, "Aprobar", AddressOf Aprobar),
                                            Ui.BotonSi(aprueba, "Factores de la operacion...", AddressOf FactoresOperacion),
-                                           Ui.Boton("Necesidades del periodo...", AddressOf Necesidades))
+                                           Ui.Boton("Necesidades del periodo...", AddressOf Necesidades),
+                                           Ui.Boton("Imprimir minuta...", AddressOf ImprimirMinuta))
         Dim barraPlatos = Ui.BarraBotones(Ui.Boton("Agregar plato", AddressOf AgregarPlato), Ui.Boton("Quitar plato", AddressOf QuitarPlato),
                                           Ui.Boton("Agregar fijo", AddressOf AgregarFijo), Ui.Boton("Quitar fijo", AddressOf QuitarFijo))
         barraPlatos.Visible = edita
@@ -189,6 +192,12 @@ Public Class FormMinutas
             Ui.Ejecutar(Me, Sub() _servicio.Aprobar(m.Id, d.Valor("moneda")))
         End Using
         CargarMinutas()
+    End Sub
+
+    Private Sub ImprimirMinuta()
+        Dim m = Minuta
+        If m Is Nothing Then Ui.Informar(Me, "Seleccione una minuta.") : Return
+        SalidaReporte.Emitir(Me, Function() _reportes.MinutaDelDia(m.Id))
     End Sub
 
     Private Sub Necesidades()

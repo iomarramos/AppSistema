@@ -16,6 +16,7 @@ Public Class FormStock
     Private ReadOnly _apertura As ServicioInventarioInicial
     Private ReadOnly _almacenes As ServicioAlmacen
     Private ReadOnly _compras As ServicioCompras
+    Private ReadOnly _reportes As ServicioReportes
     Private ReadOnly _listaAlmacenes As New List(Of AlmacenResumen)
     Private ReadOnly _almacen As New ComboBox With {.DropDownStyle = ComboBoxStyle.DropDownList, .Width = 220}
     Private ReadOnly _buscar As New TextBox With {.Width = 200}
@@ -27,6 +28,7 @@ Public Class FormStock
         _apertura = New ServicioInventarioInicial(cadena, sesion)
         _almacenes = New ServicioAlmacen(cadena, sesion)
         _compras = New ServicioCompras(cadena, sesion)
+        _reportes = New ServicioReportes(cadena, sesion)
         Dim admin As New ServicioAdministracion(cadena, sesion)
         Text = "Stock - " & sesion.Operacion.Nombre
         Dim mueve = sesion.Tiene(Permisos.StockContabilizar)
@@ -39,7 +41,8 @@ Public Class FormStock
         Controls.Add(acciones)
         Controls.Add(Ui.BarraBotones(New Label With {.Text = "Almacen", .AutoSize = True, .Margin = New Padding(3, 9, 3, 3)}, _almacen,
                                      New Label With {.Text = "Buscar", .AutoSize = True, .Margin = New Padding(3, 9, 3, 3)}, _buscar,
-                                     Ui.Boton("Ver", AddressOf Cargar), Ui.Boton("Kardex...", AddressOf Kardex), Ui.Boton("Documentos...", AddressOf Documentos)))
+                                     Ui.Boton("Ver", AddressOf Cargar), Ui.Boton("Kardex...", AddressOf Kardex), Ui.Boton("Documentos...", AddressOf Documentos),
+                                     Ui.Boton("Imprimir stock...", AddressOf ImprimirStock)))
         AddHandler _almacen.SelectedIndexChanged, Sub() Cargar()
         AddHandler _buscar.KeyDown, Sub(s, e) If e.KeyCode = Keys.Enter Then Cargar()
         AddHandler Load, Sub() Ui.Ejecutar(Me,
@@ -172,12 +175,24 @@ Public Class FormStock
         If s Is Nothing OrElse Almacen Is Nothing Then Ui.Informar(Me, "Seleccione un producto.") : Return
         Using d As New DialogoCampos("Kardex de " & s.VarianteDescripcion)
             d.Fecha("desde", "Desde", Date.Today.AddDays(-Date.Today.Day + 1)).Fecha("hasta", "Hasta", Date.Today)
+            d.Marca("imprimir", "Imprimir o exportar", False)
             If d.ShowDialog(Me) <> DialogResult.OK Then Return
+            Dim almacenId = Almacen.Id, desde = d.FechaElegida("desde").Value, hasta = d.FechaElegida("hasta").Value
+            If d.Marcado("imprimir") Then
+                SalidaReporte.Emitir(Me, Function() _reportes.Kardex(almacenId, s.VarianteId, desde, hasta))
+                Return
+            End If
             Ui.Ejecutar(Me, Sub() Ui.MostrarLista(Me, "Kardex", $"{s.VarianteDescripcion} ({s.Unidad}) en {Almacen.Nombre}",
                                                    _almacenes.Kardex(Almacen.Id, s.VarianteId, d.FechaElegida("desde").Value, d.FechaElegida("hasta").Value),
                                                    "Fecha|Fecha", "Documento|Documento", "Tipo|Tipo", "EntradaU6|Entrada", "SalidaU6|Salida",
                                                    "ValorMovimientoU6|Valor", "SaldoCantidadU6|Saldo", "SaldoValorU6|Valor del saldo", "CostoPromedioU6|Costo promedio"))
         End Using
+    End Sub
+
+    Private Sub ImprimirStock()
+        If Almacen Is Nothing Then Return
+        Dim almacenId = Almacen.Id
+        SalidaReporte.Emitir(Me, Function() _reportes.StockValorizado(almacenId))
     End Sub
 
     Private Sub Documentos()
