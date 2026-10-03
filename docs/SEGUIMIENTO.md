@@ -13,17 +13,18 @@ Plan: `docs/guia_construccion/04_PLAN_POR_ETAPAS.md`. Decisiones de negocio: `do
 | RNF-14 | ≈20 computadoras | 02/10/2026 | Usuario (por confirmar si por sede o total) |
 | RNF-15 | Interfaz **WinForms** (.NET 8) | 02/10/2026 | Propuesta aceptada |
 | RNF-16 | Ramas `main` ← `develop` ← `feature/etapa-N-*` | 02/10/2026 | Usuario |
+| D01 Valoración | **Cantidad × precio**: entradas a su costo; salidas a cantidad × costo vigente del saldo (promedio ponderado móvil por almacén y variante) | 03/10/2026 | Usuario |
 | Moneda | **Soles (PEN)** para precios del SGP, inventario y costos; es el valor por defecto en el sistema | 03/10/2026 | Usuario |
 
 ## Estado por etapa
 
 | Etapa | Estado | Qué hay / qué falta |
 |---|---|---|
-| 0 Diagnóstico y línea base | **Hecha** | Esquema portado a PostgreSQL; migraciones V001–V007 con migrador versionado; brechas H01–H03 cerradas |
+| 0 Diagnóstico y línea base | **Hecha** | Esquema portado a PostgreSQL; migraciones V001–V008 con migrador versionado; brechas H01–H03 cerradas |
 | 1 Fundamentos y catálogo | **Hecha en código y pruebas; falta validar la interfaz en Windows** | Acceso con bloqueo, permisos por operación, auditoría automática, aislamiento RLS, operaciones/almacenes/usuarios, unidades, categorías, marcas, productos, variantes, empaques, proveedores, precios con vigencia, importador CSV con vista previa, **carga del listado de productos del SGP** (4 158 productos con factor y unidad mínima de pedido; `datos/sgp/`). Pantallas WinForms compiladas **pero no ejecutadas** (no hay Windows en este entorno) |
 | 2 Menús y recetas | **Hecha en código y pruebas; falta validar la interfaz en Windows** | Servicios, regímenes y estructuras; recetas versionadas (borrador → aprobada inmutable → retirada) con rendimiento, ingredientes por producto base y variantes permitidas; minutas por día y servicio con platos y fijos; aprobación con snapshot de costo (fuente y fecha por ingrediente); costo simulado; necesidades consolidadas por producto. **Recetas del SGP cargadas**: 946 recetas (417 fichas revisadas + 529 del Recetón) con 412 ingredientes (`datos/recetas/`). Pantallas: Recetas, Minutas y necesidades, Servicios y estructuras, Importar recetas. **Regla de precio provisional** (D02 pendiente): menor costo vigente entre las variantes permitidas; sin precio → "pendiente". El precio se usa tal como se registró (D03 impuestos pendiente) |
 | 3 Previsión y compras | **Hecha en código y pruebas; falta validar la interfaz en Windows** | Previsión por almacén desde minutas aprobadas: demanda del horizonte, consumo puente (una sola vez), stock actual, reserva por producto y almacén (D08 como parámetro, 0 por defecto), pendientes de pedidos aprobados menos lo recibido, **recorrido por fechas** con fecha de quiebre (un tránsito tardío no oculta la falta). Validación y obsolescencia (recalcula y compara; los pedidos de la propia previsión no la vuelven obsoleta). Pedido generado por proveedor con el empaque de menor costo vigente y redondeo por mínimo/múltiplo (D04 propuesto); pedidos manuales; aprobación (exige previsión vigente) y anulación; inmutables tras aprobar. Pantalla Compras > Previsión y pedidos |
-| 4 Almacén y kárdex | Parcial avanzado | Servicio de contabilización atómico con sesión y permisos. **Inventario inicial valorizado** (documento de apertura, 379 productos, S/ 307 498,45; solo en almacén sin movimientos) y consulta de stock con valor y costo promedio (Almacén > Stock e inventario inicial). Falta: idempotencia, recepciones parciales, devoluciones, reversiones, valoración real (D01) |
+| 4 Almacén y kárdex | **Hecha en código y pruebas; falta validar la interfaz en Windows** | Inventario inicial valorizado (apertura). Recepción de pedidos total o parcial (conversión histórica del pedido, costo = empaques × precio del comprobante, sin exceder lo pendiente, comprobante único, pedido pasa a parcial/recibido). Salidas a cocina, bajas con motivo, devoluciones al costo de la entrega sin exceder lo entregado, traspasos entre almacenes de la operación. **Valoración D01 (usuario: "cantidad × precio")**: entradas a su costo, salidas a cantidad × costo vigente del saldo (promedio móvil), la última salida se lleva el valor restante. Kárdex valorizado con saldo corrido. Pantalla Almacén > Stock |
 | 5–9 | No iniciadas | |
 
 ## Casos de la guía ejecutados
@@ -56,14 +57,14 @@ Plan: `docs/guia_construccion/04_PLAN_POR_ETAPAS.md`. Decisiones de negocio: `do
 ```bash
 ./ejecutar_pruebas.sh
 ```
-Última corrida: 67 aserciones SQL + concurrencia (T24 y carrera de 10 sesiones), 76 pruebas de dominio, 56 de integración, instalador de punta a punta (migrar dos veces + crear empresa + cargar catálogo por ingrediente, las 946 recetas enlazadas y el inventario inicial dos veces) y compilación WinForms sin advertencias. Entorno: Ubuntu 24.04, PostgreSQL 16.14, SDK .NET 8.0.425 oficial de Microsoft. El mismo script corre en GitHub Actions.
+Última corrida: 67 aserciones SQL + concurrencia (T24 y carrera de 10 sesiones), 79 pruebas de dominio, 60 de integración, instalador de punta a punta (migrar dos veces + crear empresa + cargar catálogo por ingrediente, las 946 recetas enlazadas y el inventario inicial dos veces) y compilación WinForms sin advertencias. Entorno: Ubuntu 24.04, PostgreSQL 16.14, SDK .NET 8.0.425 oficial de Microsoft. El mismo script corre en GitHub Actions.
 
 Se comprobó que las pruebas detectan fallos: mutación del redondeo de empaques (6 pruebas fallan), quitar el bloqueo de saldo (concurrencia falla) y desactivar el RLS (T02 falla).
 
 ## Límites de lo comprobado
 
 - **La interfaz WinForms no se ha ejecutado**: solo compila. Hay que probarla en una PC con Windows 10+.
-- Valoración con **costo fijo de S/8/L solo en pruebas**; el método real (D01) no está decidido.
+- Valoración: decidida (D01) y aplicada en salidas; las pruebas antiguas de stock usan costos fijos a propósito.
 - No se probó: carga con 20 usuarios, respaldo/restauración, sincronización entre sedes.
 - La clave del usuario de sede se guarda cifrada con DPAPI en cada PC; cualquier administrador local de esa PC puede descifrarla (aceptable para una red de sede, revisar si el riesgo cambia).
 - El rol de aplicación puede modificar usuarios de su empresa (necesario para administración); el control es por permiso en la aplicación.
@@ -74,7 +75,7 @@ H01, H02 y H03: **cerradas** (V003) y probadas también con el rol de la aplicac
 
 ## Pendiente
 
-**Decisiones de negocio** (guía doc. 09): D01 valoración · D02 precio de ingrediente genérico · D03 impuestos/cargos · D04 redondeo de compra · D05 formato de bajas · D06/D07 ajustes de inventario y corte · D08 reserva · D09 sustituciones · D10 offline · D11 excesos de recepción · D12 stock crudo en cocina · D13/D14 Food Cost y costo por receta.
+**Decisiones de negocio** (guía doc. 09): D02 precio de ingrediente genérico · D03 impuestos/cargos · D04 redondeo de compra · D05 formato de bajas · D06/D07 ajustes de inventario y corte · D08 reserva · D09 sustituciones · D10 offline · D11 excesos de recepción · D12 stock crudo en cocina · D13/D14 Food Cost y costo por receta.
 
 **Enlace ingrediente → productos SGP**: cargado desde `PRODUCTO_INGREDIENTE.csv` (3 133 ingredientes con los 4 158 productos SGP como variantes; 303 de 412 ingredientes de receta enlazados). Pendientes para revisar en `datos/enlace/`: 102 ingredientes de receta sin enlace, 72 productos con unidad distinta a su ingrediente, 221 productos SGP sin ingrediente.
 
@@ -85,7 +86,7 @@ H01, H02 y H03: **cerradas** (V003) y probadas también con el rol de la aplicac
 ## Siguiente tarea exacta
 
 1. Probar la aplicación WinForms en una PC Windows 10+ con un PostgreSQL local (pasos en `README.md`) y registrar observaciones.
-2. Etapa 4 (`feature/etapa-4-almacen-kardex`): recepción de pedidos (parcial, con conversión y costo), devoluciones, bajas, traspasos, kárdex y consulta de stock. **Necesita decidir D01 (valoración: promedio ponderado propuesto)** para operar con costos reales.
+2. Etapa 5 (`feature/etapa-5-produccion`): requerimiento calculado desde la minuta, entregas a cocina vinculadas, raciones producidas/servidas, excedentes y mermas, conciliación y costo real del servicio (T27–T32). Necesita D12 (stock crudo en cocina) y D14 (costo real por receta).
 3. Decidir D02 (precio de ingrediente genérico): hoy se usa la regla provisional "menor costo vigente".
 
 ## Continuidad
