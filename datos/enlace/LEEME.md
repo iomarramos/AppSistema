@@ -43,6 +43,6 @@ Se prueban estas opciones, en orden:
 1. `AppSistema.Instalador importar-catalogo datos/enlace/catalogo_por_ingrediente.csv` (crea KG, L y UND si faltan).
 2. `AppSistema.Instalador importar-recetas datos/enlace/recetas_enlazadas.csv --aprobar`.
 
-El paso 2 reutiliza los ingredientes del paso 1, buscándolos por descripción y unidad: son 287. Además crea 113 ingredientes que no tienen producto comprable, como AGUA PARA RECETA, BASE CRIOLLA o CEBOLLA ROJA REFRIGERADA.
+El paso 2 reutiliza los ingredientes del paso 1, buscándolos por descripción y unidad: son 287. Además crea 113 ingredientes que no tienen producto comprable, como AGUA PARA RECETA, BASE CRIOLLA o AJO MOLIDO ENVASADO.
 
 Este flujo **reemplaza** a `importar-sgp`, que creaba un producto base por cada producto SGP. En una base nueva use solo este flujo.
