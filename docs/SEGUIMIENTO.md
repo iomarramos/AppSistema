@@ -23,7 +23,7 @@ Plan: `docs/guia_construccion/04_PLAN_POR_ETAPAS.md`. Decisiones de negocio: `do
 
 | Etapa | Estado | Qué hay / qué falta |
 |---|---|---|
-| 0 Diagnóstico y línea base | **Hecha** | Esquema portado a PostgreSQL; migraciones V001–V017 con migrador versionado; brechas H01–H03 cerradas |
+| 0 Diagnóstico y línea base | **Hecha** | Esquema portado a PostgreSQL; migraciones V001–V018 con migrador versionado; brechas H01–H03 cerradas |
 | 1 Fundamentos y catálogo | **Hecha en código y pruebas; falta validar la interfaz en Windows** | Acceso con bloqueo, permisos por operación, auditoría automática, aislamiento RLS, operaciones/almacenes/usuarios, unidades, categorías, marcas, productos, variantes, empaques, proveedores, precios con vigencia, importador CSV con vista previa, **carga del listado de productos del SGP** (4 158 productos con factor y unidad mínima de pedido; `datos/sgp/`). Pantallas WinForms compiladas **pero no ejecutadas** (no hay Windows en este entorno) |
 | 2 Menús y recetas | **Hecha en código y pruebas; falta validar la interfaz en Windows** | Servicios, regímenes y estructuras; recetas versionadas (borrador → aprobada inmutable → retirada) con rendimiento, ingredientes por producto base y variantes permitidas; minutas por día y servicio con platos y fijos; aprobación con snapshot de costo (fuente y fecha por ingrediente); costo simulado; necesidades consolidadas por producto. **Recetas del SGP cargadas**: 946 recetas (417 fichas revisadas + 529 del Recetón) con 412 ingredientes (`datos/recetas/`). Pantallas: Recetas, Minutas y necesidades, Servicios y estructuras, Importar recetas. **Regla de precio provisional** (D02 pendiente): menor costo vigente entre las variantes permitidas; sin precio → "pendiente". El precio se usa tal como se registró (D03 impuestos pendiente) |
 | 3 Previsión y compras | **Hecha en código y pruebas; falta validar la interfaz en Windows** | Previsión por almacén desde minutas aprobadas: demanda del horizonte, consumo puente (una sola vez), stock actual, reserva por producto y almacén (D08 como parámetro, 0 por defecto), pendientes de pedidos aprobados menos lo recibido, **recorrido por fechas** con fecha de quiebre (un tránsito tardío no oculta la falta). Validación y obsolescencia (recalcula y compara; los pedidos de la propia previsión no la vuelven obsoleta). Pedido generado por proveedor con el empaque de menor costo vigente y redondeo por mínimo/múltiplo (D04 propuesto); pedidos manuales; aprobación (exige previsión vigente) y anulación; inmutables tras aprobar. Pantalla Compras > Previsión y pedidos |
@@ -88,7 +88,7 @@ Plan: `docs/guia_construccion/04_PLAN_POR_ETAPAS.md`. Decisiones de negocio: `do
 ```bash
 ./ejecutar_pruebas.sh
 ```
-Última corrida: 69 aserciones SQL + concurrencia (T24 y carrera de 10 sesiones), 91 pruebas de dominio, 90 de integración, instalador de punta a punta (migrar dos veces + crear empresa + cargar catálogo por ingrediente, las 946 recetas enlazadas y el inventario inicial dos veces + central, sincronización repetida sin duplicar, respaldo, restauración y actualización conciliadas, exportación de resultados) y compilación WinForms sin advertencias. Entorno: Ubuntu 24.04, PostgreSQL 16.14, SDK .NET 8.0.425 oficial de Microsoft. El mismo script corre en GitHub Actions.
+Última corrida: 69 aserciones SQL + concurrencia (T24 y carrera de 10 sesiones), 91 pruebas de dominio, 92 de integración, instalador de punta a punta (migrar dos veces + crear empresa + cargar catálogo por ingrediente, las 946 recetas enlazadas y el inventario inicial dos veces + central, sincronización repetida sin duplicar, respaldo, restauración y actualización conciliadas, exportación de resultados) y compilación WinForms sin advertencias. Entorno: Ubuntu 24.04, PostgreSQL 16.14, SDK .NET 8.0.425 oficial de Microsoft. El mismo script corre en GitHub Actions.
 
 Se comprobó que las pruebas detectan fallos: mutación del redondeo de empaques (6 pruebas fallan), quitar el bloqueo de saldo (concurrencia falla), desactivar el RLS (T02 falla) quitar el control de duplicados y de orden en la central (T42, T43 y T44 fallan) y quitar la protección de contratos (importe editable o mes cerrado alterado: fallan las pruebas de etapa 9).
 
@@ -106,9 +106,14 @@ H01, H02 y H03: **cerradas** (V003) y probadas también con el rol de la aplicac
 
 ## Pendiente
 
-**Decisiones de negocio** (guía doc. 09): D02 precio de ingrediente genérico · D03 impuestos/cargos · D04 redondeo de compra · D05 formato de bajas · D08 reserva · D09 sustituciones · D10 offline (aplicada la propuesta: servidor por sede; confirmar hardware y red) · D11 excesos de recepción · D14 costo por receta.
+**Decisiones tomadas por el usuario (2026-10-03):**
+* **D02:** precio del producto activo en la operación (liberado, o el último ingresado al almacén; si no hay, pendiente). También se aplica en los pedidos.
+* **D03:** precios sin IGV; la restricción `precio_sin_igv` está en V018.
+* **D10:** una sede por ahora, ampliable.
 
-**Datos reales ordenados** (`datos/real/`, `herramientas/ordenar_datos_reales.py`): precios por presentación (inventario + último precio SGP; 20 atípicos apartados), enlace complementario por nombre (49 ingredientes; 85 por revisar), recetas con el ingrediente del catálogo, agua para receta sin costo, recetas clasificadas por componente con gramaje y costo, estructuras de Desayuno/Almuerzo/Cena y ciclo de 28 días con todas las recetas costeadas. Cargado de punta a punta: 84 minutas aprobadas con costo y venta (desayuno S/ 3,13, almuerzo S/ 6,57, cena S/ 5,01 por comensal).
+**Decisiones de negocio pendientes** (guía doc. 09): D04 redondeo de compra · D05 formato de bajas · D08 reserva · D09 sustituciones · D10 hardware y red de la sede · D11 excesos de recepción · D14 costo por receta.
+
+**Datos reales ordenados** (`datos/real/`, `herramientas/ordenar_datos_reales.py`): precios por presentación (inventario + último precio SGP; 20 atípicos apartados), enlace complementario por nombre (49 ingredientes; 85 por revisar), recetas con el ingrediente del catálogo, agua para receta sin costo, recetas clasificadas por componente con gramaje y costo, estructuras de Desayuno/Almuerzo/Cena y ciclo de 28 días con todas las recetas costeadas. Cargado de punta a punta con la regla D02 (producto activo, 975 ingredientes liberados): 84 minutas aprobadas con costo y venta. Costo por comensal: desayuno S/ 3,54, almuerzo S/ 7,87 y cena S/ 6,15. Con la regla provisional anterior, que tomaba el más barato, eran S/ 3,13, S/ 6,57 y S/ 5,01.
 
 **Enlace ingrediente → productos SGP**: cargado desde `PRODUCTO_INGREDIENTE.csv` (3 133 ingredientes con los 4 158 productos SGP como variantes; 303 de 412 ingredientes de receta enlazados). Pendientes para revisar en `datos/enlace/`: 102 ingredientes de receta sin enlace, 72 productos con unidad distinta a su ingrediente, 221 productos SGP sin ingrediente.
 
@@ -120,9 +125,9 @@ H01, H02 y H03: **cerradas** (V003) y probadas también con el rol de la aplicac
 
 1. Probar la aplicación WinForms en una PC Windows 10+ con un PostgreSQL local (pasos en `README.md`) y registrar observaciones.
 2. Piloto de etapa 8 en una sede: servidor PostgreSQL de sede, central, sincronización programada, respaldo diario y una restauración de prueba; registrar incidencias un mes (plan en `docs/PILOTO_ETAPA_8.md`).
-3. Revisar `datos/real/ingredientes_por_revisar.csv` (ajo molido envasado, mayonesa, ajíes molidos, panes de marca…) y `precios_atipicos.csv`; confirmar la estructura y los factores propuestos en `estructuras_menu.csv`. Confirmar D10 (¿las ≈20 PC son una sola sede?).
+3. Revisar `datos/real/ingredientes_por_revisar.csv` (ajo molido envasado, mayonesa, ajíes molidos, panes de marca…) y `precios_atipicos.csv`; confirmar la estructura y los factores propuestos en `estructuras_menu.csv`.
 4. Integraciones (SAP/ADS/SGO u otras): solo con especificación, entorno de prueba y conciliación entregados por el cliente.
-5. Decidir D02 (precio de ingrediente genérico): hoy se usa la regla provisional "menor costo vigente".
+5. Revisar `datos/real/productos_activos.csv` (producto activo propuesto por ingrediente) y corregir en Catálogo los que no correspondan.
 
 ## Continuidad
 

@@ -92,11 +92,14 @@ Public Class ImportacionRecetasDatosTests
             Dim prov As New ServicioProveedores(bd.CadenaAplicacion, s)
             Dim pe = prov.VincularEmpaque(prov.CrearProveedor(New ProveedorDto With {.Codigo = "P1", .Nombre = "Mayorista"}), empaque, 1)
             prov.RegistrarPrecio(pe, New Date(2026, 1, 1), Nothing, "PEN", EscalaU6.DesdeDecimal(50D), False)   ' S/10 por L
+            Dim bidon = Contar(bd, "SELECT id FROM variante_producto WHERE descripcion_comercial = 'ACEITE VEGETAL CIELO 5 LT'")
+            Call New ServicioCatalogo(bd.CadenaAplicacion, s).ActivarEnOperacion(bidon)   ' D02: el bidón CIELO es el activo en la operación
             Dim version = Contar(bd, "SELECT v.id FROM receta r JOIN receta_version v ON v.receta_id = r.id WHERE r.codigo = 'F00270'")
             Dim costo = New ServicioRecetas(bd.CadenaAplicacion, s).CostoSimulado(version, New Date(2026, 3, 1), "PEN")
             Dim aceite = costo.Ingredientes.Single(Function(i) i.ProductoDescripcion = "ACEITE VEGETAL")
             Assert.Equal(EscalaU6.DesdeDecimal(0.05D), aceite.CostoLineaU6)      ' 0,005 L × S/10
-            Assert.Contains("ACEITE VEGETAL CIELO", bd.Escalar($"SELECT descripcion_comercial FROM variante_producto WHERE codigo = '{aceite.Fuente.Split(","c)(2).Trim().Split(" "c)(1)}'").ToString())
+            Assert.Contains(bd.Escalar($"SELECT codigo FROM variante_producto WHERE id = {bidon}").ToString(), aceite.Fuente)
+            Assert.Contains("liberado en la operacion", aceite.Fuente)
             Assert.Null(costo.CostoRacionU6)                                      ' el resto aún sin precio: pendiente
         End Using
     End Sub

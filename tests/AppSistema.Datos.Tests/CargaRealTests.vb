@@ -24,6 +24,12 @@ Public Class CargaRealTests
             Assert.Single(r.Problemas)
             Assert.Equal(1, carga.ImportarPrecios(precios).YaEstaban)                   ' repetir no duplica ni pisa
             Assert.Equal(U(128D), Convert.ToInt64(bd.Escalar("SELECT precio_empaque_u6 FROM precio_compra")))   ' 32 × 4 envases por caja
+            ' D02: el bidón es el producto activo de la operación; repetir no cambia lo ya liberado.
+            Dim activos = "variante_codigo;descripcion_comercial;producto_codigo;motivo" & vbLf & "ACE-A-4L;Aceite A 4 L;ACE;ultima compra SGP 2026-01-01" & vbLf & "NOEXISTE;x;x;x" & vbLf
+            Dim la = carga.LiberarProductos(activos)
+            Assert.Equal(1, la.Nuevos)
+            Assert.Single(la.Problemas)
+            Assert.Equal(1, carga.LiberarProductos(activos).YaEstaban)
 
             ' Receta con agua: sin marcarla, el costo queda pendiente; marcada sin costo, se costea en S/ 0.
             Dim cat As New ServicioCatalogo(bd.CadenaAplicacion, s)

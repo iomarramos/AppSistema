@@ -56,7 +56,7 @@ Public Class FormProveedores
         Dim pe = Ui.Seleccionado(Of ProveedorEmpaqueDto)(_empaques)
         If pe Is Nothing Then _precios.DataSource = Nothing : Return
         Ui.Ejecutar(Me, Sub() Ui.Mostrar(_precios, _servicio.ListarPrecios(pe.Id),
-                                         "FechaDesde|Desde", "FechaHasta|Hasta", "Moneda|Moneda", "PrecioEmpaqueU6|Precio por empaque", "IncluyeImpuesto|Incluye impuesto"))
+                                         "FechaDesde|Desde", "FechaHasta|Hasta", "Moneda|Moneda", "PrecioEmpaqueU6|Precio por empaque (sin IGV)"))
     End Sub
 
     Private Sub NuevoProveedor()
@@ -97,10 +97,10 @@ Public Class FormProveedores
         If pe Is Nothing Then Ui.Informar(Me, "Seleccione un empaque del proveedor.") : Return
         Using d As New DialogoCampos("Precio de " & pe.EmpaqueDescripcion)
             d.Fecha("desde", "Vigente desde", Date.Today).Fecha("hasta", "Vigente hasta (opcional)", Date.Today, opcional:=True) _
-             .Texto("moneda", "Moneda", "PEN").Texto("precio", "Precio por empaque").Marca("impuesto", "El precio incluye impuesto")
+             .Texto("moneda", "Moneda", "PEN").Texto("precio", "Precio por empaque, sin IGV")
             If d.ShowDialog(Me) <> DialogResult.OK Then Return
             Ui.Ejecutar(Me, Sub() _servicio.RegistrarPrecio(pe.Id, d.FechaElegida("desde").Value, d.FechaElegida("hasta"), d.Valor("moneda"),
-                                                             Ui.LeerU6(d.Valor("precio"), "precio"), d.Marcado("impuesto")))
+                                                             Ui.LeerU6(d.Valor("precio"), "precio"), False))
         End Using
         CargarPrecios()
     End Sub

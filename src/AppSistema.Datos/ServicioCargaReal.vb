@@ -20,6 +20,7 @@ Public NotInheritable Class EstadoCargaReal
     Public Property PreciosSgp As Long
     Public Property RecetasAprobadas As Long
     Public Property InsumosSinCosto As Long
+    Public Property ProductosActivos As Long
     Public Property AlmacenesConApertura As Long
     Public Property Almacenes As Long
     Public Property ServiciosAsignados As Long
@@ -43,6 +44,7 @@ Public NotInheritable Class ServicioCargaReal
     ''' <summary>Columnas que debe traer cada archivo: un archivo equivocado se rechaza antes de cargar nada.</summary>
     Public Shared ReadOnly ColumnasPrecios As String() = {"variante_codigo", "empaque_codigo", "precio_envase", "fecha_precio"}
     Public Shared ReadOnly ColumnasSinCosto As String() = {"producto"}
+    Public Shared ReadOnly ColumnasProductosActivos As String() = {"variante_codigo", "motivo"}
     Public Shared ReadOnly ColumnasEstructuras As String() = {"servicio", "orden", "codigo", "nombre", "factor_consumo_pct"}
     Public Shared ReadOnly ColumnasCiclo As String() = {"dia", "servicio", "estructura_codigo", "receta_codigo", "receta_nombre", "reparto_pct"}
 
@@ -108,6 +110,35 @@ Public NotInheritable Class ServicioCargaReal
                                "p", U6(f("precio_envase")) * e.Envases)
                     conPrecio.Add(e.Id)
                     r.Nuevos += 1
+                Next
+                Return r
+            End Function)
+    End Function
+
+    ''' <summary>
+    ''' D02: productos activos (liberados) de la operación de la sesión desde productos_activos.csv: por ingrediente, la
+    ''' presentación que la operación usa (la que tiene stock o la de compra más reciente en el SGP). Si el ingrediente ya
+    ''' tiene producto activo en la operación, se respeta: el archivo no lo cambia.
+    ''' </summary>
+    Public Function LiberarProductos(texto As String) As ResultadoCargaReal
+        Dim filas = ServicioCargaReal.Filas(texto, ColumnasProductosActivos)
+        Dim op = Sesion.OperacionId
+        If Not op.HasValue Then Throw New ReglaNegocioException("OPERACION_NO_SELECCIONADA", "Seleccione una operacion.")
+        Return EnTransaccion(Permisos.CatalogoEditar,
+            Function(u)
+                Dim r As New ResultadoCargaReal()
+                For Each f In filas
+                    Dim v = u.Consultar("SELECT id, producto_base_id FROM variante_producto WHERE codigo = @c AND activo = 1",
+                                        Function(rd) (Id:=rd.GetInt64(0), Producto:=rd.GetInt64(1)), "c", f("variante_codigo")).SingleOrDefault()
+                    If v.Id = 0 Then
+                        r.Problemas.Add($"Presentacion {f("variante_codigo")}: no existe en el catalogo o esta inactiva")
+                        Continue For
+                    End If
+                    Dim n = u.Ejecutar(
+                        "INSERT INTO producto_operacion(empresa_id, operacion_id, producto_base_id, variante_id, motivo, usuario_id) " &
+                        "VALUES (@e, @o, @p, @v, @m, @u) ON CONFLICT (empresa_id, operacion_id, producto_base_id) DO NOTHING",
+                        "e", Sesion.EmpresaId, "o", op.Value, "p", v.Producto, "v", v.Id, "m", f("motivo"), "u", Sesion.UsuarioId)
+                    If n = 1 Then r.Nuevos += 1 Else r.YaEstaban += 1
                 Next
                 Return r
             End Function)
@@ -242,6 +273,7 @@ Public NotInheritable Class ServicioCargaReal
                 "          JOIN proveedor p ON p.id = pe.proveedor_id WHERE p.codigo = @sgp), " &
                 "       (SELECT count(*) FROM receta_version WHERE estado = 'aprobada'), " &
                 "       (SELECT count(*) FROM producto_base WHERE sin_costo_compra), " &
+                "       (SELECT count(*) FROM producto_operacion WHERE operacion_id = @o), " &
                 "       (SELECT count(DISTINCT d.almacen_id) FROM documento_stock d JOIN almacen a ON a.id = d.almacen_id WHERE d.tipo = 'apertura' AND a.operacion_id = @o), " &
                 "       (SELECT count(*) FROM almacen WHERE operacion_id = @o), " &
                 "       (SELECT count(*) FROM operacion_servicio WHERE operacion_id = @o), " &
@@ -249,8 +281,8 @@ Public NotInheritable Class ServicioCargaReal
                 "       (SELECT count(*) FROM minuta m JOIN operacion_servicio os ON os.id = m.operacion_servicio_id WHERE os.operacion_id = @o AND m.estado <> 'borrador')",
                 Function(rd) New EstadoCargaReal With {
                     .Productos = rd.GetInt64(0), .Presentaciones = rd.GetInt64(1), .PreciosSgp = rd.GetInt64(2), .RecetasAprobadas = rd.GetInt64(3),
-                    .InsumosSinCosto = rd.GetInt64(4), .AlmacenesConApertura = rd.GetInt64(5), .Almacenes = rd.GetInt64(6),
-                    .ServiciosAsignados = rd.GetInt64(7), .Minutas = rd.GetInt64(8), .MinutasAprobadas = rd.GetInt64(9)},
+                    .InsumosSinCosto = rd.GetInt64(4), .ProductosActivos = rd.GetInt64(5), .AlmacenesConApertura = rd.GetInt64(6), .Almacenes = rd.GetInt64(7),
+                    .ServiciosAsignados = rd.GetInt64(8), .Minutas = rd.GetInt64(9), .MinutasAprobadas = rd.GetInt64(10)},
                 "sgp", ProveedorPrecios, "o", op).Single())
     End Function
 

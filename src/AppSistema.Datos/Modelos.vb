@@ -93,6 +93,8 @@ Public NotInheritable Class VarianteDto
     Public Property ContenidoBasePorEnvaseU6 As Long
     Public Property Activo As Boolean
     Public Property Version As String
+    ''' <summary>Es el producto activo (liberado) de su ingrediente en la operación de la sesión: su precio es el que se costea (D02).</summary>
+    Public Property ActivoEnOperacion As Boolean
 End Class
 
 Public NotInheritable Class EmpaqueDto

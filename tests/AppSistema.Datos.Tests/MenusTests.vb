@@ -42,6 +42,7 @@ Public Class MenusTests
             Dim p = Proveedores.CrearProveedor(New ProveedorDto With {.Codigo = "P1", .Nombre = "Distribuidora"})
             Dim pe = Proveedores.VincularEmpaque(p, bd.EmpaqueCajaId, 2)
             Proveedores.RegistrarPrecio(pe, New Date(2026, 1, 1), Nothing, "PEN", U6(128D), False)
+            Catalogo.ActivarEnOperacion(bd.VarianteAceiteId)   ' D02: el aceite es el producto activo en la operación
         End Sub
 
         ''' <summary>Receta aprobada con los ingredientes dados (producto, cantidad bruta) para el rendimiento indicado.</summary>
@@ -114,6 +115,7 @@ Public Class MenusTests
         Using bd = BaseDatosPrueba.Crear()
             Dim e As New Escenario(bd)
             Dim v = e.RecetaAprobada("R1", 10D, (bd.ProductoAceiteId, 1D), (e.ArrozId, 1D))   ' el arroz no tiene precio
+            e.Catalogo.ActivarEnOperacion(e.ArrozVarianteId)   ' el arroz es el producto activo, pero sin precio
             Dim sim = e.Recetas.CostoSimulado(v, Fecha, "PEN")
             Assert.Null(sim.CostoRacionU6)
             Assert.Equal(1, sim.Pendientes)

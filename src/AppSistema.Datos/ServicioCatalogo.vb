@@ -139,15 +139,43 @@ Public NotInheritable Class ServicioCatalogo
         Return EnTransaccion(Permisos.CatalogoVer,
             Function(u) u.Consultar(
                 "SELECT v.id, v.producto_base_id, v.marca_id, m.nombre AS marca, v.codigo, v.descripcion_comercial, v.tipo_envase, " &
-                "v.contenido_base_por_envase_u6, v.activo = 1 AS activo, v.xmin::text AS version FROM variante_producto v " &
+                "v.contenido_base_por_envase_u6, v.activo = 1 AS activo, v.xmin::text AS version, " &
+                "EXISTS (SELECT 1 FROM producto_operacion po WHERE po.variante_id = v.id AND po.operacion_id = @o) AS en_operacion FROM variante_producto v " &
                 "LEFT JOIN marca m ON m.empresa_id = v.empresa_id AND m.id = v.marca_id WHERE v.producto_base_id = @p ORDER BY v.codigo",
                 Function(rd) New VarianteDto With {
                     .Id = rd.Largo("id"), .ProductoBaseId = rd.Largo("producto_base_id"), .MarcaId = rd.LongONada("marca_id"),
                     .MarcaNombre = rd.TextoONada("marca"), .Codigo = rd.Texto("codigo"), .DescripcionComercial = rd.Texto("descripcion_comercial"),
                     .TipoEnvase = rd.Texto("tipo_envase"), .ContenidoBasePorEnvaseU6 = rd.Largo("contenido_base_por_envase_u6"),
-                    .Activo = rd.GetBoolean(rd.GetOrdinal("activo")), .Version = rd.Texto("version")},
-                "p", productoBaseId))
+                    .Activo = rd.GetBoolean(rd.GetOrdinal("activo")), .Version = rd.Texto("version"),
+                    .ActivoEnOperacion = rd.GetBoolean(rd.GetOrdinal("en_operacion"))},
+                "p", productoBaseId, "o", If(Sesion.OperacionId, 0L)))
     End Function
+
+    ''' <summary>
+    ''' D02: libera la presentación como producto activo de su ingrediente en la operación de la sesión. Reemplaza a la
+    ''' anterior (una por ingrediente y operación). Desde ese momento las minutas y los pedidos usan su precio.
+    ''' </summary>
+    Public Sub ActivarEnOperacion(varianteId As Long, Optional motivo As String = Nothing)
+        Dim op = Sesion.OperacionId
+        EnTransaccion(Permisos.CatalogoEditar,
+            Function(u)
+                Dim producto = u.Escalar("SELECT producto_base_id FROM variante_producto WHERE id = @v AND activo = 1", "v", varianteId)
+                If producto Is Nothing Then Throw New ReglaNegocioException("NO_ENCONTRADO", "La presentacion no existe o esta inactiva.")
+                Return u.Ejecutar(
+                    "INSERT INTO producto_operacion(empresa_id, operacion_id, producto_base_id, variante_id, motivo, usuario_id) VALUES (@e, @o, @p, @v, @m, @u) " &
+                    "ON CONFLICT (empresa_id, operacion_id, producto_base_id) DO UPDATE SET variante_id = EXCLUDED.variante_id, motivo = EXCLUDED.motivo, " &
+                    "usuario_id = EXCLUDED.usuario_id, actualizado_en = now()",
+                    "e", Sesion.EmpresaId, "o", op.Value, "p", producto, "v", varianteId, "m", If(String.IsNullOrWhiteSpace(motivo), "liberado en Catalogo", motivo.Trim()),
+                    "u", Sesion.UsuarioId)
+            End Function)
+    End Sub
+
+    ''' <summary>Quita el producto activo del ingrediente en la operación (vuelve a usarse el último ingresado al almacén).</summary>
+    Public Sub QuitarActivoEnOperacion(productoBaseId As Long)
+        Dim op = Sesion.OperacionId
+        EnTransaccion(Permisos.CatalogoEditar,
+            Function(u) u.Ejecutar("DELETE FROM producto_operacion WHERE operacion_id = @o AND producto_base_id = @p", "o", op.Value, "p", productoBaseId))
+    End Sub
 
     ''' <summary>
     ''' Corrige descripción, marca o estado. El contenido por envase no se edita aquí: si cambia la presentación

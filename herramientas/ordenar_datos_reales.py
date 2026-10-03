@@ -10,6 +10,7 @@ Ordena los archivos recibidos del SGP en un juego de datos real y cargable (dato
   recetas_reales.csv       las recetas con el ingrediente del catálogo (lo que se importa)
   recetas_clasificadas.csv cada receta con su componente de menú, servicios, gramaje por ración y costo estimado
   insumos_sin_costo.csv    ingredientes que no se compran (agua para receta): se costean en S/ 0
+  productos_activos.csv    por ingrediente, el producto activo en la operación (con stock o compra más reciente): su precio se costea (D02)
   estructuras_menu.csv     estructura teórica de Desayuno, Almuerzo y Cena (componentes, factor, alternativas)
   ciclo_menu.csv           ciclo de 28 días: receta(s) por día, servicio y componente, con reparto
   resumen.txt              conteos para revisar
@@ -251,6 +252,20 @@ def main():
     filas_precio = [f for f in filas_precio if f[0] not in codigos_atipicos]
     escribir("precios_sgp.csv", ["variante_codigo", "descripcion_comercial", "producto_codigo", "producto_descripcion", "unidad_base",
                                  "contenido_por_envase", "empaque_codigo", "precio_envase", "fecha_precio", "fuente"], filas_precio)
+    # ---- D02 (decisión del usuario): por ingrediente, el producto ACTIVO en la operación es el que se usa ahí: el que tiene
+    # stock en el inventario; si no hay, el de compra más reciente en el SGP. Su precio es el que se costea (no el más barato).
+    def preferencia(f):   # inventario primero; luego la fecha de compra más reciente; luego el código
+        return (0 if f[9] == "inventario" else 1, -int(f[8].replace("-", "")), f[0])
+    activos = {}
+    for f in filas_precio:
+        if f[2] not in activos or preferencia(f) < preferencia(activos[f[2]]):
+            activos[f[2]] = f
+    filas_activo = []
+    for f in sorted(activos.values(), key=lambda x: (x[3], x[0])):
+        motivo = "con stock en el inventario inicial" if f[9] == "inventario" else f"compra mas reciente en el SGP ({f[8]})"
+        filas_activo.append([f[0], f[1], f[2], f[3], motivo])
+    escribir("productos_activos.csv", ["variante_codigo", "descripcion_comercial", "producto_codigo", "producto_descripcion", "motivo"], filas_activo)
+    variante_activa = {f[2]: f[0] for f in filas_activo}
     escribir("precios_atipicos.csv", ["variante_codigo", "descripcion_comercial", "ingrediente", "unidad_base", "costo_por_unidad_base", "mediana_del_ingrediente"],
              sorted(atipicos, key=lambda a: a[2]))
 
@@ -313,17 +328,16 @@ def main():
         w.writeheader()
         w.writerows(recetas)
 
-    # ---- costo por unidad base del ingrediente: menor precio / contenido entre sus presentaciones con precio (regla D02 provisional)
+    # ---- costo por unidad base del ingrediente: precio / contenido del producto ACTIVO en la operación (D02)
     costo_base = {}
     for c in catalogo:
+        if variante_activa.get(c["producto_codigo"]) != c["variante_codigo"]:
+            continue
         precio = precio_variante.get(c["variante_codigo"])
         contenido = dec(c["contenido_por_envase"])
         if precio is None or contenido <= 0:
             continue
-        clave = (norm(c["producto_descripcion"]), c["unidad_base"])
-        unitario = precio / contenido
-        if clave not in costo_base or unitario < costo_base[clave]:
-            costo_base[clave] = unitario
+        costo_base[(norm(c["producto_descripcion"]), c["unidad_base"])] = precio / contenido
 
     # ---- recetas: componente, gramaje y costo estimado por ración
     por_receta = collections.OrderedDict()

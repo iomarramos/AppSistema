@@ -54,6 +54,7 @@ Public NotInheritable Class ServicioProveedores
     Public Function RegistrarPrecio(proveedorEmpaqueId As Long, fechaDesde As Date, fechaHasta As Date?, moneda As String,
                                     precioEmpaqueU6 As Long, incluyeImpuesto As Boolean) As Long
         If precioEmpaqueU6 < 0 Then Throw New ReglaNegocioException("DATO_INVALIDO", "El precio no puede ser negativo.")
+        If incluyeImpuesto Then Throw New ReglaNegocioException("PRECIO_CON_IGV", "Los precios se registran sin IGV (D03). Ingrese el precio sin IGV.")
         If fechaHasta.HasValue AndAlso fechaHasta.Value < fechaDesde Then Throw New ReglaNegocioException("DATO_INVALIDO", "La vigencia termina antes de empezar.")
         Return EnTransaccion(Permisos.PreciosEditar,
             Function(u) u.EscalarLong(

@@ -34,7 +34,9 @@ Public Class FormCatalogo
 
         ' Derecha: variantes y empaques.
         Dim barraVariantes = Ui.BarraBotones(Ui.Boton("Nueva variante", AddressOf NuevaVariante), Ui.Boton("Editar variante", AddressOf EditarVariante),
-                                             Ui.Boton("Corregir contenido...", AddressOf CorregirContenido))
+                                             Ui.Boton("Corregir contenido...", AddressOf CorregirContenido),
+                                             Ui.Boton("Producto activo en la operacion", AddressOf ActivarEnOperacion),
+                                             Ui.Boton("Quitar producto activo", AddressOf QuitarActivo))
         barraVariantes.Visible = edita
         Dim barraEmpaques = Ui.BarraBotones(Ui.Boton("Nuevo empaque", AddressOf NuevoEmpaque))
         barraEmpaques.Visible = edita
@@ -84,7 +86,8 @@ Public Class FormCatalogo
         End If
         Ui.Ejecutar(Me, Sub() Ui.Mostrar(_variantes, _servicio.ListarVariantes(p.Id),
                                          "Codigo|Codigo", "MarcaNombre|Marca", "DescripcionComercial|Descripcion comercial",
-                                         "TipoEnvase|Envase", "ContenidoBasePorEnvaseU6|Contenido por envase (" & p.UnidadCodigo & ")", "Activo|Activo"))
+                                         "TipoEnvase|Envase", "ContenidoBasePorEnvaseU6|Contenido por envase (" & p.UnidadCodigo & ")", "Activo|Activo",
+                                         "ActivoEnOperacion|Activo en la operacion (su precio se costea)"))
     End Sub
 
     Private Sub CargarEmpaques()
@@ -237,6 +240,24 @@ Public Class FormCatalogo
                                          $"Quitar la marca 'sin costo de compra' de '{p.Descripcion}'? Volvera a necesitar precio.")) Then Return
         Ui.Ejecutar(Me, Sub() _servicio.MarcarSinCosto({p.Descripcion}, nuevo))
         CargarProductos()
+    End Sub
+
+    ''' <summary>D02: la presentacion elegida pasa a ser el producto activo del ingrediente en esta operacion.</summary>
+    Private Sub ActivarEnOperacion()
+        Dim v = Ui.Seleccionado(Of VarianteDto)(_variantes)
+        If v Is Nothing Then Ui.Informar(Me, "Seleccione una variante.") : Return
+        If Not Ui.Confirmar(Me, $"Usar '{v.DescripcionComercial}' como producto activo de '{Producto?.Descripcion}' en esta operacion? " &
+                                "Las minutas que se aprueben desde ahora y los pedidos usaran su precio.") Then Return
+        Ui.Ejecutar(Me, Sub() _servicio.ActivarEnOperacion(v.Id))
+        CargarVariantes()
+    End Sub
+
+    Private Sub QuitarActivo()
+        Dim p = Producto
+        If p Is Nothing Then Return
+        If Not Ui.Confirmar(Me, $"Quitar el producto activo de '{p.Descripcion}' en esta operacion? Se usara la presentacion con el ultimo ingreso al almacen.") Then Return
+        Ui.Ejecutar(Me, Sub() _servicio.QuitarActivoEnOperacion(p.Id))
+        CargarVariantes()
     End Sub
 
     ''' <summary>Corrige el contenido por envase de una presentacion que todavia no se uso (si ya se uso, la base lo impide).</summary>

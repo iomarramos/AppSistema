@@ -39,7 +39,7 @@ Plataforma: VB.NET + WinForms en Windows 10+ y PostgreSQL. Unas 20 PC; falta con
 | Reportes imprimibles y exportables (minuta del día, requerimiento, kárdex, inventario, stock valorizado) | Hecho: se imprimen desde el navegador o se exportan a CSV para Excel |
 | Interfaz WinForms | **Compila, pero nunca se ejecutó en Windows.** Réplica visual de las pantallas: https://claude.ai/artifact/LqViLBPDyFwUqMktDxNqaz |
 
-Última batería de pruebas: 69 aserciones SQL, 91 de dominio, 90 de integración e instalador de punta a punta, todo verde. Migraciones V001–V017.
+Última batería de pruebas: 69 aserciones SQL, 91 de dominio, 92 de integración e instalador de punta a punta, todo verde. Migraciones V001–V018.
 
 ## Decisiones del usuario (no reabrir)
 
@@ -60,10 +60,17 @@ Plataforma: VB.NET + WinForms en Windows 10+ y PostgreSQL. Unas 20 PC; falta con
   * se carga la venta real (raciones vendidas e importe);
   * se compara contra lo teórico en raciones (preparadas, consumidas, vendidas y no vendidas), venta, costo y productos, incluidos los que salieron del almacén sin estar planificados.
 
+* **D02 (2026-10-03):** el costo del ingrediente es el precio del producto **activo en la operación**, no el más barato. El orden para elegirlo es:
+  1. el producto liberado en Catálogo, o con `liberar-productos`;
+  2. si no hay ninguno, la presentación con el último ingreso al almacén de la operación;
+  3. si tampoco hay, el costo queda pendiente.
+
+  Los pedidos de compra usan ese mismo producto.
+* **D03 (2026-10-03):** los precios **no incluyen IGV**; la base lo exige (V018).
+* **D10 (2026-10-03):** por ahora es **una sola sede**, pero puede ampliarse a varias. Se mantiene un servidor por sede con la central opcional, y el resultado consolidado de varias sedes queda para cuando se amplíe.
+
 ## Propuestas aplicadas que falta confirmar
 
-* **D02:** costo del ingrediente = menor costo vigente entre sus presentaciones.
-* **D10:** un servidor por sede más una central.
 * **Estructuras de menú y factores** en `datos/real/estructuras_menu.csv`: los propuse yo, salvo los que dio el usuario.
 * **Enlace manual** en `datos/real/enlace_manual.csv`: solo la mantequilla 8 g, propuesta.
 
@@ -77,10 +84,9 @@ Plataforma: VB.NET + WinForms en Windows 10+ y PostgreSQL. Unas 20 PC; falta con
    * MEZCLA LÁCTEA;
    * KETCHUP.
 2. Revisar `datos/real/precios_atipicos.csv` (20): ¿el precio es de la caja o de la unidad?
-3. ¿Las ~20 PC están en una sola sede? (D10)
-4. D03: ¿los precios incluyen impuestos?
-5. Factores de consumo reales por operación y servicio.
-6. Cereales y yogurt del desayuno: no hay recetas con precio.
+3. Factores de consumo reales por operación y servicio.
+4. Cereales y yogurt del desayuno: no hay recetas con precio.
+5. Revisar `datos/real/productos_activos.csv`: el producto activo propuesto por ingrediente (el que tiene stock o la compra más reciente del SGP).
 
 ## Próximos pasos sugeridos
 

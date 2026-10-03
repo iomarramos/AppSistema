@@ -16,7 +16,7 @@ Todas las pantallas **compilan, pero ninguna se ejecutó en Windows todavía** (
 
 | Menú > opción | Permiso para abrir | Acciones con permiso propio | Estado |
 |---|---|---|---|
-| Catálogo > Productos, variantes y empaques | CATALOGO_VER | Editar, sin costo de compra y corregir contenido: CATALOGO_EDITAR | 🟡 |
+| Catálogo > Productos, variantes y empaques | CATALOGO_VER | Editar, sin costo de compra, corregir contenido y **producto activo en la operación**: CATALOGO_EDITAR | 🟡 |
 | Catálogo > Proveedores y precios | CATALOGO_VER | Proveedores: PROVEEDORES_EDITAR · Precios: PRECIOS_EDITAR | 🟡 |
 | Catálogo > Importar catálogo | CATALOGO_IMPORTAR | Solo acepta archivos de catálogo o del listado SGP | 🟡 |
 | Menús > Recetas | MENUS_VER | Editar: RECETAS_EDITAR · Aprobar y retirar: RECETAS_APROBAR | 🟡 |
@@ -117,6 +117,7 @@ Cada reporte sale con el botón **Imprimir…** de su pantalla. Se puede imprimi
 | Continuidad (cola, sincronización, respaldo, restauración, actualización), con pantalla para TI | ✅ (falta el piloto) |
 | Contratos, gastos, resultado y roles propios | ✅ |
 | Datos reales del SGP ordenados y cargables (`datos/real/`), desde la consola o la pantalla de carga; archivo equivocado rechazado | ✅ |
+| D02 producto activo por operación (Catálogo, carga masiva, costeo y pedidos) y D03 precios sin IGV | ✅ |
 | Reportes imprimibles y exportables (HTML para imprimir o PDF, CSV para Excel), con el permiso de la pantalla de origen | ✅ |
 
 ## 4. Pendiente por crear o confirmar
@@ -128,10 +129,10 @@ Cada reporte sale con el botón **Imprimir…** de su pantalla. Se puede imprimi
 | 3 | ⬜ Confirmar los 20 precios de `datos/real/precios_atipicos.csv` | Usuario |
 | 4 | ⬜ Factores de consumo reales por operación y servicio, y confirmar las estructuras propuestas | Usuario |
 | 5 | ⬜ Recetas con precio para cereales y yogurt del desayuno | Usuario |
-| 6 | ⬜ D02 (regla de precio del ingrediente), D03 (impuestos) y D10 (¿una sede o varias?) | Usuario |
+| 6 | ✅ Decisiones tomadas. D02: precio del producto activo en la operación. D03: precios sin IGV. D10: una sede por ahora, ampliable. Ya aplicadas (V018) | Usuario (respondido el 2026-10-03) |
 | 7 | 🟡 Pantalla para la carga de datos reales: **hecha** (Administración > Carga de datos reales, 7 pasos con el estado de lo cargado). Falta probarla en Windows | Programación (hecho) · PC con Windows |
 | 8 | 🟡 Pantalla de sincronización y respaldo para TI: **hecha** (Administración > Sincronización y respaldo). Pide la conexión del propietario y no la guarda. Restaurar y actualizar siguen solo en el Instalador, a propósito. Falta probarla en el piloto | Programación (hecho) · Piloto |
-| 9 | ⬜ Resultado consolidado de varias sedes en la central | Programación, con D10 |
+| 9 | ⏸ Resultado consolidado de varias sedes: no hace falta mientras sea una sede (D10). La central y la sincronización ya están listas para cuando se amplíe | Cuando se agregue otra sede |
 | 10 | 🟡 Reportes imprimibles o exportables: **hecho** (minuta del día, requerimiento, kárdex, hoja de conteo, resultado de inventario y stock valorizado). Falta verlos impresos desde Windows | Programación (hecho) · PC con Windows |
 | 11 | ⬜ Piloto de un mes en una sede (`docs/PILOTO_ETAPA_8.md`) | Sede real |
 | 12 | ⬜ Integraciones (SAP, ADS, SGO) | Especificación del cliente |

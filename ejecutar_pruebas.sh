@@ -47,6 +47,10 @@ printf 'DEMO\nadmin\nDemo-Clave-2026\nSI\n' \
 printf 'DEMO\nadmin\nDemo-Clave-2026\n' \
   | dotnet run --project src/AppSistema.Instalador -v q -- importar-recetas datos/real/recetas_reales.csv --aprobar | tail -1
 printf 'DEMO\nadmin\nDemo-Clave-2026\n' | dotnet run --project src/AppSistema.Instalador -v q -- marcar-sin-costo datos/real/insumos_sin_costo.csv | tail -1
+# D02: producto activo por ingrediente en la operacion (su precio es el que se costea); la segunda corrida no cambia nada.
+for vez in 1 2; do
+  printf 'DEMO\nadmin\nDemo-Clave-2026\n' | dotnet run --project src/AppSistema.Instalador -v q -- liberar-productos datos/real/productos_activos.csv 2>&1 | tail -1
+done
 psql -d "$DB" -tAc "SELECT 'ingredientes: ' || count(DISTINCT p.id) || ', productos SGP como variantes: ' || count(v.id) FROM producto_base p LEFT JOIN variante_producto v ON v.producto_base_id = p.id AND v.codigo LIKE 'SGP%'"
 psql -d "$DB" -tAc "SELECT 'recetas aprobadas: ' || count(*) FROM receta_version WHERE estado = 'aprobada'"
 printf 'DEMO\nadmin\nDemo-Clave-2026\n2026-10-01\nSI\n' \

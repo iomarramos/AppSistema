@@ -38,6 +38,7 @@ Public Class VentaEstructuraDatosTests
             Dim prov As New ServicioProveedores(bd.CadenaAplicacion, s)
             prov.RegistrarPrecio(prov.VincularEmpaque(prov.CrearProveedor(New ProveedorDto With {.Codigo = "P1", .Nombre = "Distribuidora"}), bd.EmpaqueCajaId, 2),
                                  New Date(2026, 1, 1), Nothing, "PEN", U(128D), False)          ' caja 4 × 4 L = 16 L → S/ 8 por L
+            Call New ServicioCatalogo(bd.CadenaAplicacion, s).ActivarEnOperacion(bd.VarianteAceiteId)   ' D02: producto activo en la operación
             Dim desayuno = Minutas.CrearServicio("DES", "Desayuno")
             Bebida = Minutas.CrearEstructura(desayuno, "BEB", "Bebida caliente", 1)
             Jugo = Minutas.CrearEstructura(desayuno, "JUG", "Jugo", 2)

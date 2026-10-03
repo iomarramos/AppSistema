@@ -161,7 +161,7 @@ Public NotInheritable Class ServicioCompras
 
     ''' <summary>
     ''' Pedido borrador al proveedor con las necesidades de una previsión validada y vigente. Por producto se elige
-    ''' el empaque que ofrece el proveedor con menor costo por unidad base vigente (sin precio: el primero, a 0)
+    ''' el empaque del producto activo en la operación (D02); si el proveedor no lo ofrece, el de menor costo por unidad base vigente (sin precio: el primero, a 0)
     ''' y se redondea por mínimo y múltiplo (D04 propuesto). Lo que ya está en otro pedido de esta previsión no se repite.
     ''' </summary>
     Public Function GenerarPedido(previsionId As Long, proveedorId As Long, fechaEntrega As Date, moneda As String) As ResultadoGenerarPedido
@@ -182,20 +182,24 @@ Public NotInheritable Class ServicioCompras
                     "WHERE p.prevision_id = @p AND p.estado <> 'anulado' AND d.prevision_detalle_id IS NOT NULL", Function(rd) rd.GetInt64(0), "p", previsionId))
                 Dim necesidades = LeerDetalle(u, previsionId).Where(Function(l) l.NecesidadNetaU6 > 0 AndAlso Not yaPedido.Contains(l.Id)).ToList()
                 Dim ofertas = u.Consultar(
-                    "SELECT v.producto_base_id, e.id, e.envases_por_empaque, e.minimo_empaques, e.multiplo_empaques, v.codigo, v.contenido_base_por_envase_u6, " &
+                    "SELECT v.producto_base_id, e.id, e.envases_por_empaque, e.minimo_empaques, e.multiplo_empaques, v.codigo, v.contenido_base_por_envase_u6, v.id, " &
                     "       (SELECT pc.precio_empaque_u6 FROM precio_compra pc WHERE pc.proveedor_empaque_id = pe.id AND pc.moneda = @m " &
                     "          AND pc.fecha_desde <= @f AND (pc.fecha_hasta IS NULL OR pc.fecha_hasta >= @f) ORDER BY pc.fecha_desde DESC LIMIT 1) " &
                     "FROM proveedor_empaque pe JOIN empaque_compra e ON e.id = pe.empaque_id AND e.activo = 1 " &
                     "JOIN variante_producto v ON v.id = e.variante_id AND v.activo = 1 WHERE pe.proveedor_id = @pr AND pe.activo = 1",
                     Function(rd) (Producto:=rd.GetInt64(0), Empaque:=New EmpaqueCompra(New VarianteProducto(rd.GetString(5), rd.GetInt64(6)), rd.GetInt64(2), rd.GetInt64(3), rd.GetInt64(4)),
-                                  EmpaqueId:=rd.GetInt64(1), Precio:=If(rd.IsDBNull(7), CType(Nothing, Long?), rd.GetInt64(7))),
+                                  EmpaqueId:=rd.GetInt64(1), Variante:=rd.GetInt64(7), Precio:=If(rd.IsDBNull(8), CType(Nothing, Long?), rd.GetInt64(8))),
                     "m", m, "f", fechaEntrega.Date, "pr", proveedorId).ToLookup(Function(o) o.Producto)
 
+                ' D02: se compra el producto activo en la operación (liberado o en uso); si el proveedor no lo ofrece, el de menor costo.
+                Dim enUso = CosteoBD.VariantesEnUso(u, op, necesidades.Select(Function(n) n.ProductoBaseId).ToArray(), fechaEntrega)
                 Dim lineas As New List(Of (Necesidad As PrevisionLineaDto, EmpaqueId As Long, Compra As ResultadoCompra, Factor As Long, Precio As Long?))
                 For Each n In necesidades
                     Dim candidatas = ofertas(n.ProductoBaseId).ToList()
                     If candidatas.Count = 0 Then r.SinEmpaqueDelProveedor.Add($"{n.ProductoDescripcion} ({Ui(n.NecesidadNetaU6)} {n.Unidad})") : Continue For
-                    Dim elegida = candidatas.OrderBy(Function(c) If(c.Precio.HasValue, 0, 1)) _
+                    Dim activa As Long = 0
+                    enUso.TryGetValue(n.ProductoBaseId, activa)
+                    Dim elegida = candidatas.OrderBy(Function(c) If(c.Variante = activa, 0, 1)).ThenBy(Function(c) If(c.Precio.HasValue, 0, 1)) _
                                             .ThenBy(Function(c) If(c.Precio.HasValue, Costeo.CostoUnitarioBaseU6(c.Precio.Value, c.Empaque.EnvasesPorEmpaque, c.Empaque.Variante.ContenidoBasePorEnvaseU6), 0L)) _
                                             .ThenBy(Function(c) c.EmpaqueId).First()
                     lineas.Add((n, elegida.EmpaqueId, Compras.EmpaquesAComprar(n.NecesidadNetaU6, elegida.Empaque), elegida.Empaque.ContenidoBaseU6, elegida.Precio))

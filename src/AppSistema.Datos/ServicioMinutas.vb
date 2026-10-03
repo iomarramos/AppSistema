@@ -255,7 +255,7 @@ Public NotInheritable Class ServicioMinutas
                 Dim platos = u.Consultar("SELECT id, receta_version_id FROM minuta_detalle WHERE minuta_id = @m ORDER BY id",
                                          Function(rd) (Id:=rd.GetInt64(0), Version:=rd.GetInt64(1)), "m", minutaId)
                 For Each p In platos
-                    Dim costo = CosteoBD.CostearVersion(u, p.Version, fecha, moneda)
+                    Dim costo = CosteoBD.CostearVersion(u, p.Version, fecha, moneda, op)
                     For Each i In costo.Ingredientes.Where(Function(x) x.CostoUnitarioBaseU6.HasValue)
                         u.Ejecutar("INSERT INTO costeo_ingrediente(empresa_id, minuta_detalle_id, ingrediente_id, costo_unitario_base_u6, fuente_precio, fecha_precio) " &
                                    "VALUES (@e, @d, @i, @c, @f, @fp)",
@@ -268,7 +268,7 @@ Public NotInheritable Class ServicioMinutas
                                         Function(rd) (Id:=rd.GetInt64(0), Producto:=rd.GetInt64(1)), "m", minutaId)
                 For Each f In fijos
                     u.Ejecutar("UPDATE minuta_estructura_fija SET costo_previsto_unitario_u6 = @c WHERE id = @id",
-                               "c", CosteoBD.CostoProducto(u, f.Producto, fecha, moneda), "id", f.Id)
+                               "c", CosteoBD.CostoProducto(u, f.Producto, fecha, moneda, op), "id", f.Id)
                 Next
                 ' Costo previsto de la estructura y venta = costo / Food Cost objetivo (D13). Con algún costo pendiente no se inventa la venta.
                 Dim costoTotal = u.Escalar(
