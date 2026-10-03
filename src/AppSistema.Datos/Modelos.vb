@@ -22,6 +22,25 @@ Public NotInheritable Class RolDto
     End Property
 End Class
 
+Public NotInheritable Class OperacionDto
+    Public Property Id As Long
+    Public Property Codigo As String
+    Public Property Nombre As String
+    Public Property Ubicacion As String
+    Public Property Almacenes As Long
+    Public Property Usuarios As Long
+End Class
+
+Public NotInheritable Class AuditoriaDto
+    Public Property Fecha As DateTime
+    Public Property Usuario As String
+    Public Property Tabla As String
+    Public Property RegistroId As Long
+    Public Property Accion As String
+    Public Property Antes As String
+    Public Property Despues As String
+End Class
+
 Public NotInheritable Class AlmacenResumen
     Public Property Id As Long
     Public Property OperacionId As Long
@@ -58,6 +77,8 @@ Public NotInheritable Class ProductoBaseDto
     Public Property CategoriaId As Long?
     Public Property CategoriaCodigo As String
     Public Property Activo As Boolean
+    ''' <summary>Insumo que no se compra (agua de red): se costea en S/ 0.</summary>
+    Public Property SinCostoCompra As Boolean
     Public Property Version As String
 End Class
 

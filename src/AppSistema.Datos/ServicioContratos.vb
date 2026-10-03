@@ -210,12 +210,15 @@ Public NotInheritable Class ServicioContratos
     ''' <summary>Servicios de la operación (para elegir en contratos y gastos), con el permiso de contratos.</summary>
     Public Function ServiciosDeOperacion() As List(Of OperacionServicioDto)
         Dim o = Op
-        Return EnTransaccion(Permisos.ContratosVer,
-            Function(u) u.Consultar(
-                "SELECT os.id, os.servicio_id, s.nombre, os.regimen_id, rg.nombre FROM operacion_servicio os JOIN servicio s ON s.id = os.servicio_id " &
-                "JOIN regimen rg ON rg.id = os.regimen_id WHERE os.operacion_id = @o ORDER BY s.nombre, rg.nombre",
-                Function(rd) New OperacionServicioDto With {.Id = rd.GetInt64(0), .ServicioId = rd.GetInt64(1), .ServicioNombre = rd.GetString(2),
-                                                            .RegimenId = rd.GetInt64(3), .RegimenNombre = rd.GetString(4)}, "o", o))
+        Return EnTransaccion(Permisos.ContratosVer, Function(u) LeerServiciosDeOperacion(u, o))
+    End Function
+
+    Friend Shared Function LeerServiciosDeOperacion(u As UnidadDeTrabajo, operacionId As Long) As List(Of OperacionServicioDto)
+        Return u.Consultar(
+            "SELECT os.id, os.servicio_id, s.nombre, os.regimen_id, rg.nombre FROM operacion_servicio os JOIN servicio s ON s.id = os.servicio_id " &
+            "JOIN regimen rg ON rg.id = os.regimen_id WHERE os.operacion_id = @o ORDER BY s.nombre, rg.nombre",
+            Function(rd) New OperacionServicioDto With {.Id = rd.GetInt64(0), .ServicioId = rd.GetInt64(1), .ServicioNombre = rd.GetString(2),
+                                                        .RegimenId = rd.GetInt64(3), .RegimenNombre = rd.GetString(4)}, "o", operacionId)
     End Function
 
     Private Shared Sub ExigirContrato(u As UnidadDeTrabajo, contratoId As Long, o As Long)

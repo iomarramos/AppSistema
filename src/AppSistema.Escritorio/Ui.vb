@@ -125,6 +125,13 @@ Public Module Ui
         Next
     End Sub
 
+    ''' <summary>Botón que solo se muestra si el usuario tiene el permiso (evita ocultar por posición en la barra).</summary>
+    Public Function BotonSi(visible As Boolean, texto As String, accion As Action) As Button
+        Dim b = Boton(texto, accion)
+        b.Visible = visible
+        Return b
+    End Function
+
     Public Function Boton(texto As String, accion As Action) As Button
         Dim b As New Button With {.Text = texto, .AutoSize = True, .Margin = New Padding(4)}
         AddHandler b.Click, Sub() accion()

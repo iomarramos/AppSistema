@@ -27,13 +27,14 @@ Public Class FormCatalogo
                                     Ui.Boton("Buscar", AddressOf CargarProductos), _inactivos})
         Dim barraProductos = Ui.BarraBotones(Ui.Boton("Nuevo producto", AddressOf NuevoProducto), Ui.Boton("Editar producto", AddressOf EditarProducto),
                                              Ui.Boton("Nueva unidad", AddressOf NuevaUnidad), Ui.Boton("Nueva categoria", AddressOf NuevaCategoria),
-                                             Ui.Boton("Nueva marca", AddressOf NuevaMarca))
+                                             Ui.Boton("Nueva marca", AddressOf NuevaMarca), Ui.Boton("Sin costo de compra...", AddressOf CambiarSinCosto))
         barraProductos.Visible = edita
         Dim izquierda As New Panel With {.Dock = DockStyle.Fill}
         izquierda.Controls.Add(_productos) : izquierda.Controls.Add(barraProductos) : izquierda.Controls.Add(busqueda)
 
         ' Derecha: variantes y empaques.
-        Dim barraVariantes = Ui.BarraBotones(Ui.Boton("Nueva variante", AddressOf NuevaVariante), Ui.Boton("Editar variante", AddressOf EditarVariante))
+        Dim barraVariantes = Ui.BarraBotones(Ui.Boton("Nueva variante", AddressOf NuevaVariante), Ui.Boton("Editar variante", AddressOf EditarVariante),
+                                             Ui.Boton("Corregir contenido...", AddressOf CorregirContenido))
         barraVariantes.Visible = edita
         Dim barraEmpaques = Ui.BarraBotones(Ui.Boton("Nuevo empaque", AddressOf NuevoEmpaque))
         barraEmpaques.Visible = edita
@@ -72,7 +73,7 @@ Public Class FormCatalogo
     Private Sub CargarProductos()
         Ui.Ejecutar(Me, Sub() Ui.Mostrar(_productos, _servicio.BuscarProductos(_buscar.Text, _inactivos.Checked),
                                          "Codigo|Codigo", "Descripcion|Descripcion", "Especificacion|Especificacion",
-                                         "UnidadCodigo|Unidad", "CategoriaCodigo|Categoria", "Activo|Activo"))
+                                         "UnidadCodigo|Unidad", "CategoriaCodigo|Categoria", "Activo|Activo", "SinCostoCompra|Sin costo de compra"))
     End Sub
 
     Private Sub CargarVariantes()
@@ -226,5 +227,27 @@ Public Class FormCatalogo
                                                           Ui.LeerEntero(d.Valor("minimo"), "minimo"), Ui.LeerEntero(d.Valor("multiplo"), "multiplo")))
         End Using
         CargarEmpaques()
+    End Sub
+    ''' <summary>Marca o desmarca el producto como insumo sin costo de compra (agua de red de las recetas).</summary>
+    Private Sub CambiarSinCosto()
+        Dim p = Producto
+        If p Is Nothing Then Return
+        Dim nuevo = Not p.SinCostoCompra
+        If Not Ui.Confirmar(Me, If(nuevo, $"Marcar '{p.Descripcion}' como insumo SIN costo de compra? Se costeara en S/ 0 en las recetas.",
+                                         $"Quitar la marca 'sin costo de compra' de '{p.Descripcion}'? Volvera a necesitar precio.")) Then Return
+        Ui.Ejecutar(Me, Sub() _servicio.MarcarSinCosto({p.Descripcion}, nuevo))
+        CargarProductos()
+    End Sub
+
+    ''' <summary>Corrige el contenido por envase de una presentacion que todavia no se uso (si ya se uso, la base lo impide).</summary>
+    Private Sub CorregirContenido()
+        Dim v = Ui.Seleccionado(Of VarianteDto)(_variantes)
+        If v Is Nothing Then Ui.Informar(Me, "Seleccione una variante.") : Return
+        Using d As New DialogoCampos("Contenido por envase de " & v.Codigo)
+            d.Texto("contenido", $"Contenido por envase ({Producto?.UnidadCodigo})", Ui.Cantidad(v.ContenidoBasePorEnvaseU6))
+            If d.ShowDialog(Me) <> DialogResult.OK Then Return
+            Ui.Ejecutar(Me, Sub() _servicio.CorregirContenidoVariante(v.Id, v.Version, Ui.LeerU6(d.Valor("contenido"), "contenido")))
+        End Using
+        CargarVariantes()
     End Sub
 End Class

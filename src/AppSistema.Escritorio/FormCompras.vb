@@ -33,12 +33,9 @@ Public Class FormCompras
 
         ' --- Previsión ---
         Dim barraPrev = Ui.BarraBotones(Etiqueta("Corte"), _corte, Etiqueta("Desde"), _desde, Etiqueta("Hasta"), _hasta,
-                                        Ui.Boton("Calcular", AddressOf Calcular), Ui.Boton("Validar", AddressOf Validar),
-                                        Ui.Boton("Esta vigente?", AddressOf VerDiferencias), Ui.Boton("Generar pedido...", AddressOf GenerarPedido),
-                                        Ui.Boton("Reserva del producto...", AddressOf FijarReserva))
-        For Each i In {6, 7, 9, 10}
-            barraPrev.Controls(i).Visible = edita
-        Next
+                                        Ui.BotonSi(edita, "Calcular", AddressOf Calcular), Ui.BotonSi(edita, "Validar", AddressOf Validar),
+                                        Ui.Boton("Esta vigente?", AddressOf VerDiferencias), Ui.BotonSi(edita, "Generar pedido...", AddressOf GenerarPedido),
+                                        Ui.BotonSi(edita, "Reserva del producto...", AddressOf FijarReserva))
         Dim divPrev As New SplitContainer With {.Dock = DockStyle.Fill, .Orientation = Orientation.Horizontal, .SplitterDistance = 120}
         divPrev.Panel1.Controls.Add(_previsiones)
         divPrev.Panel2.Controls.Add(_desglose)
@@ -48,13 +45,9 @@ Public Class FormCompras
         tabPrev.Controls.Add(divPrev) : tabPrev.Controls.Add(barraPrev)
 
         ' --- Pedidos ---
-        Dim barraPed = Ui.BarraBotones(Ui.Boton("Actualizar", AddressOf CargarPedidos), Ui.Boton("Pedido manual...", AddressOf PedidoManual),
-                                       Ui.Boton("Agregar linea...", AddressOf AgregarLinea), Ui.Boton("Quitar linea", AddressOf QuitarLinea),
-                                       Ui.Boton("Aprobar", AddressOf Aprobar), Ui.Boton("Anular", AddressOf Anular))
-        For Each i In {1, 2, 3}
-            barraPed.Controls(i).Visible = edita
-        Next
-        barraPed.Controls(4).Visible = aprueba : barraPed.Controls(5).Visible = aprueba
+        Dim barraPed = Ui.BarraBotones(Ui.Boton("Actualizar", AddressOf CargarPedidos), Ui.BotonSi(edita, "Pedido manual...", AddressOf PedidoManual),
+                                       Ui.BotonSi(edita, "Agregar linea...", AddressOf AgregarLinea), Ui.BotonSi(edita, "Quitar linea", AddressOf QuitarLinea),
+                                       Ui.BotonSi(aprueba, "Aprobar", AddressOf Aprobar), Ui.BotonSi(aprueba, "Anular", AddressOf Anular))
         Dim divPed As New SplitContainer With {.Dock = DockStyle.Fill, .Orientation = Orientation.Horizontal}
         divPed.Panel1.Controls.Add(_pedidos)
         divPed.Panel2.Controls.Add(_lineas)

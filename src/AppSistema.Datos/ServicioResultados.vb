@@ -91,6 +91,12 @@ Public NotInheritable Class ServicioResultados
             End Function)
     End Sub
 
+    ''' <summary>Servicios de la operación para asignar gastos (con el permiso de resultados, no el de contratos).</summary>
+    Public Function ServiciosDeOperacion() As List(Of OperacionServicioDto)
+        Dim o = Op
+        Return EnTransaccion(Permisos.ResultadosVer, Function(u) ServicioContratos.LeerServiciosDeOperacion(u, o))
+    End Function
+
     Public Function ListarGastos(anio As Integer, mes As Integer) As List(Of GastoDto)
         Dim o = Op
         Return EnTransaccion(Permisos.ResultadosVer,

@@ -5,7 +5,8 @@ Sistema de menús, compras, almacén, producción, inventarios, cierres y Food C
 Antes de cualquier tarea, lea:
 
 * `docs/CONTINUAR.md`: estado, decisiones, pendientes y cómo seguir;
-* `docs/SEGUIMIENTO.md`: registro detallado.
+* `docs/SEGUIMIENTO.md`: registro detallado;
+* `docs/CHECKLIST.md`: checklist de avance, pantallas, accesos y pendientes. **Actualícelo en cada entrega.**
 
 ## Pila y estructura
 
@@ -13,7 +14,7 @@ Antes de cualquier tarea, lea:
 * PostgreSQL 16 con un servidor por sede.
 * `src/AppSistema.Dominio`: cálculos puros. Cantidades y dinero son enteros ×1 000 000 (`_u6`, `EscalaU6`); nunca Double.
 * `src/AppSistema.Datos`: servicios con sesión (`ServicioConSesion.EnTransaccion(permiso, …)`), con RLS por `app.empresa_id`. Los errores de la base llegan como `CODIGO: mensaje` y se convierten en `ReglaNegocioException`.
-* `src/AppSistema.Escritorio`: formularios WinForms. Se usan `Ui.Mostrar(grid, lista, "Prop|Encabezado"…)` y `DialogoCampos`.
+* `src/AppSistema.Escritorio`: formularios WinForms. Se usan `Ui.Mostrar(grid, lista, "Prop|Encabezado"…)` y `DialogoCampos`. Los botones que dependen de un permiso se crean con `Ui.BotonSi(permiso, …)`; nunca se ocultan por posición en la barra. Cada opción de menú lleva el permiso mínimo de la pantalla (`FormPrincipal.Agregar`).
 * `src/AppSistema.Instalador`: comandos de consola (migrar, crear-empresa, importar-*, cargar-*, sincronizar, respaldar…).
 * `database/postgresql/migraciones/V*.sql`:
   * van embebidas y el migrador verifica su hash, así que **nunca se edita una migración aplicada**: se crea `V0NN` nueva;

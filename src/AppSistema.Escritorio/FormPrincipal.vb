@@ -65,13 +65,13 @@ Public Class FormPrincipal
         Dim catalogo As New ToolStripMenuItem("&Catalogo")
         Agregar(catalogo, "&Productos, variantes y empaques", Permisos.CatalogoVer, Function() New FormCatalogo(cadena, _sesion))
         Agregar(catalogo, "Pro&veedores y precios", Permisos.CatalogoVer, Function() New FormProveedores(cadena, _sesion))
-        Agregar(catalogo, "&Importar catalogo...", Permisos.CatalogoImportar, Function() New FormImportacion(cadena, _sesion))
+        Agregar(catalogo, "&Importar catalogo...", Permisos.CatalogoImportar, Function() New FormImportacion(cadena, _sesion, ModoImportacion.Catalogo))
 
         Dim menus As New ToolStripMenuItem("&Menus")
         Agregar(menus, "&Recetas", Permisos.MenusVer, Function() New FormRecetas(cadena, _sesion))
         Agregar(menus, "&Minutas y necesidades", Permisos.MenusVer, Function() New FormMinutas(cadena, _sesion))
         Agregar(menus, "&Servicios y estructuras", Permisos.MenusConfigurar, Function() New FormServicios(cadena, _sesion))
-        Agregar(menus, "&Importar recetas...", Permisos.RecetasEditar, Function() New FormImportacion(cadena, _sesion))
+        Agregar(menus, "&Importar recetas...", Permisos.RecetasEditar, Function() New FormImportacion(cadena, _sesion, ModoImportacion.Recetas))
         Agregar(menus, "&Produccion", Permisos.MenusVer, Function() New FormProduccion(cadena, _sesion))
 
         Dim almacen As New ToolStripMenuItem("A&lmacen")
@@ -81,13 +81,15 @@ Public Class FormPrincipal
         Dim compras As New ToolStripMenuItem("C&ompras")
         Agregar(compras, "&Prevision y pedidos", Permisos.ComprasVer, Function() New FormCompras(cadena, _sesion))
 
-        Dim cierres As New ToolStripMenuItem("Cie&rres")
+        Dim cierres As New ToolStripMenuItem("Cie&rres y control")
         Agregar(cierres, "&Pendientes, cierres y Food Cost", Permisos.ReportesVer, Function() New FormCierres(cadena, _sesion))
         Agregar(cierres, "&Contratos y clientes", Permisos.ContratosVer, Function() New FormContratos(cadena, _sesion))
         Agregar(cierres, "&Gastos y resultado mensual", Permisos.ResultadosVer, Function() New FormResultados(cadena, _sesion))
 
         Dim admin As New ToolStripMenuItem("&Administracion")
         Agregar(admin, "&Usuarios y roles", Permisos.UsuariosAdministrar, Function() New FormUsuarios(cadena, _sesion))
+        Agregar(admin, "&Operaciones y almacenes", Permisos.UsuariosAdministrar, Function() New FormOperaciones(cadena, _sesion))
+        Agregar(admin, "&Auditoria", Permisos.AuditoriaVer, Function() New FormAuditoria(cadena, _sesion))
 
         Dim sesionMenu As New ToolStripMenuItem("&Sesion")
         sesionMenu.DropDownItems.Add("Cambiar &clave...", Nothing, Sub() CambiarClave())
@@ -100,7 +102,9 @@ Public Class FormPrincipal
 
         Dim ventanas As New ToolStripMenuItem("&Ventanas")
         _menu.MdiWindowListItem = ventanas
-        _menu.Items.AddRange({catalogo, menus, compras, almacen, cierres, admin, sesionMenu, ventanas})
+        ' Solo se muestran los menús en los que el usuario tiene alguna opción (Sesión y Ventanas siempre).
+        _menu.Items.AddRange({catalogo, menus, compras, almacen, cierres, admin}.Where(Function(m) m.DropDownItems.Count > 0).ToArray())
+        _menu.Items.AddRange({sesionMenu, ventanas})
     End Sub
 
     ''' <summary>Opción de menú visible solo si el usuario tiene el permiso. Reutiliza la ventana si ya está abierta.</summary>

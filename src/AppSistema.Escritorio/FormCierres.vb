@@ -24,12 +24,11 @@ Public Class FormCierres
         Dim cierra = sesion.Tiene(Permisos.CierreEjecutar)
 
         Dim barraDia = Ui.BarraBotones(New Label With {.Text = "Dia", .AutoSize = True, .Margin = New Padding(3, 9, 3, 3)}, _fecha,
-                                       Ui.Boton("Actualizar", AddressOf CargarDia), Ui.Boton("Cerrar dia", AddressOf CerrarDia))
-        barraDia.Controls(3).Visible = cierra
+                                       Ui.Boton("Actualizar", AddressOf CargarDia), Ui.BotonSi(cierra, "Cerrar dia", AddressOf CerrarDia))
         Dim barraMes = Ui.BarraBotones(New Label With {.Text = "Mes", .AutoSize = True, .Margin = New Padding(3, 9, 3, 3)}, _mes,
-                                       Ui.Boton("Reporte", AddressOf CargarMes), Ui.Boton("Generar venta (estructura)", AddressOf GenerarVenta), Ui.Boton("Registrar ingreso...", AddressOf RegistrarIngreso),
-                                       Ui.Boton("Objetivo Food Cost...", AddressOf FijarObjetivo), Ui.Boton("Cerrar mes", AddressOf CerrarMes))
-        For i = 3 To 6 : barraMes.Controls(i).Visible = cierra : Next
+                                       Ui.Boton("Reporte", AddressOf CargarMes), Ui.BotonSi(cierra, "Generar venta (estructura)", AddressOf GenerarVenta),
+                                       Ui.BotonSi(cierra, "Registrar ingreso...", AddressOf RegistrarIngreso),
+                                       Ui.BotonSi(cierra, "Objetivo Food Cost...", AddressOf FijarObjetivo), Ui.BotonSi(cierra, "Cerrar mes", AddressOf CerrarMes))
 
         Dim division As New SplitContainer With {.Dock = DockStyle.Fill, .Orientation = Orientation.Horizontal, .SplitterDistance = 220}
         division.Panel1.Controls.Add(_pendientes)

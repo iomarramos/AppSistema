@@ -4,7 +4,7 @@ Imports AppSistema.Dominio.Seguridad
 
 ''' <summary>
 ''' Producción por minuta: requerimiento calculado y adicionales, entrega del almacén en presentaciones completas,
-''' raciones producidas/servidas, mermas y comparación previsto/real del servicio.
+''' raciones producidas/servidas, mermas, venta real, consumo por componente y comparación teórico vs real.
 ''' </summary>
 Public Class FormProduccion
     Inherits Form
@@ -28,18 +28,14 @@ Public Class FormProduccion
         Text = "Produccion - " & sesion.Operacion.Nombre
         Dim cocina = sesion.Tiene(Permisos.ProduccionEditar)
         Dim barra = Ui.BarraBotones(New Label With {.Text = "Fecha", .AutoSize = True, .Margin = New Padding(3, 9, 3, 3)}, _fecha,
-                                    Ui.Boton("Ver", AddressOf CargarMinutas), Ui.Boton("Calcular requerimiento", AddressOf Calcular),
-                                    Ui.Boton("Requerimiento adicional...", AddressOf Adicional), Ui.Boton("Cambiar cantidad...", AddressOf CambiarCantidad),
-                                    Ui.Boton("Entregar (almacen)", AddressOf Atender), Ui.Boton("Registrar produccion...", AddressOf RegistrarProduccion),
-                                    Ui.Boton("Merma...", AddressOf Merma), Ui.Boton("Previsto vs real", AddressOf Reporte))
-        For Each i In {3, 4, 5, 7, 8}
-            barra.Controls(i).Visible = cocina
-        Next
-        barra.Controls(6).Visible = sesion.Tiene(Permisos.StockContabilizar)
+                                    Ui.Boton("Ver", AddressOf CargarMinutas), Ui.BotonSi(cocina, "Calcular requerimiento", AddressOf Calcular),
+                                    Ui.BotonSi(cocina, "Requerimiento adicional...", AddressOf Adicional), Ui.BotonSi(cocina, "Cambiar cantidad...", AddressOf CambiarCantidad),
+                                    Ui.BotonSi(cocina, "Anular requerimiento", AddressOf AnularRequerimiento),
+                                    Ui.BotonSi(sesion.Tiene(Permisos.StockContabilizar), "Entregar (almacen)", AddressOf Atender),
+                                    Ui.BotonSi(cocina, "Registrar produccion...", AddressOf RegistrarProduccion), Ui.BotonSi(cocina, "Merma...", AddressOf Merma))
         Dim barraReal = Ui.BarraBotones(New Label With {.Text = "Real del servicio:", .AutoSize = True, .Margin = New Padding(3, 9, 3, 3)},
-                                        Ui.Boton("Venta real...", AddressOf VentaReal), Ui.Boton("Consumo por componente...", AddressOf ConsumoComponente),
+                                        Ui.BotonSi(cocina, "Venta real...", AddressOf VentaReal), Ui.BotonSi(cocina, "Consumo por componente...", AddressOf ConsumoComponente),
                                         Ui.Boton("Teorico vs real", Sub() Comparar(False)), Ui.Boton("Teorico vs real del mes", Sub() Comparar(True)))
-        barraReal.Controls(1).Visible = cocina : barraReal.Controls(2).Visible = cocina
 
         Dim abajo As New SplitContainer With {.Dock = DockStyle.Fill}
         abajo.Panel1.Controls.Add(_gRequerimientos)
@@ -194,20 +190,14 @@ Public Class FormProduccion
             End Sub)
     End Sub
 
-    Private Sub Reporte()
-        Dim m = Minuta
-        If m Is Nothing Then Return
-        Ui.Ejecutar(Me,
-            Sub()
-                Dim r = _produccion.Reporte(m.Id)
-                Dim cab = $"Raciones previstas {r.RacionesPrevistas}, producidas {If(r.RacionesProducidas?.ToString(), "-")}, servidas {If(r.RacionesServidas?.ToString(), "-")}, " &
-                          $"excedentes {If(r.RacionesExcedentes?.ToString(), "-")}. Costo previsto {If(r.CostoPrevistoU6.HasValue, Ui.Dinero(r.CostoPrevistoU6.Value), "pendiente")}, " &
-                          $"costo real {Ui.Dinero(r.CostoRealU6)}" & If(r.CostoRealPorRacionServidaU6.HasValue, $" ({Ui.Dinero(r.CostoRealPorRacionServidaU6.Value)} por racion servida)", "") &
-                          If(r.Mermas.Count > 0, ". Mermas: " & String.Join("; ", r.Mermas), "")
-                Ui.MostrarLista(Me, "Previsto vs real", cab, r.Consumo, "ProductoDescripcion|Producto", "PrevistoU6|Previsto", "EntregadoU6|Entregado",
-                                "DevueltoU6|Devuelto", "NetoU6|Neto", "DiferenciaU6|Diferencia", "Unidad|Unidad", "CostoRealU6|Costo real")
-            End Sub)
+    Private Sub AnularRequerimiento()
+        Dim r = Requerimiento
+        If r Is Nothing Then Ui.Informar(Me, "Seleccione un requerimiento.") : Return
+        If Not Ui.Confirmar(Me, $"Anular el requerimiento {r.Numero}? Solo se anula si aun no fue entregado.") Then Return
+        Ui.Ejecutar(Me, Sub() _produccion.Anular(r.Id))
+        CargarRequerimientos()
     End Sub
+
     Private Sub VentaReal()
         Dim m = Minuta
         If m Is Nothing Then Ui.Informar(Me, "Seleccione una minuta.") : Return

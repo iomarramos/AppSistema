@@ -4,13 +4,19 @@ Imports System.Windows.Forms
 Imports AppSistema.Datos
 Imports AppSistema.Dominio.Importacion
 
+Public Enum ModoImportacion
+    Catalogo
+    Recetas
+End Enum
+
 ''' <summary>
 ''' Importación del catálogo desde CSV: plantilla, vista previa por fila e importación todo o nada.
-''' También acepta el listado de productos del SGP (pro_nombre, pro_coduni, pro_facing), que se convierte al vuelo.
+''' En modo Recetas importa recetas normalizadas. En modo Catálogo también acepta el listado de productos del SGP (pro_nombre, pro_coduni, pro_facing), que se convierte al vuelo.
 ''' </summary>
 Public Class FormImportacion
     Inherits Form
 
+    Private ReadOnly _modo As ModoImportacion
     Private ReadOnly _servicio As ServicioImportacionCatalogo
     Private ReadOnly _recetas As ServicioImportacionRecetas
     Private ReadOnly _sesion As SesionUsuario
@@ -23,19 +29,24 @@ Public Class FormImportacion
     Private _texto As String
     Private _ultimaVista As ResultadoImportacion
 
-    Public Sub New(cadena As String, sesion As SesionUsuario)
+    ''' <param name="modo">Catálogo (Catálogo > Importar catálogo, permiso CATALOGO_IMPORTAR) o Recetas (Menús > Importar recetas,
+    ''' permiso RECETAS_EDITAR). Cada menú abre su propia ventana y solo acepta su tipo de archivo.</param>
+    Public Sub New(cadena As String, sesion As SesionUsuario, modo As ModoImportacion)
         _servicio = New ServicioImportacionCatalogo(cadena, sesion)
         _recetas = New ServicioImportacionRecetas(cadena, sesion)
         _sesion = sesion
-        Text = "Importar catalogo"
+        _modo = modo
+        Text = If(modo = ModoImportacion.Recetas, "Importar recetas", "Importar catalogo")
         _importar = Ui.Boton("Importar", AddressOf Importar)
         _importar.Enabled = False
         _observaciones = Ui.Boton("Observaciones...", AddressOf GuardarObservaciones)
         _observaciones.Enabled = False
         Controls.Add(_filas)
         Controls.Add(_resumen)
-        Controls.Add(Ui.BarraBotones(Ui.Boton("Descargar plantilla...", AddressOf GuardarPlantilla), Ui.Boton("Elegir archivo...", AddressOf ElegirArchivo),
-                                     Ui.Boton("Vista previa", AddressOf VistaPrevia), _importar, _observaciones, _archivo))
+        Dim barra = Ui.BarraBotones(Ui.Boton("Descargar plantilla...", AddressOf GuardarPlantilla), Ui.Boton("Elegir archivo...", AddressOf ElegirArchivo),
+                                    Ui.Boton("Vista previa", AddressOf VistaPrevia), _importar, _observaciones, _archivo)
+        barra.Controls(0).Visible = modo = ModoImportacion.Catalogo          ' la plantilla es del catálogo
+        Controls.Add(barra)
         AddHandler _filas.RowPrePaint,
             Sub(s, e)
                 Dim f = TryCast(_filas.Rows(e.RowIndex).DataBoundItem, FilaResultadoImportacion)
@@ -89,7 +100,14 @@ Public Class FormImportacion
     Private Sub VistaPrevia()
         If _texto Is Nothing Then Ui.Informar(Me, "Elija primero un archivo.") : Return
         _importar.Enabled = False
-        If LectorCsvRecetas.EsArchivoRecetas(_texto) Then VistaPreviaRecetas() : Return
+        Dim esRecetas = LectorCsvRecetas.EsArchivoRecetas(_texto)
+        If esRecetas AndAlso _modo = ModoImportacion.Catalogo Then
+            Ui.Informar(Me, "Este archivo es de recetas. Importelo desde Menus > Importar recetas.") : Return
+        End If
+        If Not esRecetas AndAlso _modo = ModoImportacion.Recetas Then
+            Ui.Informar(Me, "Este archivo no es de recetas (formato receta_codigo;receta_nombre;...). El catalogo se importa desde Catalogo > Importar catalogo.") : Return
+        End If
+        If esRecetas Then VistaPreviaRecetas() : Return
         _vistaRecetas = Nothing
         Ui.Ejecutar(Me,
             Sub()

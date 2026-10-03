@@ -8,7 +8,7 @@ Actualizado: 2026-10-03.
 | PR | #1 (borrador, CI verde, sin conflictos) |
 | `develop` | en el mismo commit probado |
 
-El detalle de cada etapa está en `docs/SEGUIMIENTO.md`.
+El detalle de cada etapa está en `docs/SEGUIMIENTO.md`; el checklist de avance (pantallas, accesos por rol y pendientes) en `docs/CHECKLIST.md`.
 
 ## Qué es
 
@@ -82,6 +82,9 @@ Plataforma: VB.NET + WinForms en Windows 10+ y PostgreSQL. Unas 20 PC; falta con
 6. Cereales y yogurt del desayuno: no hay recetas con precio.
 
 ## Próximos pasos sugeridos
+
+La lista completa y numerada está en `docs/CHECKLIST.md` (sección 4). En resumen:
+
 
 1. Con las respuestas, actualizar:
    * `enlace_manual.csv`;

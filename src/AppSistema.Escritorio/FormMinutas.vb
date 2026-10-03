@@ -9,6 +9,7 @@ Public Class FormMinutas
     Private ReadOnly _servicio As ServicioMinutas
     Private ReadOnly _recetas As ServicioRecetas
     Private ReadOnly _catalogo As ServicioCatalogo
+    Private ReadOnly _comparativo As ServicioComparativo
     Private ReadOnly _desde As New DateTimePicker With {.Format = DateTimePickerFormat.Short, .Width = 110}
     Private ReadOnly _hasta As New DateTimePicker With {.Format = DateTimePickerFormat.Short, .Width = 110}
     Private ReadOnly _minutas As DataGridView = Ui.NuevaGrilla()
@@ -19,17 +20,21 @@ Public Class FormMinutas
         _servicio = New ServicioMinutas(cadena, sesion)
         _recetas = New ServicioRecetas(cadena, sesion)
         _catalogo = New ServicioCatalogo(cadena, sesion)
+        _comparativo = New ServicioComparativo(cadena, sesion)
         Text = "Minutas - " & sesion.Operacion.Nombre
         _desde.Value = Date.Today.AddDays(-Date.Today.Day + 1)
         _hasta.Value = _desde.Value.AddMonths(1).AddDays(-1)
 
         Dim edita = sesion.Tiene(Permisos.MinutasEditar)
+        Dim aprueba = sesion.Tiene(Permisos.MinutasAprobar)
         Dim barraMinutas = Ui.BarraBotones(New Label With {.Text = "Desde", .AutoSize = True, .Margin = New Padding(3, 9, 3, 3)}, _desde,
                                            New Label With {.Text = "hasta", .AutoSize = True, .Margin = New Padding(3, 9, 3, 3)}, _hasta,
-                                           Ui.Boton("Ver", AddressOf CargarMinutas), Ui.Boton("Nueva minuta", AddressOf NuevaMinuta),
-                                           Ui.Boton("Cambiar comensales...", AddressOf CambiarComensales), Ui.Boton("Aprobar", AddressOf Aprobar), Ui.Boton("Necesidades del periodo...", AddressOf Necesidades))
-        barraMinutas.Controls(5).Visible = edita
-        barraMinutas.Controls(6).Visible = sesion.Tiene(Permisos.MinutasAprobar)
+                                           Ui.Boton("Ver", AddressOf CargarMinutas),
+                                           Ui.BotonSi(edita, "Nueva minuta", AddressOf NuevaMinuta),
+                                           Ui.BotonSi(edita, "Cambiar comensales...", AddressOf CambiarComensales),
+                                           Ui.BotonSi(aprueba, "Aprobar", AddressOf Aprobar),
+                                           Ui.BotonSi(aprueba, "Factores de la operacion...", AddressOf FactoresOperacion),
+                                           Ui.Boton("Necesidades del periodo...", AddressOf Necesidades))
         Dim barraPlatos = Ui.BarraBotones(Ui.Boton("Agregar plato", AddressOf AgregarPlato), Ui.Boton("Quitar plato", AddressOf QuitarPlato),
                                           Ui.Boton("Agregar fijo", AddressOf AgregarFijo), Ui.Boton("Quitar fijo", AddressOf QuitarFijo))
         barraPlatos.Visible = edita
@@ -194,5 +199,37 @@ Public Class FormMinutas
                                                "Cantidad bruta en unidad base; cada producto aparece una sola vez.",
                                                _servicio.Necesidades(ids), "ProductoCodigo|Codigo", "ProductoDescripcion|Producto", "CantidadU6|Cantidad",
                                                "Unidad|Unidad", "Origenes|Platos y fijos"))
+    End Sub
+    ''' <summary>
+    ''' Factores de la operación: muestra teórico, vigente y el real de los últimos 30 días, y permite fijar el de la
+    ''' operación (vacío = volver al teórico).
+    ''' </summary>
+    Private Sub FactoresOperacion()
+        Dim servicios As List(Of OperacionServicioDto) = Nothing
+        If Not Ui.Ejecutar(Me, Sub() servicios = _servicio.ListarServiciosDeOperacion()) OrElse servicios.Count = 0 Then Return
+        Dim os As OperacionServicioDto = servicios(0)
+        If servicios.Count > 1 Then
+            Using elegir As New DialogoCampos("Servicio")
+                elegir.Opciones("s", "Servicio", servicios.Select(Function(x) CObj(New Opcion(Of OperacionServicioDto)(x, $"{x.ServicioNombre} - {x.RegimenNombre}"))))
+                If elegir.ShowDialog(Me) <> DialogResult.OK Then Return
+                os = elegir.Elegido(Of Opcion(Of OperacionServicioDto))("s").Valor
+            End Using
+        End If
+        Dim reales As List(Of FactorRealDto) = Nothing
+        If Not Ui.Ejecutar(Me, Sub() reales = _comparativo.FactoresReales(os.Id, Date.Today.AddDays(-30), Date.Today)) Then Return
+        Using d As New DialogoCampos($"Factores de {os.ServicioNombre} - {os.RegimenNombre} (vacio = teorico)")
+            For Each f In reales
+                d.Texto("f" & f.EstructuraId, $"{f.Estructura}: teorico {f.FactorTeoricoBp / 100D:0.##} %, real 30 dias " &
+                        If(f.FactorRealBp.HasValue, $"{f.FactorRealBp.Value / 100D:0.##} %", "sin datos"),
+                        If(f.FactorVigenteBp <> f.FactorTeoricoBp, (f.FactorVigenteBp / 100D).ToString("0.##"), ""))
+            Next
+            If d.ShowDialog(Me) <> DialogResult.OK Then Return
+            Ui.Ejecutar(Me, Sub()
+                                For Each f In reales
+                                    Dim v = d.Valor("f" & f.EstructuraId)
+                                    _servicio.FijarFactorOperacion(os.Id, f.EstructuraId, If(v = "", CType(Nothing, Long?), FormServicios.PorcentajeABp(v, "factor")))
+                                Next
+                            End Sub)
+        End Using
     End Sub
 End Class

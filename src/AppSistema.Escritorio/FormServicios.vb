@@ -6,14 +6,12 @@ Public Class FormServicios
     Inherits Form
 
     Private ReadOnly _servicio As ServicioMinutas
-    Private ReadOnly _comparativo As ServicioComparativo
     Private ReadOnly _servicios As DataGridView = Ui.NuevaGrilla()
     Private ReadOnly _estructuras As DataGridView = Ui.NuevaGrilla()
     Private ReadOnly _operacion As DataGridView = Ui.NuevaGrilla()
 
     Public Sub New(cadena As String, sesion As SesionUsuario)
         _servicio = New ServicioMinutas(cadena, sesion)
-        _comparativo = New ServicioComparativo(cadena, sesion)
         Text = "Servicios y estructuras"
 
         Dim izquierda As New Panel With {.Dock = DockStyle.Fill}
@@ -24,8 +22,7 @@ Public Class FormServicios
         derecha.Panel1.Controls.Add(Ui.BarraBotones(Ui.Boton("Nueva estructura", AddressOf NuevaEstructura), Ui.Boton("Factor de consumo...", AddressOf CambiarFactor)))
         derecha.Panel1.Controls.Add(New Label With {.Text = "Estructura del servicio (orden en que se sirve). Factor de consumo = parte de los comensales que toma el componente.", .Dock = DockStyle.Top, .Padding = New Padding(4)})
         derecha.Panel2.Controls.Add(_operacion)
-        derecha.Panel2.Controls.Add(Ui.BarraBotones(Ui.Boton("Asignar servicio a la operacion", AddressOf Asignar), Ui.Boton("Food Cost objetivo...", AddressOf FijarObjetivo),
-                                                    Ui.Boton("Factores de la operacion...", AddressOf FactoresOperacion)))
+        derecha.Panel2.Controls.Add(Ui.BarraBotones(Ui.Boton("Asignar servicio a la operacion", AddressOf Asignar), Ui.Boton("Food Cost objetivo...", AddressOf FijarObjetivo)))
         derecha.Panel2.Controls.Add(New Label With {.Text = "Servicios que presta " & sesion.Operacion.Nombre, .Dock = DockStyle.Top, .Padding = New Padding(4)})
         Dim division As New SplitContainer With {.Dock = DockStyle.Fill}
         division.Panel1.Controls.Add(izquierda) : division.Panel2.Controls.Add(derecha)
@@ -123,29 +120,5 @@ Public Class FormServicios
                 End Using
             End Sub)
         Cargar()
-    End Sub
-    ''' <summary>
-    ''' Factores de la operación: muestra teórico, vigente y el real de los últimos 30 días, y permite fijar el de la
-    ''' operación (vacío = volver al teórico).
-    ''' </summary>
-    Private Sub FactoresOperacion()
-        Dim os = Ui.Seleccionado(Of OperacionServicioDto)(_operacion)
-        If os Is Nothing Then Ui.Informar(Me, "Seleccione un servicio de la operacion.") : Return
-        Dim reales As List(Of FactorRealDto) = Nothing
-        If Not Ui.Ejecutar(Me, Sub() reales = _comparativo.FactoresReales(os.Id, Date.Today.AddDays(-30), Date.Today)) Then Return
-        Using d As New DialogoCampos($"Factores de {os.ServicioNombre} - {os.RegimenNombre} (vacio = teorico)")
-            For Each f In reales
-                d.Texto("f" & f.EstructuraId, $"{f.Estructura}: teorico {f.FactorTeoricoBp / 100D:0.##} %, real 30 dias " &
-                        If(f.FactorRealBp.HasValue, $"{f.FactorRealBp.Value / 100D:0.##} %", "sin datos"),
-                        If(f.FactorVigenteBp <> f.FactorTeoricoBp, (f.FactorVigenteBp / 100D).ToString("0.##"), ""))
-            Next
-            If d.ShowDialog(Me) <> DialogResult.OK Then Return
-            Ui.Ejecutar(Me, Sub()
-                                For Each f In reales
-                                    Dim v = d.Valor("f" & f.EstructuraId)
-                                    _servicio.FijarFactorOperacion(os.Id, f.EstructuraId, If(v = "", CType(Nothing, Long?), PorcentajeABp(v, "factor")))
-                                Next
-                            End Sub)
-        End Using
     End Sub
 End Class

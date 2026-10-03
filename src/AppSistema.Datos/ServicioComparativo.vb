@@ -35,6 +35,10 @@ Public NotInheritable Class ProductoComparadoDto
     Public Property Unidad As String
     Public Property CantidadTeoricaU6 As Long
     Public Property CostoTeoricoU6 As Long?
+    ''' <summary>Lo que salió del almacén para el servicio y lo que volvió (devoluciones de cocina).</summary>
+    Public Property EntregadoU6 As Long
+    Public Property DevueltoU6 As Long
+    ''' <summary>Consumo real neto = entregado − devuelto.</summary>
     Public Property CantidadRealU6 As Long
     Public Property CostoRealU6 As Long
     Public ReadOnly Property DiferenciaCantidadU6 As Long
@@ -100,6 +104,8 @@ Public NotInheritable Class ComparativoDto
     End Property
     Public ReadOnly Property Componentes As New List(Of ComponenteComparadoDto)
     Public ReadOnly Property Productos As New List(Of ProductoComparadoDto)
+    ''' <summary>Mermas registradas en producción (analíticas o con baja de almacén).</summary>
+    Public ReadOnly Property Mermas As New List(Of String)
 End Class
 
 Public NotInheritable Class FactorRealDto
@@ -184,12 +190,13 @@ Public NotInheritable Class ServicioComparativo
                 Dim m = Minuta(u, minutaId, o)
                 Dim real = u.Consultar(
                     "SELECT v.producto_base_id, sum(CASE d.tipo WHEN 'salida_produccion' THEN l.cantidad_base_u6 ELSE -l.cantidad_base_u6 END)::bigint, " &
-                    "       sum(CASE d.tipo WHEN 'salida_produccion' THEN l.valor_u6 ELSE -l.valor_u6 END)::bigint " &
+                    "       sum(CASE d.tipo WHEN 'salida_produccion' THEN l.valor_u6 ELSE -l.valor_u6 END)::bigint, " &
+                    "       COALESCE(sum(l.cantidad_base_u6) FILTER (WHERE d.tipo = 'devolucion_produccion'), 0)::bigint " &
                     "FROM documento_stock d JOIN documento_stock_detalle l ON l.documento_id = d.id JOIN variante_producto v ON v.id = l.variante_id " &
                     "LEFT JOIN requerimiento q ON q.id = d.requerimiento_id " &
                     "WHERE d.estado = 'confirmado' AND d.tipo IN ('salida_produccion','devolucion_produccion') " &
                     "  AND (q.minuta_id = @m OR (d.requerimiento_id IS NULL AND d.operacion_servicio_id = @os AND d.fecha = @f)) GROUP BY v.producto_base_id",
-                    Function(rd) (rd.GetInt64(0), rd.GetInt64(1), rd.GetInt64(2)), "m", minutaId, "os", m.Servicio, "f", m.Fecha)
+                    Function(rd) (rd.GetInt64(0), rd.GetInt64(1), rd.GetInt64(2), rd.GetInt64(3)), "m", minutaId, "os", m.Servicio, "f", m.Fecha)
                 Return Armar(u, $"Minuta {m.Fecha:dd/MM/yyyy}", {minutaId}, real)
             End Function)
     End Function
@@ -205,11 +212,12 @@ Public NotInheritable Class ServicioComparativo
                                       Function(rd) rd.GetInt64(0), "os", operacionServicioId, "d", desde, "h", hasta).ToArray()
                 Dim real = u.Consultar(
                     "SELECT v.producto_base_id, sum(CASE d.tipo WHEN 'salida_produccion' THEN l.cantidad_base_u6 ELSE -l.cantidad_base_u6 END)::bigint, " &
-                    "       sum(CASE d.tipo WHEN 'salida_produccion' THEN l.valor_u6 ELSE -l.valor_u6 END)::bigint " &
+                    "       sum(CASE d.tipo WHEN 'salida_produccion' THEN l.valor_u6 ELSE -l.valor_u6 END)::bigint, " &
+                    "       COALESCE(sum(l.cantidad_base_u6) FILTER (WHERE d.tipo = 'devolucion_produccion'), 0)::bigint " &
                     "FROM documento_stock d JOIN documento_stock_detalle l ON l.documento_id = d.id JOIN variante_producto v ON v.id = l.variante_id " &
                     "WHERE d.estado = 'confirmado' AND d.tipo IN ('salida_produccion','devolucion_produccion') AND d.operacion_servicio_id = @os " &
                     "  AND d.fecha BETWEEN @d AND @h GROUP BY v.producto_base_id",
-                    Function(rd) (rd.GetInt64(0), rd.GetInt64(1), rd.GetInt64(2)), "os", operacionServicioId, "d", desde, "h", hasta)
+                    Function(rd) (rd.GetInt64(0), rd.GetInt64(1), rd.GetInt64(2), rd.GetInt64(3)), "os", operacionServicioId, "d", desde, "h", hasta)
                 Return Armar(u, $"Mes {mes:00}/{anio}", ids, real)
             End Function)
     End Function
@@ -266,7 +274,7 @@ Public NotInheritable Class ServicioComparativo
         Return (m.Servicio, m.Fecha, m.Comensales, m.Venta)
     End Function
 
-    Private Shared Function Armar(u As UnidadDeTrabajo, titulo As String, minutaIds As Long(), real As List(Of (Long, Long, Long))) As ComparativoDto
+    Private Shared Function Armar(u As UnidadDeTrabajo, titulo As String, minutaIds As Long(), real As List(Of (Long, Long, Long, Long))) As ComparativoDto
         Dim r As New ComparativoDto With {.Titulo = titulo, .Minutas = minutaIds.Length}
         Using cmd = u.Comando(
                 "SELECT COALESCE(sum(m.comensales), 0)::bigint, COALESCE(bool_and(m.costo_previsto_u6 IS NOT NULL), true), sum(m.costo_previsto_u6)::bigint, " &
@@ -330,23 +338,30 @@ Public NotInheritable Class ServicioComparativo
             Dim costo = If(previo.Costo.HasValue AndAlso l.Costo.HasValue, previo.Costo.Value + EscalaU6.Multiplicar(l.Cant, l.Costo.Value), CType(Nothing, Long?))
             teorico(l.Producto) = (previo.Cant + l.Cant, costo)
         Next
-        Dim reales = real.ToDictionary(Function(x) x.Item1, Function(x) (Cant:=x.Item2, Valor:=x.Item3))
+        Dim reales = real.ToDictionary(Function(x) x.Item1, Function(x) (Cant:=x.Item2, Valor:=x.Item3, Devuelto:=x.Item4))
         Dim ids = teorico.Keys.Union(reales.Keys).ToArray()
         Dim nombres = u.Consultar("SELECT p.id, p.descripcion, um.codigo FROM producto_base p JOIN unidad_medida um ON um.id = p.unidad_base_id WHERE p.id = ANY(@ids)",
                                   Function(rd) (rd.GetInt64(0), rd.GetString(1), rd.GetString(2)), "ids", ids).ToDictionary(Function(x) x.Item1)
         For Each p In ids
             Dim t As (Cant As Long, Costo As Long?) = (0L, Nothing)
             Dim enPlan = teorico.TryGetValue(p, t)
-            Dim re As (Cant As Long, Valor As Long) = (0L, 0L)
+            Dim re As (Cant As Long, Valor As Long, Devuelto As Long) = (0L, 0L, 0L)
             Dim salio = reales.TryGetValue(p, re)
             r.Productos.Add(New ProductoComparadoDto With {
                 .ProductoBaseId = p, .Producto = nombres(p).Item2, .Unidad = nombres(p).Item3,
                 .CantidadTeoricaU6 = If(enPlan, t.Cant, 0L), .CostoTeoricoU6 = If(enPlan, t.Costo, 0L),
-                .CantidadRealU6 = re.Cant, .CostoRealU6 = re.Valor,
+                .CantidadRealU6 = re.Cant, .CostoRealU6 = re.Valor, .DevueltoU6 = re.Devuelto, .EntregadoU6 = re.Cant + re.Devuelto,
                 .Estado = If(Not enPlan, "no planificado", If(Not salio OrElse re.Cant = 0, "sin salida", "planificado"))})
         Next
         r.Productos.Sort(Function(a, b) If(a.Estado = b.Estado, String.CompareOrdinal(a.Producto, b.Producto), String.CompareOrdinal(a.Estado, b.Estado)))
         r.CostoRealU6 = r.Productos.Sum(Function(x) x.CostoRealU6)
+        For Each mm In u.Consultar(
+            "SELECT to_char(p.fecha, 'DD/MM') || ' ' || m.etapa || ': ' || trim(to_char(m.cantidad_u6 / 1000000.0, 'FM999999990.000')) || ' ' || um.codigo || ' (' || m.motivo || ')' || " &
+            "CASE WHEN m.ya_incluida_consumo = 1 THEN ' - incluida en lo entregado' ELSE ' - con baja de almacen' END " &
+            "FROM merma_produccion m JOIN produccion p ON p.id = m.produccion_id JOIN unidad_medida um ON um.id = m.unidad_id " &
+            "WHERE p.minuta_id = ANY(@ids) ORDER BY p.fecha, m.id", Function(rd) rd.GetString(0), "ids", minutaIds)
+            r.Mermas.Add(mm)
+        Next
         Return r
     End Function
 

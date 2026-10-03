@@ -75,7 +75,7 @@ Public NotInheritable Class ServicioCatalogo
 
     Private Const SelectProducto As String =
         "SELECT p.id, p.codigo, p.descripcion, p.especificacion, p.unidad_base_id, um.codigo AS unidad, p.categoria_id, c.codigo AS categoria, " &
-        "p.activo = 1 AS activo, p.xmin::text AS version FROM producto_base p " &
+        "p.activo = 1 AS activo, p.sin_costo_compra, p.xmin::text AS version FROM producto_base p " &
         "JOIN unidad_medida um ON um.empresa_id = p.empresa_id AND um.id = p.unidad_base_id " &
         "LEFT JOIN categoria_producto c ON c.empresa_id = p.empresa_id AND c.id = p.categoria_id "
 
@@ -84,7 +84,7 @@ Public NotInheritable Class ServicioCatalogo
             .Id = rd.Largo("id"), .Codigo = rd.Texto("codigo"), .Descripcion = rd.Texto("descripcion"),
             .Especificacion = rd.TextoONada("especificacion"), .UnidadBaseId = rd.Largo("unidad_base_id"), .UnidadCodigo = rd.Texto("unidad"),
             .CategoriaId = rd.LongONada("categoria_id"), .CategoriaCodigo = rd.TextoONada("categoria"),
-            .Activo = rd.GetBoolean(rd.GetOrdinal("activo")), .Version = rd.Texto("version")}
+            .Activo = rd.GetBoolean(rd.GetOrdinal("activo")), .SinCostoCompra = rd.GetBoolean(rd.GetOrdinal("sin_costo_compra")), .Version = rd.Texto("version")}
     End Function
 
     ''' <summary>Busca por código, descripción o especificación (sin distinguir mayúsculas).</summary>

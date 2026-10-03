@@ -12,7 +12,6 @@ Public Class FormResultados
     Inherits Form
 
     Private ReadOnly _servicio As ServicioResultados
-    Private ReadOnly _contratos As ServicioContratos
     Private ReadOnly _sesion As SesionUsuario
     Private ReadOnly _mes As New DateTimePicker With {.Format = DateTimePickerFormat.Custom, .CustomFormat = "MM/yyyy", .ShowUpDown = True, .Width = 90}
     Private ReadOnly _resultado As DataGridView = Ui.NuevaGrilla()
@@ -21,14 +20,12 @@ Public Class FormResultados
 
     Public Sub New(cadena As String, sesion As SesionUsuario)
         _servicio = New ServicioResultados(cadena, sesion)
-        _contratos = New ServicioContratos(cadena, sesion)
         _sesion = sesion
         Text = "Gastos y resultado mensual - " & sesion.Operacion.Nombre
         Dim edita = sesion.Tiene(Permisos.GastosEditar)
         Dim barra = Ui.BarraBotones(New Label With {.Text = "Mes", .AutoSize = True, .Margin = New Padding(3, 9, 3, 3)}, _mes,
-                                    Ui.Boton("Actualizar", AddressOf Cargar), Ui.Boton("Registrar gasto...", AddressOf RegistrarGasto),
-                                    Ui.Boton("Eliminar gasto", AddressOf EliminarGasto), Ui.Boton("Exportar CSV...", AddressOf Exportar))
-        barra.Controls(3).Visible = edita : barra.Controls(4).Visible = edita
+                                    Ui.Boton("Actualizar", AddressOf Cargar), Ui.BotonSi(edita, "Registrar gasto...", AddressOf RegistrarGasto),
+                                    Ui.BotonSi(edita, "Eliminar gasto", AddressOf EliminarGasto), Ui.Boton("Exportar CSV...", AddressOf Exportar))
         Dim division As New SplitContainer With {.Dock = DockStyle.Fill, .Orientation = Orientation.Horizontal, .SplitterDistance = 220}
         division.Panel1.Controls.Add(_resultado)
         division.Panel1.Controls.Add(_estado)
@@ -57,7 +54,7 @@ Public Class FormResultados
 
     Private Sub RegistrarGasto()
         Dim servicios As List(Of OperacionServicioDto) = Nothing
-        If Not Ui.Ejecutar(Me, Sub() servicios = _contratos.ServiciosDeOperacion()) Then Return
+        If Not Ui.Ejecutar(Me, Sub() servicios = _servicio.ServiciosDeOperacion()) Then Return
         Using d As New DialogoCampos($"Gasto de {_mes.Value:MM/yyyy}")
             d.Texto("concepto", "Concepto").Opciones("categoria", "Categoria", ServicioResultados.Categorias.Select(Function(c) CObj(c))) _
              .Opciones("servicio", "Servicio (vacio = comun a la operacion)", servicios.Select(Function(s) CObj(New Opcion(Of OperacionServicioDto)(s, $"{s.ServicioNombre} - {s.RegimenNombre}"))), permitirVacio:=True) _

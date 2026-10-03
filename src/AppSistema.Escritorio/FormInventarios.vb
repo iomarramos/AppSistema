@@ -29,8 +29,7 @@ Public Class FormInventarios
                                     Ui.Boton("Nuevo general", Sub() Abrir("general")), Ui.Boton("Nuevo rotativo...", Sub() Abrir("rotativo")),
                                     Ui.Boton("Contar linea...", AddressOf ContarLinea), Ui.Boton("Importar conteo...", AddressOf Importar),
                                     Ui.Boton("Cerrar conteo", Sub() Accion(Sub(i) _servicio.CerrarConteo(i))), Ui.Boton("Recontar", Sub() Accion(Sub(i) _servicio.Recontar(i))),
-                                    Ui.Boton("Revisar", Sub() Accion(Sub(i) _servicio.Revisar(i))), Ui.Boton("Autorizar ajuste...", AddressOf Autorizar))
-        barra.Controls(9).Visible = aprueba : barra.Controls(10).Visible = aprueba
+                                    Ui.BotonSi(aprueba, "Revisar", Sub() Accion(Sub(i) _servicio.Revisar(i))), Ui.BotonSi(aprueba, "Autorizar ajuste...", AddressOf Autorizar))
         Dim division As New SplitContainer With {.Dock = DockStyle.Fill, .Orientation = Orientation.Horizontal, .SplitterDistance = 140}
         division.Panel1.Controls.Add(_inventarios)
         division.Panel2.Controls.Add(_hoja)

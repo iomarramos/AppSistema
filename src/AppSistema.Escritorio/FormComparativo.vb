@@ -38,7 +38,7 @@ Public Class FormComparativo
         Ui.Mostrar(componentes, c.Componentes, "Estructura|Componente", "Receta|Receta", "FactorPlanTexto|Factor plan", "RacionesPlan|Raciones plan",
                    "RacionesPreparadas|Preparadas", "RacionesConsumidas|Consumidas", "FactorRealTexto|Factor real", "CostoPlanU6|Costo plan",
                    "CostoTeoricoConsumidoU6|Costo teorico de lo consumido")
-        Ui.Mostrar(productos, c.Productos, "Estado|Estado", "Producto|Producto", "Unidad|Unidad", "CantidadTeoricaU6|Cantidad teorica", "CantidadRealU6|Cantidad real",
+        Ui.Mostrar(productos, c.Productos, "Estado|Estado", "Producto|Producto", "Unidad|Unidad", "CantidadTeoricaU6|Cantidad teorica", "EntregadoU6|Entregado", "DevueltoU6|Devuelto", "CantidadRealU6|Consumo real (neto)",
                    "DiferenciaCantidadU6|Diferencia cantidad", "CostoTeoricoU6|Costo teorico", "CostoRealU6|Costo real", "DiferenciaCostoU6|Diferencia costo")
         Dim abajo As New SplitContainer With {.Dock = DockStyle.Fill, .Orientation = Orientation.Horizontal}
         abajo.Panel1.Controls.Add(componentes)
@@ -48,6 +48,7 @@ Public Class FormComparativo
         division.Panel2.Controls.Add(abajo)
         Controls.Add(division)
         Controls.Add(New Label With {.Dock = DockStyle.Top, .Height = 34, .Padding = New Padding(4),
-            .Text = $"{c.Minutas} minuta(s). Productos 'no planificado': salieron del almacen para el servicio sin estar en la minuta; 'sin salida': planificados y no entregados."})
+            .Text = $"{c.Minutas} minuta(s). Productos 'no planificado': salieron del almacen para el servicio sin estar en la minuta; 'sin salida': planificados y no entregados." &
+                    If(c.Mermas.Count > 0, " Mermas: " & String.Join("; ", c.Mermas), "")})
     End Sub
 End Class

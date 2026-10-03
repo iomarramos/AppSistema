@@ -24,13 +24,10 @@ Public Class FormRecetas
         Dim edita = sesion.Tiene(Permisos.RecetasEditar)
         Dim aprueba = sesion.Tiene(Permisos.RecetasAprobar)
         Dim barraRecetas = Ui.BarraBotones(New Label With {.Text = "Buscar:", .AutoSize = True, .Margin = New Padding(3, 9, 3, 3)}, _buscar,
-                                           Ui.Boton("Buscar", AddressOf CargarRecetas), Ui.Boton("Nueva receta", AddressOf NuevaReceta))
-        barraRecetas.Controls(3).Visible = edita
-        Dim barraVersiones = Ui.BarraBotones(Ui.Boton("Nueva version", AddressOf NuevaVersion), Ui.Boton("Rendimiento e instrucciones", AddressOf EditarBorrador),
-                                             Ui.Boton("Aprobar", AddressOf Aprobar), Ui.Boton("Retirar", AddressOf Retirar),
+                                           Ui.Boton("Buscar", AddressOf CargarRecetas), Ui.BotonSi(edita, "Nueva receta", AddressOf NuevaReceta))
+        Dim barraVersiones = Ui.BarraBotones(Ui.BotonSi(edita, "Nueva version", AddressOf NuevaVersion), Ui.BotonSi(edita, "Rendimiento e instrucciones", AddressOf EditarBorrador),
+                                             Ui.BotonSi(aprueba, "Aprobar", AddressOf Aprobar), Ui.BotonSi(aprueba, "Retirar", AddressOf Retirar),
                                              Ui.Boton("Costo simulado...", AddressOf CostoSimulado))
-        barraVersiones.Controls(0).Visible = edita : barraVersiones.Controls(1).Visible = edita
-        barraVersiones.Controls(2).Visible = aprueba : barraVersiones.Controls(3).Visible = aprueba
         Dim barraIngredientes = Ui.BarraBotones(Ui.Boton("Agregar ingrediente", AddressOf AgregarIngrediente), Ui.Boton("Quitar", AddressOf QuitarIngrediente),
                                                 Ui.Boton("Limitar a una variante", AddressOf PermitirVariante))
         barraIngredientes.Visible = edita

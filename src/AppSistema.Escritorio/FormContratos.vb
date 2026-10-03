@@ -17,11 +17,10 @@ Public Class FormContratos
         _servicio = New ServicioContratos(cadena, sesion)
         Text = "Contratos - " & sesion.Operacion.Nombre
         Dim edita = sesion.Tiene(Permisos.ContratosEditar)
-        Dim barra = Ui.BarraBotones(Ui.Boton("Clientes", AddressOf VerClientes), Ui.Boton("Nuevo cliente...", AddressOf NuevoCliente),
-                                    Ui.Boton("Nuevo contrato...", AddressOf NuevoContrato), Ui.Boton("Cerrar vigencia...", AddressOf CerrarContrato),
-                                    Ui.Boton("Agregar servicio...", AddressOf AgregarServicio), Ui.Boton("Ajustar importe...", AddressOf Ajustar),
-                                    Ui.Boton("Generar ingresos del mes...", AddressOf GenerarIngresos))
-        For i = 1 To 6 : barra.Controls(i).Visible = edita : Next
+        Dim barra = Ui.BarraBotones(Ui.Boton("Clientes", AddressOf VerClientes), Ui.BotonSi(edita, "Nuevo cliente...", AddressOf NuevoCliente),
+                                    Ui.BotonSi(edita, "Nuevo contrato...", AddressOf NuevoContrato), Ui.BotonSi(edita, "Cerrar vigencia...", AddressOf CerrarContrato),
+                                    Ui.BotonSi(edita, "Agregar servicio...", AddressOf AgregarServicio), Ui.BotonSi(edita, "Ajustar importe...", AddressOf Ajustar),
+                                    Ui.BotonSi(edita, "Generar ingresos del mes...", AddressOf GenerarIngresos))
         Dim division As New SplitContainer With {.Dock = DockStyle.Fill, .Orientation = Orientation.Horizontal, .SplitterDistance = 200}
         division.Panel1.Controls.Add(_contratos)
         division.Panel2.Controls.Add(_lineas)

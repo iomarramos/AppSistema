@@ -130,6 +130,43 @@ Public NotInheritable Class ServicioAdministracion
                                       "e", Sesion.EmpresaId, "o", operacionId, "c", Requerido(codigo, "codigo"), "n", Requerido(nombre, "nombre")))
     End Function
 
+    ''' <summary>Todas las operaciones (sedes) de la empresa con sus almacenes y usuarios asignados.</summary>
+    Public Function ListarOperaciones() As List(Of OperacionDto)
+        Return EnTransaccion(Permisos.UsuariosAdministrar,
+            Function(u) u.Consultar(
+                "SELECT o.id, o.codigo, o.nombre, o.ubicacion, (SELECT count(*) FROM almacen a WHERE a.operacion_id = o.id AND a.activo = 1), " &
+                "(SELECT count(DISTINCT uor.usuario_id) FROM usuario_operacion_rol uor WHERE uor.operacion_id = o.id) FROM operacion o ORDER BY o.codigo",
+                Function(rd) New OperacionDto With {.Id = rd.GetInt64(0), .Codigo = rd.GetString(1), .Nombre = rd.GetString(2),
+                                                    .Ubicacion = rd.TextoONada("ubicacion"), .Almacenes = rd.GetInt64(4), .Usuarios = rd.GetInt64(5)}))
+    End Function
+
+    ''' <summary>Almacenes de cualquier operación de la empresa (administración).</summary>
+    Public Function ListarAlmacenesDeOperacion(operacionId As Long) As List(Of AlmacenResumen)
+        Return EnTransaccion(Permisos.UsuariosAdministrar,
+            Function(u) u.Consultar(
+                "SELECT id, operacion_id, codigo, nombre FROM almacen WHERE operacion_id = @o AND activo = 1 ORDER BY codigo",
+                Function(rd) New AlmacenResumen With {.Id = rd.GetInt64(0), .OperacionId = rd.GetInt64(1), .Codigo = rd.GetString(2), .Nombre = rd.GetString(3)},
+                "o", operacionId))
+    End Function
+
+    ''' <summary>
+    ''' Auditoría de la empresa (quién cambió qué y cuándo), con filtros. Las claves nunca se registran.
+    ''' </summary>
+    Public Function ConsultarAuditoria(desde As Date, hasta As Date, tabla As String, login As String, Optional limite As Integer = 500) As List(Of AuditoriaDto)
+        Return EnTransaccion(Permisos.AuditoriaVer,
+            Function(u) u.Consultar(
+                "SELECT a.fecha, COALESCE(us.login, '(sistema)'), a.tabla, a.registro_id, a.accion, a.antes_json, a.despues_json FROM auditoria a " &
+                "LEFT JOIN usuario us ON us.id = a.usuario_id " &
+                "WHERE a.fecha >= @d AND a.fecha < @h AND (@t = '' OR a.tabla = @t) AND (@l = '' OR us.login = @l) ORDER BY a.fecha DESC, a.id DESC LIMIT @n",
+                Function(rd) New AuditoriaDto With {.Fecha = rd.GetDateTime(0), .Usuario = rd.GetString(1), .Tabla = rd.GetString(2), .RegistroId = rd.GetInt64(3),
+                                                    .Accion = rd.GetString(4), .Antes = rd.TextoONada("antes_json"), .Despues = rd.TextoONada("despues_json")},
+                "d", desde.Date, "h", hasta.Date.AddDays(1), "t", If(tabla, "").Trim(), "l", If(login, "").Trim(), "n", limite))
+    End Function
+
+    Public Function TablasAuditadas() As List(Of String)
+        Return EnTransaccion(Permisos.AuditoriaVer, Function(u) u.Consultar("SELECT DISTINCT tabla FROM auditoria ORDER BY 1", Function(rd) rd.GetString(0)))
+    End Function
+
     ''' <summary>Almacenes de la operación de la sesión (lo que puede usar el usuario en su trabajo diario).</summary>
     Public Function ListarAlmacenes() As List(Of AlmacenResumen)
         Return EnTransaccion(Permisos.CatalogoVer,
