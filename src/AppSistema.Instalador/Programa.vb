@@ -3,6 +3,7 @@ Imports System.Text
 Imports AppSistema.Datos
 Imports AppSistema.Dominio
 Imports AppSistema.Dominio.Importacion
+Imports AppSistema.Dominio.Numerico
 
 ''' <summary>
 ''' Herramienta de instalación de una sede. Usa la conexión del PROPIETARIO de la base
@@ -15,6 +16,17 @@ Imports AppSistema.Dominio.Importacion
 '''   importar-catalogo ARCHIVO   carga un CSV de catálogo (p. ej. datos/enlace/catalogo_por_ingrediente.csv)
 '''   importar-inventario ARCHIVO carga el inventario inicial valorizado (documento de apertura) de un almacén
 '''   importar-recetas ARCHIVO [--aprobar]  carga recetas_normalizadas.csv (ingredientes como productos base)
+''' Continuidad (etapa 8):
+'''   configurar-sede EMPRESA SEDE        activa la cola de salida de esta sede y anota la historia confirmada
+'''   sincronizar EMPRESA                 envía la cola a la central (APPSISTEMA_CONEXION_CENTRAL, APPSISTEMA_CREDENCIAL_SEDE)
+'''   estado-sincronizacion EMPRESA       pendientes, errores y último envío de la sede
+'''   registrar-sede EMPRESA SEDE NOMBRE  (central) registra la sede y muestra su credencial UNA vez
+'''   desactivar-sede EMPRESA SEDE        (central) deja de aceptar eventos de esa sede
+'''   crear-usuario-sincronizacion NOMBRE (central) usuario de base del agente: solo puede entregar eventos
+'''   reporte-central EMPRESA             (central) última sincronización, retenidos, conflictos y stock por sede
+'''   respaldar ARCHIVO                   pg_dump consistente + ARCHIVO.conciliacion
+'''   restaurar ARCHIVO                   restaura en una base vacía y concilia con ARCHIVO.conciliacion
+'''   conciliar                           muestra la fotografía de conciliación de la base
 ''' </summary>
 Public Module Programa
 
@@ -70,6 +82,74 @@ Public Module Programa
                     Call New Migrador(conexion).CrearUsuarioSede(args(1), PedirClaveConfirmada("Clave del usuario de sede"))
                     Console.WriteLine($"Usuario de sede '{args(1)}' listo. Configure esa cuenta en cada computadora (menu Sesion > Conexion).")
 
+                Case "configurar-sede"
+                    Requiere(args, 3, "Indique EMPRESA y SEDE.")
+                    Dim n = New ServicioContinuidad(conexion).ConfigurarOrigen(args(1), args(2))
+                    Console.WriteLine($"Sede '{args(2)}' configurada; {n} eventos historicos anotados en la cola de salida.")
+
+                Case "sincronizar"
+                    Requiere(args, 2, "Indique EMPRESA.")
+                    Dim central = Environment.GetEnvironmentVariable("APPSISTEMA_CONEXION_CENTRAL")
+                    If String.IsNullOrWhiteSpace(central) Then central = Pedir("Conexion de la central (usuario de sincronizacion)", oculto:=True)
+                    Dim credencial = Environment.GetEnvironmentVariable("APPSISTEMA_CREDENCIAL_SEDE")
+                    If String.IsNullOrWhiteSpace(credencial) Then credencial = Pedir("Credencial de la sede", oculto:=True)
+                    Dim r = New ServicioContinuidad(conexion).Enviar(args(1), central, credencial, ignorarEspera:=args.Contains("--ahora"))
+                    Console.WriteLine("Sincronizacion: " & r.ToString())
+                    If r.Problema IsNot Nothing Then Return 2
+
+                Case "estado-sincronizacion"
+                    Requiere(args, 2, "Indique EMPRESA.")
+                    Dim e = New ServicioContinuidad(conexion).EstadoCola(args(1))
+                    Console.WriteLine($"Sede {If(e.Origen, "(sin configurar)")}: {e.Pendientes} pendientes, {e.ConError} con error, {e.EnConflicto} en conflicto, " &
+                                      $"{e.Enviados} enviados; ultimo envio {If(e.UltimoEnvio.HasValue, e.UltimoEnvio.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm"), "nunca")}" &
+                                      If(e.UltimoError Is Nothing, "", "; ultimo error: " & e.UltimoError))
+
+                Case "registrar-sede"
+                    Requiere(args, 4, "Indique EMPRESA, SEDE y NOMBRE.")
+                    Dim credencial = New ServicioContinuidad(conexion).RegistrarSede(args(1), args(2), String.Join(" ", args.Skip(3)))
+                    Console.WriteLine($"Sede '{args(2)}' registrada. Credencial (se muestra solo esta vez; configurela en el servidor de la sede):")
+                    Console.WriteLine(credencial)
+
+                Case "desactivar-sede"
+                    Requiere(args, 3, "Indique EMPRESA y SEDE.")
+                    Call New ServicioContinuidad(conexion).DesactivarSede(args(1), args(2))
+                    Console.WriteLine($"Sede '{args(2)}' desactivada: sus envios seran rechazados.")
+
+                Case "crear-usuario-sincronizacion"
+                    Requiere(args, 2, "Indique el nombre del usuario.")
+                    Call New Migrador(conexion).CrearUsuarioSincronizacion(args(1), PedirClaveConfirmada("Clave del usuario de sincronizacion"))
+                    Console.WriteLine($"Usuario '{args(1)}' listo: solo puede entregar eventos a la central.")
+
+                Case "reporte-central"
+                    Requiere(args, 2, "Indique EMPRESA.")
+                    For Each s In New ServicioContinuidad(conexion).ResumenCentral(args(1))
+                        Console.WriteLine($"  {s.Sede,-10} {If(s.Activa, "activa  ", "inactiva")} ultima sincronizacion " &
+                                          $"{If(s.UltimaSincronizacion.HasValue, s.UltimaSincronizacion.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm"), "nunca"),-16} " &
+                                          $"secuencia {s.UltimaSecuenciaAplicada}, {s.Documentos} documentos, stock S/ {EscalaU6.ADecimal(s.ValorStockU6):N2}, " &
+                                          $"{s.Retenidos} retenidos, {s.Conflictos} en conflicto" & If(s.MotivoRetencion Is Nothing, "", " (" & s.MotivoRetencion & ")"))
+                    Next
+
+                Case "respaldar"
+                    Requiere(args, 2, "Indique el archivo de respaldo.")
+                    Dim foto = New ServicioContinuidad(conexion).Respaldar(args(1))
+                    Console.WriteLine($"Respaldo listo: {args(1)} ({foto.Where(Function(kv) kv.Key.StartsWith("filas.")).Sum(Function(kv) Long.Parse(kv.Value))} filas; " &
+                                      $"stock valor {foto("saldo.valor_u6")} u6). Conciliacion en {args(1)}.conciliacion")
+
+                Case "restaurar"
+                    Requiere(args, 2, "Indique el archivo de respaldo.")
+                    Dim diferencias = New ServicioContinuidad(conexion).Restaurar(args(1))
+                    If diferencias.Count = 0 Then
+                        Console.WriteLine("Restauracion conciliada: mismos recuentos, saldos y referencias que el respaldo.")
+                    Else
+                        For Each d In diferencias
+                            Console.Error.WriteLine("  DIFERENCIA " & d)
+                        Next
+                        Return 2
+                    End If
+
+                Case "conciliar"
+                    Console.Write(ServicioContinuidad.TextoInstantanea(New ServicioContinuidad(conexion).Instantanea()))
+
                 Case Else
                     Ayuda()
                     Return 1
@@ -84,8 +164,13 @@ Public Module Programa
         End Try
     End Function
 
+    Private Sub Requiere(args As String(), n As Integer, mensaje As String)
+        If args.Length < n Then Throw New ReglaNegocioException("DATO_OBLIGATORIO", mensaje)
+    End Sub
+
     Private Sub Ayuda()
         Console.WriteLine("Uso: AppSistema.Instalador <migrar | crear-empresa | crear-usuario-sede NOMBRE | convertir-sgp ARCHIVO [DIR] | importar-sgp ARCHIVO | importar-catalogo ARCHIVO | importar-recetas ARCHIVO [--aprobar] | importar-inventario ARCHIVO>")
+        Console.WriteLine("Continuidad: <configurar-sede EMPRESA SEDE | sincronizar EMPRESA [--ahora] | estado-sincronizacion EMPRESA | registrar-sede EMPRESA SEDE NOMBRE | desactivar-sede EMPRESA SEDE | crear-usuario-sincronizacion NOMBRE | reporte-central EMPRESA | respaldar ARCHIVO | restaurar ARCHIVO | conciliar>")
         Console.WriteLine("La conexion del propietario se toma de APPSISTEMA_CONEXION_PROPIETARIO o se solicita.")
         Console.WriteLine("importar-sgp, importar-catalogo e importar-recetas usan la conexion de sede (APPSISTEMA_CONEXION o se solicita) y un usuario con permiso CATALOGO_IMPORTAR.")
     End Sub

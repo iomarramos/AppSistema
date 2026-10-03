@@ -42,7 +42,8 @@ Public NotInheritable Class Migrador
         Return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(sql.Replace(vbCrLf, vbLf))))
     End Function
 
-    Public Function Migrar() As List(Of MigracionAplicada)
+    ''' <param name="hastaVersion">Solo para ensayos de actualización (p. ej. "V011"): se detiene en esa versión.</param>
+    Public Function Migrar(Optional hastaVersion As String = Nothing) As List(Of MigracionAplicada)
         Dim resultado As New List(Of MigracionAplicada)
         Using cn As New NpgsqlConnection(_cadenaPropietario)
             cn.Open()
@@ -64,6 +65,7 @@ Public NotInheritable Class Migrador
                 End Using
 
                 For Each m In Disponibles()
+                    If hastaVersion IsNot Nothing AndAlso Integer.Parse(m.Version.Substring(1)) > Integer.Parse(hastaVersion.Substring(1)) Then Exit For
                     Dim h = Hash(m.Sql)
                     Dim previo As String = Nothing
                     If aplicadas.TryGetValue(m.Version, previo) Then
@@ -117,6 +119,31 @@ Public NotInheritable Class Migrador
             Dim literal = "'" & clave.Replace("'", "''") & "'"
             Dim sql = If(existe, $"ALTER ROLE {nombre} WITH LOGIN PASSWORD {literal}",
                                  $"CREATE ROLE {nombre} LOGIN PASSWORD {literal} IN ROLE app_stock")
+            Using cmd As New NpgsqlCommand(sql, cn)
+                cmd.ExecuteNonQuery()
+            End Using
+        End Using
+    End Sub
+
+    ''' <summary>
+    ''' Usuario de base de datos del agente de sincronización en la CENTRAL. Solo puede llamar a fn_recibir_evento:
+    ''' no lee ni escribe tablas. Cada sede usa además su propia credencial (registrar-sede).
+    ''' </summary>
+    Public Sub CrearUsuarioSincronizacion(nombre As String, clave As String)
+        If String.IsNullOrWhiteSpace(nombre) OrElse Not nombre.All(Function(c) Char.IsLetterOrDigit(c) OrElse c = "_"c) Then
+            Throw New AppSistema.Dominio.ReglaNegocioException("DATO_INVALIDO", "El nombre solo admite letras, numeros y guion bajo.")
+        End If
+        AppSistema.Dominio.Seguridad.PoliticaClave.Validar(clave)
+        Using cn As New NpgsqlConnection(_cadenaPropietario)
+            cn.Open()
+            Dim existe As Boolean
+            Using cmd As New NpgsqlCommand("SELECT 1 FROM pg_roles WHERE rolname = @n", cn)
+                cmd.Parameters.AddWithValue("n", nombre)
+                existe = cmd.ExecuteScalar() IsNot Nothing
+            End Using
+            Dim literal = "'" & clave.Replace("'", "''") & "'"
+            Dim sql = If(existe, $"ALTER ROLE {nombre} WITH LOGIN PASSWORD {literal}",
+                                 $"CREATE ROLE {nombre} LOGIN PASSWORD {literal} IN ROLE app_sincronizacion")
             Using cmd As New NpgsqlCommand(sql, cn)
                 cmd.ExecuteNonQuery()
             End Using

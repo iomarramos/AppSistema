@@ -40,10 +40,11 @@ Public NotInheritable Class BaseDatosPrueba
         Return If(String.IsNullOrEmpty(c), "", ";Password=" & c)
     End Function
 
-    Public Shared Function Crear() As BaseDatosPrueba
+    ''' <param name="hastaVersion">Ensayo de actualización: migra solo hasta esa versión (p. ej. "V011").</param>
+    Public Shared Function Crear(Optional hastaVersion As String = Nothing) As BaseDatosPrueba
         Dim bd As New BaseDatosPrueba()
         Try
-            bd.Preparar()
+            bd.Preparar(hastaVersion)
         Catch
             bd.Dispose()
             Throw
@@ -51,7 +52,7 @@ Public NotInheritable Class BaseDatosPrueba
         Return bd
     End Function
 
-    Private Sub Preparar()
+    Private Sub Preparar(hastaVersion As String)
         Using cn As New NpgsqlConnection($"Host={_host};Username={_usuario};Database=postgres;Pooling=false" & ClaveOpcional())
             cn.Open()
             Using cmd As New NpgsqlCommand($"CREATE DATABASE {Nombre}", cn)
@@ -59,7 +60,7 @@ Public NotInheritable Class BaseDatosPrueba
             End Using
         End Using
 
-        Call New Migrador(CadenaAdmin).Migrar()
+        Call New Migrador(CadenaAdmin).Migrar(hastaVersion)
 
         Sembrar()
     End Sub
@@ -115,6 +116,25 @@ Public NotInheritable Class BaseDatosPrueba
                 Return cmd.ExecuteScalar()
             End Using
         End Using
+    End Function
+
+    ''' <summary>Conexión como agente de sincronización (rol app_sincronizacion): solo puede entregar eventos.</summary>
+    Public ReadOnly Property CadenaSincronizacion As String
+        Get
+            Return $"Host={_host};Username={_usuario};Database={Nombre};Options=-c role=app_sincronizacion;Pooling=false" & ClaveOpcional()
+        End Get
+    End Property
+
+    ''' <summary>Base vacía (sin migraciones) en el mismo servidor, para restaurar respaldos.</summary>
+    Public Shared Function CrearVacia() As BaseDatosPrueba
+        Dim bd As New BaseDatosPrueba()
+        Using cn As New NpgsqlConnection($"Host={bd._host};Username={bd._usuario};Database=postgres;Pooling=false" & ClaveOpcional())
+            cn.Open()
+            Using cmd As New NpgsqlCommand($"CREATE DATABASE {bd.Nombre}", cn)
+                cmd.ExecuteNonQuery()
+            End Using
+        End Using
+        Return bd
     End Function
 
     Public Function SaldoU6(Optional varianteId As Long = 1) As Long

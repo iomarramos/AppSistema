@@ -23,7 +23,7 @@ echo "######## 3/5  Capa de datos VB.NET contra PostgreSQL"
 dotnet test tests/AppSistema.Datos.Tests --nologo -v q
 
 echo
-echo "######## 4/5  Instalador de consola (migrar dos veces + crear empresa + cargar catalogo por ingrediente, recetas e inventario inicial dos veces)"
+echo "######## 4/5  Instalador de consola (migrar dos veces + crear empresa + catalogo, recetas e inventario inicial dos veces + sincronizacion con la central + respaldo y restauracion)"
 DB=appsistema_instalador
 dropdb --if-exists "$DB" >/dev/null 2>&1 || true
 createdb "$DB"
@@ -50,7 +50,29 @@ printf 'DEMO\nadmin\nDemo-Clave-2026\n2026-10-01\nSI\n' \
 printf 'DEMO\nadmin\nDemo-Clave-2026\n2026-10-01\n' \
   | dotnet run --project src/AppSistema.Instalador -v q -- importar-inventario datos/inventario/inventario_inicial.csv 2>&1 | tail -1 || true
 psql -d "$DB" -tAc "SELECT 'stock inicial: ' || count(*) || ' variantes, valor ' || round(sum(valor_u6) / 1000000.0, 2) FROM saldo_stock"
-dropdb "$DB"
+
+echo "  -- continuidad: central, sede, sincronizacion repetida, respaldo y restauracion conciliada"
+CENTRAL=appsistema_central; RESTAURADA=appsistema_restaurada; RESPALDO="$(mktemp -d)/sede.dump"
+dropdb --if-exists "$CENTRAL" >/dev/null 2>&1 || true; dropdb --if-exists "$RESTAURADA" >/dev/null 2>&1 || true
+createdb "$CENTRAL"; createdb "$RESTAURADA"
+PROP_CENTRAL="Host=$APPSISTEMA_PG_HOST;Username=$APPSISTEMA_PG_USER;Database=$CENTRAL$CLAVE"
+APPSISTEMA_CONEXION_PROPIETARIO="$PROP_CENTRAL" dotnet run --project src/AppSistema.Instalador -v q -- migrar | tail -1
+printf 'DEMO\nEmpresa demo\nCEN\nCentral\nCEN\nAlmacen central\nadmin\nAdministrador\nDemo-Clave-2026\nDemo-Clave-2026\n' \
+  | APPSISTEMA_CONEXION_PROPIETARIO="$PROP_CENTRAL" dotnet run --project src/AppSistema.Instalador -v q -- crear-empresa | tail -1
+export APPSISTEMA_CREDENCIAL_SEDE="$(APPSISTEMA_CONEXION_PROPIETARIO="$PROP_CENTRAL" dotnet run --project src/AppSistema.Instalador -v q -- registrar-sede DEMO OP1 Sede demo | tail -1)"
+dotnet run --project src/AppSistema.Instalador -v q -- configurar-sede DEMO OP1
+export APPSISTEMA_CONEXION_CENTRAL="Host=$APPSISTEMA_PG_HOST;Username=$APPSISTEMA_PG_USER;Database=$CENTRAL;Options=-c role=app_sincronizacion$CLAVE"
+dotnet run --project src/AppSistema.Instalador -v q -- sincronizar DEMO
+dotnet run --project src/AppSistema.Instalador -v q -- sincronizar DEMO
+APPSISTEMA_CONEXION_PROPIETARIO="$PROP_CENTRAL" dotnet run --project src/AppSistema.Instalador -v q -- reporte-central DEMO
+test "$(psql -d "$DB" -tAc "SELECT sum(valor_u6) FROM saldo_stock")" = "$(psql -d "$CENTRAL" -tAc "SELECT sum(valor_u6) FROM v_central_saldo")" \
+  && echo "  stock de la central = stock de la sede"
+dotnet run --project src/AppSistema.Instalador -v q -- respaldar "$RESPALDO"
+APPSISTEMA_CONEXION_PROPIETARIO="Host=$APPSISTEMA_PG_HOST;Username=$APPSISTEMA_PG_USER;Database=$RESTAURADA$CLAVE" \
+  dotnet run --project src/AppSistema.Instalador -v q -- restaurar "$RESPALDO"
+unset APPSISTEMA_CREDENCIAL_SEDE APPSISTEMA_CONEXION_CENTRAL
+rm -rf "$(dirname "$RESPALDO")"
+dropdb "$DB"; dropdb "$CENTRAL"; dropdb "$RESTAURADA"
 
 echo
 echo "######## 5/5  Aplicacion de escritorio WinForms (compilacion)"

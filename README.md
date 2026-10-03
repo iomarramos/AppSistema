@@ -34,6 +34,17 @@ VB.NET + WinForms (.NET 8) en **Windows 10 o superior**, con **PostgreSQL** como
 3. (Opcional) Cargar catálogo y recetas del SGP: `set APPSISTEMA_CONEXION=...app_sede...`, luego `AppSistema.Instalador importar-catalogo catalogo_por_ingrediente.csv` `AppSistema.Instalador importar-recetas recetas_enlazadas.csv --aprobar` y `AppSistema.Instalador importar-inventario inventario_inicial.csv` (detalle en [`datos/enlace/LEEME.md`](datos/enlace/LEEME.md)). También desde la aplicación: Catálogo > Importar y Menús > Importar recetas.
 4. En cada computadora, abrir **AppSistema**, indicar servidor, base, `app_sede` y su clave (se guarda cifrada con DPAPI en `%PROGRAMDATA%\AppSistema\conexion.json`) e iniciar sesión con empresa, usuario y clave.
 
+### Varias sedes y central (opcional)
+
+Cada sede trabaja con su propio servidor: si se corta internet, las PC de la sede siguen operando. Lo confirmado (documentos de stock, cierres) queda en una cola dentro de la misma transacción y se envía a la central cuando hay conexión.
+
+1. En la **central** (otra base con las mismas migraciones y la misma empresa): `AppSistema.Instalador registrar-sede EMPRESA SEDE "Nombre"` muestra la credencial de la sede **una sola vez**; `AppSistema.Instalador crear-usuario-sincronizacion app_sync` crea el usuario que solo puede entregar eventos.
+2. En la **sede**: `AppSistema.Instalador configurar-sede EMPRESA SEDE` (anota también la historia ya confirmada).
+3. Programar en la sede (Programador de tareas de Windows, p. ej. cada 15 min) `AppSistema.Instalador sincronizar EMPRESA` con `APPSISTEMA_CONEXION_CENTRAL` (usuario `app_sync`) y `APPSISTEMA_CREDENCIAL_SEDE`. Reenviar es seguro: la central no duplica.
+4. Control: `estado-sincronizacion EMPRESA` (sede) y `reporte-central EMPRESA` (central: última sincronización y stock por sede).
+
+**Respaldo:** `AppSistema.Instalador respaldar D:\respaldos\sede.dump` (deja además `sede.dump.conciliacion`). **Restauración** en una base nueva y vacía: `AppSistema.Instalador restaurar D:\respaldos\sede.dump`, que compara recuentos, saldos y referencias con el respaldo. Si `pg_dump`/`pg_restore` no están en el PATH, indique su carpeta en `APPSISTEMA_PG_BIN` (p. ej. `C:\Program Files\PostgreSQL\16\bin`).
+
 ## Pruebas
 
 ```bash
