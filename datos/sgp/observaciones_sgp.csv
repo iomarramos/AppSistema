@@ -1,0 +1,52 @@
+﻿linea;codigo;producto;presentacion;factor;unidad_base;observacion
+6;SGP00005;ATUN TROZOS FLORIDA 140 GR;LATA;0.17;KG;el nombre indica 0.14 KG y el factor es 0.17, se toma 0.17 KG
+90;SGP00089;ACHOCOLATADO NESQUICK NESTLE 380 GR (EMER);LATA;0.4;KG;el nombre indica 0.38 KG y el factor es 0.4, se toma 0.4 KG
+167;SGP00166;SALSA MENSI KIKKO 350 ML PET;BOTELLA;0.39;L;el nombre indica 0.35 L y el factor es 0.39, se toma 0.39 L
+168;SGP00167;SALSA TAMARINDO KIKKO 350 ML;BOTELLA;0.39;L;el nombre indica 0.35 L y el factor es 0.39, se toma 0.39 L
+323;SGP00322;CHUPETE CHUPETIN COLORADO (TUTTI FRUTI) AMBROSOLI (24 UNID);BOLSA;25;UND;el nombre indica 24 unidades y el factor es 25, se toma 25 UND
+386;SGP00385;PAPA SECA LA SERRANITA 3 KG;BOLSA;5;KG;el nombre indica 3 KG y el factor es 5, se toma 5 KG
+398;SGP00397;PAPA SECA KOMILON 500 GR;BOLSA;0.4;KG;el nombre indica 0.5 KG y el factor es 0.4, se toma 0.4 KG
+769;SGP00768;CONO BARQUILLO AMARILLO CONO COPA 700 UNID;CAJA;325;UND;el nombre indica 700 unidades y el factor es 325, se toma 325 UND
+829;SGP00828;CEREZA MARRASQUINO ROJO SANTIS 283 GR;FRASCO;0.34;KG;el nombre indica 0.283 KG y el factor es 0.34, se toma 0.34 KG
+841;SGP00840;PAPRIKA TOÑA 500 GR;BOLSA;1.5;KG;el nombre indica 0.5 KG y el factor es 1.5, se toma 1.5 KG
+854;SGP00853;ESTRAGON BADIA 3.5 OZ;FRASCO;0.992;KG;el nombre indica 0.099223 KG y el factor es 0.992, se toma 0.992 KG
+930;SGP00929;COBERTURA CHOCOLATE BLANCO 600 GR;PRES-SGP-3;0.25;KG;el nombre indica 0.6 KG y el factor es 0.25, se toma 0.25 KG
+936;SGP00935;CREMA DE LECHE GLORIA 946 CC;BOLSA;0.9;L;el nombre indica 0.946 L y el factor es 0.9, se toma 0.9 L
+1017;SGP01015;CREMF.CLASSIC BAUNILHA X 4.5;BALDE;4.5;KG;factor decimal 4.5 sin tamano en el nombre, se asume KG
+1018;SGP01016;CREMF.CLASSIC COCO X 4.5;BALDE;4.5;KG;factor decimal 4.5 sin tamano en el nombre, se asume KG
+1440;SGP01438;CR2+ PRESENTACION 1 GALON;UNIDAD;4;L;el nombre indica 3.785 L y el factor es 4, se toma 4 L
+1447;SGP01445;LEJIA SAPOLIO 3.785 ML;BOTELLA;3.785;L;el nombre indica otra unidad que el factor 3.785, se toma 3.785 L
+1570;SGP01568;SILICONA PARA AUTO SAPOLIO 360 CC;LATA;0.44;L;el nombre indica 0.36 L y el factor es 0.44, se toma 0.44 L
+1573;SGP01571;DETERGENTE SAPOLIO DE 13.5 KG;SACO;15;KG;el nombre indica 13.5 KG y el factor es 15, se toma 15 KG
+1574;SGP01572;CERA AL AGUA SAPOLIO 3.785 LT;GALON;4;L;el nombre indica 3.785 L y el factor es 4, se toma 4 L
+1612;SGP01610;DESINFECTANTE PINO SAPOLIO 3.785 ML;GALON;3.785;L;el nombre indica otra unidad que el factor 3.785, se toma 3.785 L
+1674;SGP01670;CAJA CHICA - PLATANO BELLACO (UNIDAD x 1 UND);UNIDAD;1;UND;el SGP tiene este nombre con otra presentacion o factor
+1788;SGP01784;HAMBURGUESA DE POLLO CONGELADO PQT X 14 UNI;BOLSA;0.84;KG;factor decimal 0.84 sin tamano en el nombre, se asume KG
+2090;SGP02085;HUEVO ROSADO EN BANDEJA X UND;UNIDAD;0.066667;UND;factor 0.066667 = 1/15: la unidad base del SGP es un paquete de 15
+2094;SGP02089;HUEVO ROSADO BANDEJA X 15 UNID;UNIDAD;0.066667;UND;factor 0.066667 = 1/15: la unidad base del SGP es un paquete de 15
+2134;SGP02129;MARGARINA SELLO DE ORO POTE 190 GR (EMER);POTE;2;KG;el nombre indica 0.19 KG y el factor es 2, se toma 2 KG
+2240;SGP02235;ENVASE DE ALUMINIO 1000 CC 125 UND SIN TAPA;PAQUETE;500;UND;el nombre indica 125 unidades y el factor es 500, se toma 500 UND
+2283;SGP02278;BOLSA BLANCA T-SHIRT GRANDE PARAISO 21 X 24 X 2 (PQT 500 UND);PAQUETE;1000;UND;el nombre indica 500 unidades y el factor es 1000, se toma 1000 UND
+2285;SGP02280;TENEDOR BLANCO DE PLASTICO DESCARTABLE D81110001 50 UND;PAQUETE;100;UND;el nombre indica 50 unidades y el factor es 100, se toma 100 UND
+2288;SGP02283;CUCHARA SOPERA DESCARTABLE EN BOLSA X 50UND;PAQUETE;500;UND;el nombre indica 50 unidades y el factor es 500, se toma 500 UND
+2313;SGP02308;ENVASE DESCARTABLE SIN TAPA REDONDO 1000 CC 200 UND;PAQUETE;1000;UND;el nombre indica 200 unidades y el factor es 1000, se toma 1000 UND
+2314;SGP02309;TAPA ENVASE DESCARTABLE REDONDO 1000 CC / 500CC 500 UND;PAQUETE;1000;UND;el nombre indica 500 unidades y el factor es 1000, se toma 1000 UND
+2315;SGP02310;ENVASE DESCARTABLE SIN TAPA REDONDO 500 CC 200UND;PAQUETE;500;UND;el nombre indica 200 unidades y el factor es 500, se toma 500 UND
+2322;SGP02317;PLATO TENDIDO PARA SEGUNDO NEGRO DESCARTABLE 23 CM 500 UND;PAQUETE;450;UND;el nombre indica 500 unidades y el factor es 450, se toma 450 UND
+2775;SGP02770;CAJA CHICA - TOMILLO FRESCO (KILOGRAMO x 1 KG);KILOGRAMO;1;KG;el SGP tiene este nombre con otra presentacion o factor
+3144;SGP03138;CAJA CHICA - ROMERO FRESCO (KILOGRAMO x 1 KG);KILOGRAMO;1;KG;el SGP tiene este nombre con otra presentacion o factor
+3261;SGP03254;CAJA CHICA - TOMILLO FRESCO (PRES-SGP-1 x 1 UND);PRES-SGP-1;1;UND;el SGP tiene este nombre con otra presentacion o factor
+3265;SGP03258;CAJA CHICA - TOMATE CHERRY (PAQUETE x 1 UND);PAQUETE;1;UND;el SGP tiene este nombre con otra presentacion o factor
+3266;SGP03259;CAJA CHICA - ROMERO FRESCO (PRES-SGP-1 x 1 UND);PRES-SGP-1;1;UND;el SGP tiene este nombre con otra presentacion o factor
+3546;SGP03537;CAJA CHICA - AGUA SAN LUIS 20 LT (BIDON x 1 UND);BIDON;1;UND;el SGP tiene este nombre con otra presentacion o factor
+3667;SGP03656;CAJA CHICA - PLATANO BELLACO (KILOGRAMO x 1 KG);KILOGRAMO;1;KG;el SGP tiene este nombre con otra presentacion o factor
+3772;SGP03761;CAJA CHICA - TOMATE CHERRY (KILOGRAMO x 1 KG);KILOGRAMO;1;KG;el SGP tiene este nombre con otra presentacion o factor
+3784;SGP03773;CAJA CHICA - AGUA SAN LUIS 20 LT (CAJA x 1 UND);CAJA;1;UND;el SGP tiene este nombre con otra presentacion o factor
+3802;SGP03791;CAJA CHICA - CANCHITA SALADA X 12 GR (UNIDAD x 1 UND);UNIDAD;1;UND;el SGP tiene este nombre con otra presentacion o factor
+3803;SGP03792;CAJA CHICA - CANCHITA SALADA X 12 GR (BOLSA x 1 UND);BOLSA;1;UND;el SGP tiene este nombre con otra presentacion o factor
+4064;SGP04053;CAJA CHICA - ANIS ESTRELLA X 250 GR (PRES-SGP-20 x 0.25 KG);PRES-SGP-20;0.25;KG;el SGP tiene este nombre con otra presentacion o factor
+4065;SGP04054;CAJA CHICA - ANIS ESTRELLA X 250 GR (PRES-SGP-20 x 1 UND);PRES-SGP-20;1;UND;el SGP tiene este nombre con otra presentacion o factor
+4108;SGP04093;CAJA CHICA - ENVASE DELI 1/2 LT SUPER FAST TR + TAPATR (LITRO x 1 L);LITRO;1;L;el SGP tiene este nombre con otra presentacion o factor
+4112;SGP04097;CAJA CHICA - COPA FLORENTINA TRANSPARENTE C/10 (PAQUETE x 1 UND);PAQUETE;1;UND;el SGP tiene este nombre con otra presentacion o factor
+4116;SGP04101;CAJA CHICA - ENVASE DELI 1/2 LT SUPER FAST TR + TAPATR (PRES-SGP-28 x 1 L);PRES-SGP-28;1;L;el SGP tiene este nombre con otra presentacion o factor
+4117;SGP04102;CAJA CHICA - COPA FLORENTINA TRANSPARENTE C/10 (UNIDAD x 1 UND);UNIDAD;1;UND;el SGP tiene este nombre con otra presentacion o factor

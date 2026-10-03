@@ -19,7 +19,7 @@ Plan: `docs/guia_construccion/04_PLAN_POR_ETAPAS.md`. Decisiones de negocio: `do
 | Etapa | Estado | Qué hay / qué falta |
 |---|---|---|
 | 0 Diagnóstico y línea base | **Hecha** | Esquema portado a PostgreSQL; migraciones V001–V004 con migrador versionado; brechas H01–H03 cerradas |
-| 1 Fundamentos y catálogo | **Hecha en código y pruebas; falta validar la interfaz en Windows** | Acceso con bloqueo, permisos por operación, auditoría automática, aislamiento RLS, operaciones/almacenes/usuarios, unidades, categorías, marcas, productos, variantes, empaques, proveedores, precios con vigencia, importador CSV con vista previa. Pantallas WinForms compiladas **pero no ejecutadas** (no hay Windows en este entorno) |
+| 1 Fundamentos y catálogo | **Hecha en código y pruebas; falta validar la interfaz en Windows** | Acceso con bloqueo, permisos por operación, auditoría automática, aislamiento RLS, operaciones/almacenes/usuarios, unidades, categorías, marcas, productos, variantes, empaques, proveedores, precios con vigencia, importador CSV con vista previa, **carga del listado de productos del SGP** (4 160 productos con factor y unidad mínima de pedido; `datos/sgp/`). Pantallas WinForms compiladas **pero no ejecutadas** (no hay Windows en este entorno) |
 | 2 Menús y recetas | Parcial mínimo | Solo la fórmula de escalado (T08, T09) |
 | 3 Previsión y compras | Parcial mínimo | Solo necesidad neta y redondeo (T12–T15) |
 | 4 Almacén y kárdex | Parcial avanzado | Servicio de contabilización atómico con sesión y permisos. Falta: idempotencia, recepciones parciales, devoluciones, reversiones, valoración real (D01) |
@@ -39,7 +39,7 @@ Plan: `docs/guia_construccion/04_PLAN_POR_ETAPAS.md`. Decisiones de negocio: `do
 | T12–T15 previsión y empaques | Dominio (T14 también en SQL) | Pasa |
 | T19, T20, T21, T23, T24, T25, T26, T39 | SQL, concurrencia real y servicio | Pasa |
 | T33, T34 conteo sin ajuste | SQL (vista) | Pasa a nivel de vista |
-| T47 importación repetida y filas inválidas | `ImportacionTests` | Pasa |
+| T47 importación repetida y filas inválidas | `ImportacionTests`, `ImportacionSgpTests` (listado real del SGP) | Pasa |
 
 **No ejecutados:** T07, T10, T11, T16–T18, T22, T27–T32, T35–T38, T40–T46, T48.
 
@@ -48,7 +48,7 @@ Plan: `docs/guia_construccion/04_PLAN_POR_ETAPAS.md`. Decisiones de negocio: `do
 ```bash
 ./ejecutar_pruebas.sh
 ```
-Última corrida: 67 aserciones SQL + concurrencia (T24 y carrera de 10 sesiones), 35 pruebas de dominio, 34 de integración, instalador de punta a punta (migrar dos veces + crear empresa) y compilación WinForms sin advertencias. Entorno: Ubuntu 24.04, PostgreSQL 16.14, SDK .NET 8.0.425 oficial de Microsoft. El mismo script corre en GitHub Actions.
+Última corrida: 67 aserciones SQL + concurrencia (T24 y carrera de 10 sesiones), 54 pruebas de dominio, 36 de integración, instalador de punta a punta (migrar dos veces + crear empresa + cargar el listado SGP dos veces) y compilación WinForms sin advertencias. Entorno: Ubuntu 24.04, PostgreSQL 16.14, SDK .NET 8.0.425 oficial de Microsoft. El mismo script corre en GitHub Actions.
 
 Se comprobó que las pruebas detectan fallos: mutación del redondeo de empaques (6 pruebas fallan), quitar el bloqueo de saldo (concurrencia falla) y desactivar el RLS (T02 falla).
 
@@ -68,7 +68,7 @@ H01, H02 y H03: **cerradas** (V003) y probadas también con el rol de la aplicac
 
 **Decisiones de negocio** (guía doc. 09): D01 valoración · D02 precio de ingrediente genérico · D03 impuestos/cargos · D04 redondeo de compra · D05 formato de bajas · D06/D07 ajustes de inventario y corte · D08 reserva · D09 sustituciones · D10 offline · D11 excesos de recepción · D12 stock crudo en cocina · D13/D14 Food Cost y costo por receta.
 
-**Preguntas al usuario:** ¿las ≈20 PC son de una sola sede? · ¿entran CD/ADS/tránsitos y raciones por cliente en la primera etapa?
+**Preguntas al usuario:** ¿las ≈20 PC son de una sola sede? · ¿entran CD/ADS/tránsitos y raciones por cliente en la primera etapa? · ¿qué presentación son los `pro_coduni` 1, 3, 6, 20, 28, 33 y 37 del SGP? (y confirmar el resto, `datos/sgp/LEEME.md`) · revisar los 51 productos de `datos/sgp/observaciones_sgp.csv`.
 
 **Brechas de esquema aún abiertas:** estado "en tránsito" para traspasos entre bodegas; atributos de receta por régimen; raciones diarias por cliente; fórmula exacta de `necesidad_neta` con `reserva` y `stock_utilizable`.
 

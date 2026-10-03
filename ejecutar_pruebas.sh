@@ -23,7 +23,7 @@ echo "######## 3/5  Capa de datos VB.NET contra PostgreSQL"
 dotnet test tests/AppSistema.Datos.Tests --nologo -v q
 
 echo
-echo "######## 4/5  Instalador de consola (migrar dos veces + crear empresa)"
+echo "######## 4/5  Instalador de consola (migrar dos veces + crear empresa + cargar listado SGP dos veces)"
 DB=appsistema_instalador
 dropdb --if-exists "$DB" >/dev/null 2>&1 || true
 createdb "$DB"
@@ -33,6 +33,12 @@ dotnet run --project src/AppSistema.Instalador -v q -- migrar | tail -2
 dotnet run --project src/AppSistema.Instalador -v q -- migrar | grep -c "ya estaba" | xargs -I{} echo "  segunda corrida: {} migraciones ya estaban"
 printf 'DEMO\nEmpresa demo\nOP1\nOperacion demo\nALM\nAlmacen demo\nadmin\nAdministrador\nDemo-Clave-2026\nDemo-Clave-2026\n' \
   | dotnet run --project src/AppSistema.Instalador -v q -- crear-empresa | tail -1
+export APPSISTEMA_CONEXION="Host=$APPSISTEMA_PG_HOST;Username=$APPSISTEMA_PG_USER;Database=$DB;Options=-c role=app_stock$CLAVE"
+printf 'DEMO\nadmin\nDemo-Clave-2026\nSI\n' \
+  | dotnet run --project src/AppSistema.Instalador -v q -- importar-sgp datos/sgp/productos_sgp_original.tsv | tail -1
+printf 'DEMO\nadmin\nDemo-Clave-2026\n' \
+  | dotnet run --project src/AppSistema.Instalador -v q -- importar-sgp datos/sgp/productos_sgp_original.tsv | tail -1
+psql -d "$DB" -tAc "SELECT 'productos SGP cargados: ' || count(*) FROM producto_base WHERE codigo LIKE 'SGP%'"
 dropdb "$DB"
 
 echo

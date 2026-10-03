@@ -4,7 +4,10 @@ Imports System.Windows.Forms
 Imports AppSistema.Datos
 Imports AppSistema.Dominio.Importacion
 
-''' <summary>Importación del catálogo desde CSV: plantilla, vista previa por fila e importación todo o nada.</summary>
+''' <summary>
+''' Importación del catálogo desde CSV: plantilla, vista previa por fila e importación todo o nada.
+''' También acepta el listado de productos del SGP (pro_nombre, pro_coduni, pro_facing), que se convierte al vuelo.
+''' </summary>
 Public Class FormImportacion
     Inherits Form
 
@@ -13,6 +16,7 @@ Public Class FormImportacion
     Private ReadOnly _resumen As New Label With {.Dock = DockStyle.Bottom, .AutoSize = False, .Height = 40, .Padding = New Padding(6)}
     Private ReadOnly _filas As DataGridView = Ui.NuevaGrilla()
     Private ReadOnly _importar As Button
+    Private ReadOnly _observaciones As Button
     Private _texto As String
     Private _ultimaVista As ResultadoImportacion
 
@@ -21,10 +25,12 @@ Public Class FormImportacion
         Text = "Importar catalogo"
         _importar = Ui.Boton("Importar", AddressOf Importar)
         _importar.Enabled = False
+        _observaciones = Ui.Boton("Observaciones...", AddressOf GuardarObservaciones)
+        _observaciones.Enabled = False
         Controls.Add(_filas)
         Controls.Add(_resumen)
         Controls.Add(Ui.BarraBotones(Ui.Boton("Descargar plantilla...", AddressOf GuardarPlantilla), Ui.Boton("Elegir archivo...", AddressOf ElegirArchivo),
-                                     Ui.Boton("Vista previa", AddressOf VistaPrevia), _importar, _archivo))
+                                     Ui.Boton("Vista previa", AddressOf VistaPrevia), _importar, _observaciones, _archivo))
         AddHandler _filas.RowPrePaint,
             Sub(s, e)
                 Dim f = TryCast(_filas.Rows(e.RowIndex).DataBoundItem, FilaResultadoImportacion)
@@ -47,8 +53,16 @@ Public Class FormImportacion
         End Using
     End Sub
 
+    Private Sub GuardarObservaciones()
+        If _ultimaVista Is Nothing Then Return
+        Using d As New SaveFileDialog With {.Filter = "Texto (*.txt)|*.txt", .FileName = "observaciones_importacion.txt"}
+            If d.ShowDialog(Me) <> DialogResult.OK Then Return
+            Ui.Ejecutar(Me, Sub() File.WriteAllLines(d.FileName, _ultimaVista.Observaciones, New UTF8Encoding(True)))
+        End Using
+    End Sub
+
     Private Sub ElegirArchivo()
-        Using d As New OpenFileDialog With {.Filter = "CSV (*.csv)|*.csv|Todos los archivos (*.*)|*.*"}
+        Using d As New OpenFileDialog With {.Filter = "CSV o listado SGP (*.csv;*.tsv;*.txt)|*.csv;*.tsv;*.txt|Todos los archivos (*.*)|*.*"}
             If d.ShowDialog(Me) <> DialogResult.OK Then Return
             If Ui.Ejecutar(Me, Sub() _texto = LeerTexto(d.FileName)) Then
                 _archivo.Text = Path.GetFileName(d.FileName)
@@ -72,16 +86,18 @@ Public Class FormImportacion
         _importar.Enabled = False
         Ui.Ejecutar(Me,
             Sub()
-                _ultimaVista = _servicio.VistaPrevia(_texto)
+                _ultimaVista = If(ConversorSgp.EsListadoSgp(_texto), _servicio.VistaPreviaSgp(_texto), _servicio.VistaPrevia(_texto))
                 Ui.Mostrar(_filas, _ultimaVista.Filas, "Numero|Fila", "Estado|Estado", "Detalle|Detalle")
-                _resumen.Text = "Vista previa: " & _ultimaVista.Resumen
+                _resumen.Text = "Vista previa: " & _ultimaVista.Resumen &
+                                If(_ultimaVista.Observaciones.Count > 0, $" {_ultimaVista.Observaciones.Count} observaciones (boton Observaciones).", "")
+                _observaciones.Enabled = _ultimaVista.Observaciones.Count > 0
                 _importar.Enabled = Not _ultimaVista.HayErrores AndAlso _ultimaVista.Filas.Any(Function(f) f.Estado = EstadoFilaImportacion.Nueva)
             End Sub)
     End Sub
 
     Private Sub Importar()
         If _ultimaVista Is Nothing OrElse Not Ui.Confirmar(Me, "Se importara: " & _ultimaVista.Resumen & Environment.NewLine & "Desea continuar?") Then Return
-        If Ui.Ejecutar(Me, Sub() _ultimaVista = _servicio.Aplicar(_texto)) Then
+        If Ui.Ejecutar(Me, Sub() _ultimaVista = If(ConversorSgp.EsListadoSgp(_texto), _servicio.AplicarSgp(_texto), _servicio.Aplicar(_texto))) Then
             Ui.Informar(Me, "Importacion terminada. " & _ultimaVista.Resumen)
         End If
         VistaPrevia()
