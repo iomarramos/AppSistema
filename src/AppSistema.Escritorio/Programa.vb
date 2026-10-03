@@ -7,6 +7,7 @@ Public Module Programa
         Application.SetHighDpiMode(HighDpiMode.SystemAware)
         Application.EnableVisualStyles()
         Application.SetCompatibleTextRenderingDefault(False)
+        Application.SetDefaultFont(Tema.Fuente)
         AddHandler Application.ThreadException, Sub(s, e) Ui.MostrarError(Nothing, e.Exception)
         Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException)
         Application.Run(New FormPrincipal())

@@ -49,6 +49,7 @@ Public Module SalidaReporte
             f.Controls.Add(panel)
             f.AcceptButton = imprimir
             f.CancelButton = cancelar
+            Tema.Aplicar(f)
             Return f.ShowDialog(dueno)
         End Using
     End Function

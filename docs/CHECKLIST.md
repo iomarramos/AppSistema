@@ -89,6 +89,17 @@ Cada reporte sale con el botón **Imprimir…** de su pantalla. Se puede imprimi
 | Hoja de conteo | Inventario físico > Imprimir hoja de conteo… | Sin el stock del sistema (conteo ciego), con columnas en blanco para envases y parcial |
 | Resultado de inventario | Inventario físico > Imprimir resultado… | Sistema, físico, diferencia y su valor; faltante, sobrante y firmas |
 
+### Diseño de pantallas y base de datos (2026-10-03)
+
+- 🟡 **Tema común** (`Tema.vb`), con base en las pantallas del SGP y las pautas de Windows 11 / Fluent:
+  - franja con la pantalla y la operación;
+  - botones con texto (azul para confirmar, rojo para anular);
+  - grillas con filas alternas, números a la derecha y estados en color;
+  - escalado por DPI.
+
+  Falta verlo en Windows. Detalle en `docs/DISENO_PANTALLAS.md`.
+- ✅ **Base de datos:** V017 agrega índices a las claves foráneas que se recorren. Una prueba fija las que quedan sin índice.
+
 ## 3. Funcionalidad
 
 | Módulo | Estado |

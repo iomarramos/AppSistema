@@ -17,6 +17,40 @@ Public Class MigradorTests
         End Using
     End Sub
 
+    ''' <summary>
+    ''' Toda clave foránea tiene un índice cuyo prefijo son sus columnas (V017), salvo esta lista fija: quién creó, aprobó
+    ''' o contó (un usuario no se borra, se desactiva) y catálogos que no se borran. Una FK nueva debe llevar su índice o
+    ''' agregarse aquí a conciencia.
+    ''' </summary>
+    <FactPostgres>
+    Public Sub Las_claves_foraneas_tienen_indice_salvo_las_de_usuario_y_catalogos_fijos()
+        Dim permitidas = String.Join(" ", {
+            "auditoria.empresa_id,usuario_id", "central_cierre.empresa_id", "central_movimiento.empresa_id",
+            "cierre_diario.empresa_id,usuario_cierre_id", "consumo_plato.empresa_id,usuario_id", "documento_stock.empresa_id,aprobador_id",
+            "documento_stock.empresa_id,usuario_id", "factor_consumo_operacion.empresa_id,usuario_id", "gasto.empresa_id,operacion_servicio_id",
+            "gasto.empresa_id,usuario_id", "inventario.empresa_id,autorizador_id", "inventario.empresa_id,revisor_id", "inventario.empresa_id,usuario_id",
+            "inventario_ajuste.empresa_id,autorizador_id", "inventario_detalle.empresa_id,contado_por", "merma_produccion.empresa_id,documento_baja_id",
+            "merma_produccion.empresa_id,receta_version_id", "merma_produccion.empresa_id,unidad_id", "minuta.empresa_id,minuta_origen_id",
+            "minuta.empresa_id,usuario_id", "movimiento_stock.empresa_id,usuario_id", "operacion_servicio.empresa_id,regimen_id",
+            "pedido_compra.empresa_id,aprobador_id", "pedido_compra.empresa_id,usuario_id", "periodo_mensual.empresa_id,usuario_cierre_id",
+            "prevision.empresa_id,usuario_id", "produccion.empresa_id,usuario_id", "producto_base.empresa_id,unidad_base_id",
+            "recepcion.empresa_id,usuario_id", "recepcion_detalle.empresa_id,empaque_id", "requerimiento.empresa_id,aprobador_id",
+            "requerimiento.empresa_id,usuario_id", "sincronizacion_evento.empresa_id,operacion_id", "variante_producto.empresa_id,marca_id",
+            "venta_servicio.empresa_id,usuario_id"})
+        Using bd = BaseDatosPrueba.Crear()
+            Dim sinIndice = CStr(bd.Escalar(
+                "WITH fk AS (SELECT c.conrelid, c.conkey, c.conrelid::regclass::text AS tabla, string_agg(a.attname, ',' ORDER BY x.n) AS cols " &
+                "  FROM pg_constraint c CROSS JOIN LATERAL unnest(c.conkey) WITH ORDINALITY x(attnum, n) " &
+                "  JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = x.attnum " &
+                "  WHERE c.contype = 'f' AND c.connamespace = 'public'::regnamespace GROUP BY 1, 2, 3) " &
+                "SELECT COALESCE(string_agg(tabla || '.' || cols, ' ' ORDER BY tabla COLLATE ""C"", cols COLLATE ""C""), '') FROM fk WHERE NOT EXISTS (" &
+                "  SELECT 1 FROM pg_index i WHERE i.indrelid = fk.conrelid " &
+                "  AND (i.indkey::int2[])[0:array_length(fk.conkey, 1) - 1] @> fk.conkey::int2[] " &
+                "  AND (i.indkey::int2[])[0:array_length(fk.conkey, 1) - 1] <@ fk.conkey::int2[])"))
+            Assert.Equal(permitidas, sinIndice)
+        End Using
+    End Sub
+
     <FactPostgres>
     Public Sub Una_migracion_aplicada_que_cambia_detiene_el_proceso()
         Using bd = BaseDatosPrueba.Crear()

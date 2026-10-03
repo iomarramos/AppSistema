@@ -30,6 +30,7 @@ Public Class DialogoCampos
         Dim botones As New FlowLayoutPanel With {.Dock = DockStyle.Bottom, .FlowDirection = FlowDirection.RightToLeft, .AutoSize = True, .Padding = New Padding(8)}
         botones.Controls.Add(cancelar) : botones.Controls.Add(aceptar)
         Controls.Add(_tabla) : Controls.Add(botones)
+        AddHandler Load, Sub() Tema.Aplicar(Me)
     End Sub
 
     Private Sub Agregar(clave As String, etiqueta As String, control As Control)

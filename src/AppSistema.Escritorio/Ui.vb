@@ -97,6 +97,7 @@ Public Module Ui
                 e.FormattingApplied = True
             End Sub
         AddHandler g.DataBindingComplete, Sub() AplicarColumnas(g)
+        Tema.Grilla(g)
         Return g
     End Function
 
@@ -151,6 +152,7 @@ Public Module Ui
         f.Controls.Add(g)
         f.Controls.Add(New Label With {.Text = encabezado, .Dock = DockStyle.Top, .AutoSize = False, .Height = 40, .Padding = New Padding(6)})
         AddHandler f.Load, Sub() Mostrar(g, datos, columnas)
+        Tema.Aplicar(f)
         f.ShowDialog(dueno)
     End Sub
 

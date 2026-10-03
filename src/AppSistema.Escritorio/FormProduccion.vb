@@ -240,6 +240,7 @@ Public Class FormProduccion
         Dim c As ComparativoDto = Nothing
         If Not Ui.Ejecutar(Me, Sub() c = If(delMes, _comparativo.ComparativoMes(m.OperacionServicioId, m.Fecha.Year, m.Fecha.Month), _comparativo.Comparativo(m.Id))) Then Return
         Using f As New FormComparativo(c)
+            Tema.Aplicar(f)
             f.ShowDialog(Me)
         End Using
     End Sub

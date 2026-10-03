@@ -20,6 +20,16 @@ Public Class FormPrincipal
         _estado.Items.Add(_etiquetaEstado)
         _estado.Items.Add(New ToolStripStatusLabel("Version " & GetType(FormPrincipal).Assembly.GetName().Version.ToString(3)))
         Controls.Add(_menu) : Controls.Add(_estado)
+        _menu.BackColor = Tema.Fondo
+        _menu.Padding = New Padding(6, 3, 0, 3)
+        _estado.BackColor = Tema.SuperficieFuerte
+        For Each mdi In Controls.OfType(Of MdiClient)()
+            mdi.BackColor = Drawing.Color.FromArgb(243, 243, 243)
+        Next
+        ' Toda ventana de trabajo recibe la franja con la operación y el estilo común (también las que abre otra pantalla).
+        AddHandler MdiChildActivate, Sub()
+                                         If ActiveMdiChild IsNot Nothing AndAlso _sesion IsNot Nothing Then Tema.AplicarVentana(ActiveMdiChild, _sesion.Operacion?.ToString())
+                                     End Sub
         AddHandler Shown, Sub() IniciarSesion()
     End Sub
 
@@ -31,6 +41,7 @@ Public Class FormPrincipal
         End Try
         If _config Is Nothing Then _config = EditarConexion(Me, Nothing)
         Using f As New FormAcceso(_config)
+            Tema.Aplicar(f)
             If f.ShowDialog(Me) <> DialogResult.OK Then
                 Close()
                 Return
@@ -122,6 +133,7 @@ Public Class FormPrincipal
                                    Ui.Ejecutar(Me, Sub()
                                                        abierta = crear()
                                                        abierta.MdiParent = Me
+                                                       Tema.AplicarVentana(abierta, _sesion.Operacion?.ToString())
                                                        abierta.WindowState = FormWindowState.Maximized
                                                        abierta.Show()
                                                    End Sub)
