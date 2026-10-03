@@ -6,14 +6,19 @@ Imports AppSistema.Dominio.Seguridad
 ''' Clientes y contratos mensuales de la operación: servicios con importe y vigencia, ajustes desde una fecha (la línea
 ''' anterior se cierra, no se edita) y generación del ingreso del mes desde contrato.
 ''' </summary>
-Public Class FormContratos
-    Inherits Form
+Partial Public Class FormContratos
 
     Private ReadOnly _servicio As ServicioContratos
     Private ReadOnly _contratos As DataGridView = Ui.NuevaGrilla()
     Private ReadOnly _lineas As DataGridView = Ui.NuevaGrilla()
 
+    Public Sub New()
+        InitializeComponent()
+    End Sub
+
     Public Sub New(cadena As String, sesion As SesionUsuario)
+        InitializeComponent()
+        Controls.Clear()
         _servicio = New ServicioContratos(cadena, sesion)
         Text = "Contratos - " & sesion.Operacion.Nombre
         Dim edita = sesion.Tiene(Permisos.ContratosEditar)
