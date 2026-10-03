@@ -24,7 +24,7 @@ Ejemplo: `ACEITE VEGETAL CIELO 5 LT`, BID, stock 42, precio 34,12 se registra as
 * **Cantidad:** envases × contenido del envase según el catálogo. El sistema no usa la cantidad del archivo.
 * **Valor:** envases × precio del envase, exacto, sin recalcular desde un costo redondeado.
 * **Solo una vez:** se admite únicamente en un almacén **sin movimientos**. Repetirlo no duplica el stock.
-* **Moneda:** el archivo no la indica; se asume soles (pendiente de confirmar).
+* **Moneda:** soles (confirmado por el usuario el 03/10/2026).
 
 ## Cargar
 

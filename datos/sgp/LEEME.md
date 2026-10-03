@@ -91,7 +91,7 @@ Requisitos y garantías:
 * `origen/PRODUCTOS_PRECIOS.csv`:
   * todos sus nombres existen en el listado de presentaciones;
   * 3 nombres aparecen dos veces, por ejemplo `CAJA CHICA - CULANTRO`;
-  * el SGP no indica proveedor ni moneda; se asumen soles, pendiente de confirmar.
+  * el SGP no indica proveedor ni moneda; son soles (confirmado por el usuario el 03/10/2026).
 
 ### Evidencia usada para los `pro_coduni` (ya resueltos arriba)
 
