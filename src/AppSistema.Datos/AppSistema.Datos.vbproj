@@ -11,6 +11,11 @@
     <PackageReference Include="Npgsql" Version="8.0.5" />
   </ItemGroup>
 
+  <!-- Las migraciones viajan dentro de la biblioteca: el instalador no depende de psql. -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\database\postgresql\migraciones\V*.sql" LogicalName="Migraciones.%(Filename)%(Extension)" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\AppSistema.Dominio\AppSistema.Dominio.vbproj" />
   </ItemGroup>

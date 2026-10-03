@@ -31,9 +31,14 @@ Public NotInheritable Class BaseDatosPrueba
         _host = If(Environment.GetEnvironmentVariable("APPSISTEMA_PG_HOST"), "/var/run/postgresql")
         _usuario = If(Environment.GetEnvironmentVariable("APPSISTEMA_PG_USER"), "root")
         Nombre = "appsistema_net_" & Guid.NewGuid().ToString("N").Substring(0, 8)
-        CadenaAdmin = $"Host={_host};Username={_usuario};Database={Nombre};Pooling=false"
-        CadenaAplicacion = $"Host={_host};Username={_usuario};Database={Nombre};Options=-c role=app_stock;Maximum Pool Size=30"
+        CadenaAdmin = $"Host={_host};Username={_usuario};Database={Nombre};Pooling=false" & ClaveOpcional()
+        CadenaAplicacion = $"Host={_host};Username={_usuario};Database={Nombre};Options=-c role=app_stock;Maximum Pool Size=30" & ClaveOpcional()
     End Sub
+
+    Private Shared Function ClaveOpcional() As String
+        Dim c = Environment.GetEnvironmentVariable("APPSISTEMA_PG_PASSWORD")
+        Return If(String.IsNullOrEmpty(c), "", ";Password=" & c)
+    End Function
 
     Public Shared Function Crear() As BaseDatosPrueba
         Dim bd As New BaseDatosPrueba()
@@ -47,36 +52,18 @@ Public NotInheritable Class BaseDatosPrueba
     End Function
 
     Private Sub Preparar()
-        Using cn As New NpgsqlConnection($"Host={_host};Username={_usuario};Database=postgres;Pooling=false")
+        Using cn As New NpgsqlConnection($"Host={_host};Username={_usuario};Database=postgres;Pooling=false" & ClaveOpcional())
             cn.Open()
             Using cmd As New NpgsqlCommand($"CREATE DATABASE {Nombre}", cn)
                 cmd.ExecuteNonQuery()
             End Using
         End Using
 
-        Dim carpeta As String = BuscarMigraciones()
-        For Each archivo In Directory.GetFiles(carpeta, "V*.sql").OrderBy(Function(f) f, StringComparer.Ordinal)
-            Dim psi As New ProcessStartInfo("psql", $"-X -q -v ON_ERROR_STOP=1 -h ""{_host}"" -U {_usuario} -d {Nombre} -f ""{archivo}""") With {
-                .RedirectStandardError = True, .RedirectStandardOutput = True, .UseShellExecute = False}
-            Using p As Process = Process.Start(psi)
-                Dim err As String = p.StandardError.ReadToEnd()
-                p.WaitForExit()
-                If p.ExitCode <> 0 Then Throw New InvalidOperationException($"Migracion {Path.GetFileName(archivo)} fallo: {err}")
-            End Using
-        Next
+        Call New Migrador(CadenaAdmin).Migrar()
 
         Sembrar()
     End Sub
 
-    Private Shared Function BuscarMigraciones() As String
-        Dim dir As New DirectoryInfo(AppContext.BaseDirectory)
-        While dir IsNot Nothing
-            Dim candidata As String = Path.Combine(dir.FullName, "database", "postgresql", "migraciones")
-            If Directory.Exists(candidata) Then Return candidata
-            dir = dir.Parent
-        End While
-        Throw New DirectoryNotFoundException("No se encontro database/postgresql/migraciones.")
-    End Function
 
     Public Const ClaveAdmin As String = "Clave-Segura-2026"
 
@@ -145,7 +132,7 @@ Public NotInheritable Class BaseDatosPrueba
     Public Sub Dispose() Implements IDisposable.Dispose
         Try
             NpgsqlConnection.ClearAllPools()
-            Using cn As New NpgsqlConnection($"Host={_host};Username={_usuario};Database=postgres;Pooling=false")
+            Using cn As New NpgsqlConnection($"Host={_host};Username={_usuario};Database=postgres;Pooling=false" & ClaveOpcional())
                 cn.Open()
                 Using cmd As New NpgsqlCommand($"DROP DATABASE IF EXISTS {Nombre} WITH (FORCE)", cn)
                     cmd.ExecuteNonQuery()

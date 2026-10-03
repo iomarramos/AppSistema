@@ -188,17 +188,29 @@ Public NotInheritable Class ServicioCatalogo
                 "n", validar.EnvasesPorEmpaque, "min", validar.MinimoEmpaques, "mul", validar.MultiploEmpaques))
     End Function
 
+    Private Const SelectEmpaque As String =
+        "SELECT e.id, e.variante_id, v.codigo AS variante_codigo, v.descripcion_comercial, e.codigo, e.descripcion, e.envases_por_empaque, " &
+        "e.minimo_empaques, e.multiplo_empaques, e.contenido_base_total_u6, e.activo = 1 AS activo FROM v_empaque_conversion e " &
+        "JOIN variante_producto v ON v.empresa_id = e.empresa_id AND v.id = e.variante_id "
+
+    Private Shared Function LeerEmpaque(rd As NpgsqlDataReader) As EmpaqueDto
+        Return New EmpaqueDto With {
+            .Id = rd.Largo("id"), .VarianteId = rd.Largo("variante_id"), .VarianteCodigo = rd.Texto("variante_codigo"),
+            .VarianteDescripcion = rd.Texto("descripcion_comercial"), .Codigo = rd.Texto("codigo"), .Descripcion = rd.Texto("descripcion"),
+            .EnvasesPorEmpaque = rd.Largo("envases_por_empaque"), .MinimoEmpaques = rd.Largo("minimo_empaques"),
+            .MultiploEmpaques = rd.Largo("multiplo_empaques"), .ContenidoBaseU6 = rd.Largo("contenido_base_total_u6"),
+            .Activo = rd.GetBoolean(rd.GetOrdinal("activo"))}
+    End Function
+
     Public Function ListarEmpaques(varianteId As Long) As List(Of EmpaqueDto)
         Return EnTransaccion(Permisos.CatalogoVer,
-            Function(u) u.Consultar(
-                "SELECT id, variante_id, codigo, descripcion, envases_por_empaque, minimo_empaques, multiplo_empaques, " &
-                "contenido_base_total_u6, activo = 1 AS activo FROM v_empaque_conversion WHERE variante_id = @v ORDER BY codigo",
-                Function(rd) New EmpaqueDto With {
-                    .Id = rd.Largo("id"), .VarianteId = rd.Largo("variante_id"), .Codigo = rd.Texto("codigo"), .Descripcion = rd.Texto("descripcion"),
-                    .EnvasesPorEmpaque = rd.Largo("envases_por_empaque"), .MinimoEmpaques = rd.Largo("minimo_empaques"),
-                    .MultiploEmpaques = rd.Largo("multiplo_empaques"), .ContenidoBaseU6 = rd.Largo("contenido_base_total_u6"),
-                    .Activo = rd.GetBoolean(rd.GetOrdinal("activo"))},
-                "v", varianteId))
+            Function(u) u.Consultar(SelectEmpaque & "WHERE e.variante_id = @v ORDER BY e.codigo", AddressOf LeerEmpaque, "v", varianteId))
+    End Function
+
+    ''' <summary>Empaques activos de toda la empresa (para vincularlos a proveedores).</summary>
+    Public Function ListarEmpaquesActivos() As List(Of EmpaqueDto)
+        Return EnTransaccion(Permisos.CatalogoVer,
+            Function(u) u.Consultar(SelectEmpaque & "WHERE e.activo = 1 AND v.activo = 1 ORDER BY v.codigo, e.codigo", AddressOf LeerEmpaque))
     End Function
 
 End Class

@@ -64,6 +64,8 @@ End Class
 Public NotInheritable Class EmpaqueDto
     Public Property Id As Long
     Public Property VarianteId As Long
+    Public Property VarianteCodigo As String
+    Public Property VarianteDescripcion As String
     Public Property Codigo As String
     Public Property Descripcion As String
     Public Property EnvasesPorEmpaque As Long
@@ -71,6 +73,10 @@ Public NotInheritable Class EmpaqueDto
     Public Property MultiploEmpaques As Long
     Public Property ContenidoBaseU6 As Long
     Public Property Activo As Boolean
+
+    Public Overrides Function ToString() As String
+        Return $"{VarianteCodigo} / {Codigo} - {Descripcion}"
+    End Function
 End Class
 
 Public NotInheritable Class ProveedorDto

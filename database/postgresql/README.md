@@ -7,7 +7,8 @@ Portado del esquema SQLite v0.3 (59 tablas, 4 vistas) a PostgreSQL 16 (RNF-13).
 | `migraciones/V001__esquema_base.sql` | Tablas, índices y vistas (generado desde el SQL original y revisado) |
 | `migraciones/V002__reglas_de_stock.sql` | Los 12 triggers originales en PL/pgSQL + bloqueo de saldo y signo por tipo de documento |
 | `migraciones/V003__proteccion_y_roles.sql` | Cierra las brechas H01–H03, vista de conciliación y rol `app_stock` |
-| `pruebas/01_verificacion.sql` | 44 aserciones (9 de la guía + brechas, signo, rollback, múltiplo, permisos) |
+| `migraciones/V004__acceso_auditoria_aislamiento.sql` | Factor de unidades, bloqueo por intentos, funciones de acceso, auditoría automática sin secretos, presentaciones en uso protegidas, precios sin superposición y aislamiento por empresa con RLS |
+| `pruebas/01_verificacion.sql` | 67 aserciones (9 de la guía + brechas, signo, rollback, múltiplo, permisos, aislamiento, auditoría, T06, precios, acceso) |
 | `pruebas/02_concurrencia.sh` | Conexiones independientes: T24 y carrera de 10 sesiones |
 | `ejecutar_pruebas.sh` | Crea bases nuevas, migra y ejecuta todo |
 
@@ -24,6 +25,17 @@ cd database/postgresql
 - Fechas `TEXT` → `DATE`; `creado_en` → `TIMESTAMPTZ DEFAULT now()`.
 - Los banderas 0/1 se mantienen como enteros para no divergir de la guía.
 - Los mensajes de error empiezan con un código estable: `STOCK_INSUFICIENTE`, `DIA_CERRADO`, `PERIODO_CERRADO`, `DOCUMENTO_CONFIRMADO`, `SALDO_PROTEGIDO`, `SIGNO_NO_PERMITIDO`, `MULTIPLO_INCOMPATIBLE`…
+
+## Aplicar migraciones en una sede
+
+Con el instalador (`AppSistema.Instalador migrar`), que lleva las migraciones incluidas, las aplica en orden,
+registra versión y hash en `esquema_migracion` y se detiene si una migración ya aplicada fue modificada.
+
+## Aislamiento por empresa (V004)
+
+El rol `app_stock` (y los usuarios de sede, miembros de él) solo ven filas de la empresa fijada en la
+transacción con `set_config('app.empresa_id', ...)`. Sin ese contexto no ven nada. Las vistas usan
+`security_invoker`. El propietario y las funciones `SECURITY DEFINER` no están sujetos al RLS.
 
 ## Reglas que la aplicación debe respetar
 

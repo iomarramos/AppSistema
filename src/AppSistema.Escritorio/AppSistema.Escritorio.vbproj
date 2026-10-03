@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Aplicación de escritorio WinForms para Windows 10 o superior (RNF-12.1, RNF-15).
+       EnableWindowsTargeting permite compilarla también fuera de Windows (integración continua). -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <RootNamespace>AppSistema.Escritorio</RootNamespace>
+    <AssemblyName>AppSistema</AssemblyName>
+    <StartupObject>AppSistema.Escritorio.Programa</StartupObject>
+    <MyType>WindowsFormsWithCustomSubMain</MyType>
+    <ApplicationHighDpiMode>SystemAware</ApplicationHighDpiMode>
+    <Version>0.1.0</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AppSistema.Datos\AppSistema.Datos.vbproj" />
+  </ItemGroup>
+
+</Project>
