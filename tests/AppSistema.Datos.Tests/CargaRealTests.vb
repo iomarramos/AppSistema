@@ -54,6 +54,18 @@ Public Class CargaRealTests
             Assert.Equal(U(16D), m.CostoPrevistoU6)                                       ' 200 × 0,01 L × S/ 8 + agua S/ 0
             Assert.Equal(U(33.333333D), m.VentaPrevistaU6)                                 ' 16 / 0,48
             Assert.Equal(200L, minutas.ListarPlatos(m.Id).Single().Raciones)
+
+            Dim estado = carga.Estado()
+            Assert.Equal("1 1 1 2 2", String.Join(" ", estado.PreciosSgp, estado.InsumosSinCosto, estado.ServiciosAsignados, estado.Minutas, estado.MinutasAprobadas))
+            Assert.Equal(0L, estado.AlmacenesConApertura)
+
+            ' Un archivo equivocado (por ejemplo, el de estructuras en el paso del ciclo) se rechaza sin cargar nada.
+            Dim ex = Assert.Throws(Of ReglaNegocioException)(Function() carga.CargarCiclo(estructuras, New Date(2026, 11, 1), comensales, aprobar:=False))
+            Assert.Equal("ARCHIVO_INVALIDO", ex.Codigo)
+            Assert.Contains("receta_codigo", ex.Message)
+            Assert.Equal("ARCHIVO_INVALIDO", Assert.Throws(Of ReglaNegocioException)(Function() carga.ImportarPrecios(ciclo)).Codigo)
+            Assert.Equal("ARCHIVO_INVALIDO", Assert.Throws(Of ReglaNegocioException)(Function() carga.CargarEstructuras("")).Codigo)
+            Assert.Empty(minutas.ListarMinutas(New Date(2026, 11, 1), New Date(2026, 11, 30)))
         End Using
     End Sub
 

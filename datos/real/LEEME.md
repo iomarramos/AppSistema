@@ -32,7 +32,11 @@ python3 herramientas/ordenar_datos_reales.py
 
 ## Orden de carga en una sede
 
-Se usan la conexión de sede y un usuario administrador. Todos los pasos se pueden repetir sin duplicar.
+Se usan la conexión de sede y un usuario administrador. Todos los pasos se pueden repetir sin duplicar. Si un archivo no es el que espera el paso (le faltan columnas), se rechaza sin cargar nada.
+
+**Desde la aplicación:** Administración > Carga de datos reales. Muestra los 7 pasos en este orden, con lo que ya está cargado. Cada paso exige su permiso. Los de catálogo, recetas e inventario inicial abren su pantalla de siempre.
+
+**Desde la consola** (Instalador):
 
 ```
 AppSistema.Instalador importar-catalogo  datos/enlace/catalogo_por_ingrediente.csv

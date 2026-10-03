@@ -33,6 +33,7 @@ Todas las pantallas **compilan, pero ninguna se ejecutó en Windows todavía** (
 | Administración > Usuarios y roles | USUARIOS_ADMINISTRAR | Incluye roles propios | 🟡 |
 | Administración > Operaciones y almacenes | USUARIOS_ADMINISTRAR | **Nueva** | 🟡 |
 | Administración > Auditoría | AUDITORIA_VER | **Nueva**, solo lectura | 🟡 |
+| Administración > Carga de datos reales | CATALOGO_IMPORTAR | **Nueva**. Precios: PRECIOS_EDITAR · Sin costo: CATALOGO_EDITAR · Estructuras: MENUS_CONFIGURAR · Ciclo: MINUTAS_EDITAR (aprobar: MINUTAS_APROBAR). Catálogo, recetas e inventario inicial abren su pantalla propia | 🟡 |
 | Barra de estado | REPORTES_VER | Estado de envío a la central | 🟡 |
 
 Los menús sin ninguna opción para el usuario ya no se muestran.
@@ -58,6 +59,7 @@ Los menús sin ninguna opción para el usuario ya no se muestran.
 | Cierres (ejecutar) | ✔ | ✔ | — | — | — |
 | Contratos, gastos y resultado | ✔ | ✔ | — | — | ✔ |
 | Usuarios, operaciones y almacenes | ✔ | — | — | — | — |
+| Carga de datos reales | ✔ | ✔ | — | — | — |
 | Auditoría | ✔ | ✔ | — | — | — |
 
 Además, el administrador puede crear **roles propios** con los permisos que elija.
@@ -101,7 +103,7 @@ Cada reporte sale con el botón **Imprimir…** de su pantalla. Se puede imprimi
 | Cierres diario y mensual, Food Cost | ✅ |
 | Continuidad (cola, sincronización, respaldo, restauración, actualización) | ✅ (falta el piloto) |
 | Contratos, gastos, resultado y roles propios | ✅ |
-| Datos reales del SGP ordenados y cargables (`datos/real/`) | ✅ |
+| Datos reales del SGP ordenados y cargables (`datos/real/`), desde la consola o la pantalla de carga; archivo equivocado rechazado | ✅ |
 | Reportes imprimibles y exportables (HTML para imprimir o PDF, CSV para Excel), con el permiso de la pantalla de origen | ✅ |
 
 ## 4. Pendiente por crear o confirmar
@@ -114,7 +116,7 @@ Cada reporte sale con el botón **Imprimir…** de su pantalla. Se puede imprimi
 | 4 | ⬜ Factores de consumo reales por operación y servicio, y confirmar las estructuras propuestas | Usuario |
 | 5 | ⬜ Recetas con precio para cereales y yogurt del desayuno | Usuario |
 | 6 | ⬜ D02 (regla de precio del ingrediente), D03 (impuestos) y D10 (¿una sede o varias?) | Usuario |
-| 7 | ⬜ Pantalla para la carga de datos reales (hoy solo desde el Instalador) | Programación |
+| 7 | 🟡 Pantalla para la carga de datos reales: **hecha** (Administración > Carga de datos reales, 7 pasos con el estado de lo cargado). Falta probarla en Windows | Programación (hecho) · PC con Windows |
 | 8 | ⬜ Pantalla de sincronización y respaldo para TI (hoy solo desde el Instalador y el script de Windows) | Programación |
 | 9 | ⬜ Resultado consolidado de varias sedes en la central | Programación, con D10 |
 | 10 | 🟡 Reportes imprimibles o exportables: **hecho** (minuta del día, requerimiento, kárdex, hoja de conteo, resultado de inventario y stock valorizado). Falta verlos impresos desde Windows | Programación (hecho) · PC con Windows |

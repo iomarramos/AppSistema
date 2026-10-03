@@ -14,6 +14,19 @@ Public NotInheritable Class ResultadoCargaReal
     End Function
 End Class
 
+Public NotInheritable Class EstadoCargaReal
+    Public Property Productos As Long
+    Public Property Presentaciones As Long
+    Public Property PreciosSgp As Long
+    Public Property RecetasAprobadas As Long
+    Public Property InsumosSinCosto As Long
+    Public Property AlmacenesConApertura As Long
+    Public Property Almacenes As Long
+    Public Property ServiciosAsignados As Long
+    Public Property Minutas As Long
+    Public Property MinutasAprobadas As Long
+End Class
+
 ''' <summary>
 ''' Carga del juego de datos real ordenado por herramientas/ordenar_datos_reales.py (datos/real/): precios por presentación,
 ''' estructuras de menú con factores y el ciclo de minutas. Cada paso es repetible: lo que ya existe no se duplica ni se pisa.
@@ -27,10 +40,20 @@ Public NotInheritable Class ServicioCargaReal
         MyBase.New(cadenaConexion, sesion)
     End Sub
 
-    Private Shared Function Filas(texto As String) As List(Of Dictionary(Of String, String))
-        Dim lineas = texto.Replace(vbCr, "").Split(ChrW(10)).Where(Function(l) l.Trim() <> "").ToList()
-        If lineas.Count = 0 Then Return New List(Of Dictionary(Of String, String))
-        Dim cab = lineas(0).TrimStart(ChrW(&HFEFF)).Split(";"c)
+    ''' <summary>Columnas que debe traer cada archivo: un archivo equivocado se rechaza antes de cargar nada.</summary>
+    Public Shared ReadOnly ColumnasPrecios As String() = {"variante_codigo", "empaque_codigo", "precio_envase", "fecha_precio"}
+    Public Shared ReadOnly ColumnasSinCosto As String() = {"producto"}
+    Public Shared ReadOnly ColumnasEstructuras As String() = {"servicio", "orden", "codigo", "nombre", "factor_consumo_pct"}
+    Public Shared ReadOnly ColumnasCiclo As String() = {"dia", "servicio", "estructura_codigo", "receta_codigo", "receta_nombre", "reparto_pct"}
+
+    Private Shared Function Filas(texto As String, obligatorias As String()) As List(Of Dictionary(Of String, String))
+        Dim lineas = If(texto, "").Replace(vbCr, "").Split(ChrW(10)).Where(Function(l) l.Trim() <> "").ToList()
+        If lineas.Count = 0 Then Throw New ReglaNegocioException("ARCHIVO_INVALIDO", "El archivo esta vacio.")
+        Dim cab = lineas(0).TrimStart(ChrW(&HFEFF)).Split(";"c).Select(Function(c) c.Trim()).ToArray()
+        Dim faltan = obligatorias.Where(Function(o) Not cab.Contains(o, StringComparer.OrdinalIgnoreCase)).ToList()
+        If faltan.Count > 0 Then
+            Throw New ReglaNegocioException("ARCHIVO_INVALIDO", $"El archivo no es el esperado: le faltan las columnas {String.Join(", ", faltan)}.")
+        End If
         Return lineas.Skip(1).Select(Function(l)
                                          Dim v = l.Split(";"c)
                                          Dim d As New Dictionary(Of String, String)(StringComparer.OrdinalIgnoreCase)
@@ -52,7 +75,7 @@ Public NotInheritable Class ServicioCargaReal
     ''' tiene precio de ese proveedor no se toca (regla del usuario: sin precio no se inventa; con precio no se pisa).
     ''' </summary>
     Public Function ImportarPrecios(texto As String) As ResultadoCargaReal
-        Dim filas = ServicioCargaReal.Filas(texto)
+        Dim filas = ServicioCargaReal.Filas(texto, ColumnasPrecios)
         Return EnTransaccion(Permisos.PreciosEditar,
             Function(u)
                 Dim r As New ResultadoCargaReal()
@@ -92,7 +115,7 @@ Public NotInheritable Class ServicioCargaReal
 
     ''' <summary>Insumos que no se compran (agua de red): se costean en S/ 0. Los nombres vienen de datos/real/insumos_sin_costo.csv.</summary>
     Public Function MarcarInsumosSinCosto(texto As String) As ResultadoCargaReal
-        Dim nombres = ServicioCargaReal.Filas(texto).Select(Function(f) f("producto")).ToList()
+        Dim nombres = ServicioCargaReal.Filas(texto, ColumnasSinCosto).Select(Function(f) f("producto")).ToList()
         Dim r As New ResultadoCargaReal With {.Nuevos = New ServicioCatalogo(CadenaConexion, Sesion).MarcarSinCosto(nombres, True)}
         r.YaEstaban = nombres.Count - r.Nuevos
         Return r
@@ -105,7 +128,7 @@ Public NotInheritable Class ServicioCargaReal
     ''' General y los asigna a la operación de la sesión. Lo existente se conserva (incluido un factor ya ajustado).
     ''' </summary>
     Public Function CargarEstructuras(texto As String) As ResultadoCargaReal
-        Dim filas = ServicioCargaReal.Filas(texto)
+        Dim filas = ServicioCargaReal.Filas(texto, ColumnasEstructuras)
         Dim op = Sesion.Operacion
         If op Is Nothing Then Throw New ReglaNegocioException("OPERACION_NO_SELECCIONADA", "Seleccione una operacion.")
         Return EnTransaccion(Permisos.MenusConfigurar,
@@ -160,7 +183,7 @@ Public NotInheritable Class ServicioCargaReal
     ''' </summary>
     Public Function CargarCiclo(texto As String, desde As Date, comensales As IDictionary(Of String, Long), aprobar As Boolean,
                                 Optional dias As Integer = Integer.MaxValue) As ResultadoCargaReal
-        Dim filas = ServicioCargaReal.Filas(texto).Where(Function(f) Integer.Parse(f("dia"), CultureInfo.InvariantCulture) <= dias).ToList()
+        Dim filas = ServicioCargaReal.Filas(texto, ColumnasCiclo).Where(Function(f) Integer.Parse(f("dia"), CultureInfo.InvariantCulture) <= dias).ToList()
         Dim minutas As New ServicioMinutas(CadenaConexion, Sesion)
         Dim r As New ResultadoCargaReal()
         Dim servicios = minutas.ListarServiciosDeOperacion().Where(Function(s) s.RegimenNombre = "General").
@@ -205,6 +228,30 @@ Public NotInheritable Class ServicioCargaReal
             r.Nuevos += 1
         Next
         Return r
+    End Function
+
+    ' ---------- Estado ----------
+
+    ''' <summary>Qué hay cargado en la empresa y en la operación de la sesión, para guiar los pasos de la carga.</summary>
+    Public Function Estado() As EstadoCargaReal
+        Dim op = Sesion.OperacionId
+        Return EnTransaccion(Permisos.CatalogoImportar,
+            Function(u) u.Consultar(
+                "SELECT (SELECT count(*) FROM producto_base), (SELECT count(*) FROM variante_producto), " &
+                "       (SELECT count(*) FROM precio_compra pc JOIN proveedor_empaque pe ON pe.id = pc.proveedor_empaque_id " &
+                "          JOIN proveedor p ON p.id = pe.proveedor_id WHERE p.codigo = @sgp), " &
+                "       (SELECT count(*) FROM receta_version WHERE estado = 'aprobada'), " &
+                "       (SELECT count(*) FROM producto_base WHERE sin_costo_compra), " &
+                "       (SELECT count(DISTINCT d.almacen_id) FROM documento_stock d JOIN almacen a ON a.id = d.almacen_id WHERE d.tipo = 'apertura' AND a.operacion_id = @o), " &
+                "       (SELECT count(*) FROM almacen WHERE operacion_id = @o), " &
+                "       (SELECT count(*) FROM operacion_servicio WHERE operacion_id = @o), " &
+                "       (SELECT count(*) FROM minuta m JOIN operacion_servicio os ON os.id = m.operacion_servicio_id WHERE os.operacion_id = @o), " &
+                "       (SELECT count(*) FROM minuta m JOIN operacion_servicio os ON os.id = m.operacion_servicio_id WHERE os.operacion_id = @o AND m.estado <> 'borrador')",
+                Function(rd) New EstadoCargaReal With {
+                    .Productos = rd.GetInt64(0), .Presentaciones = rd.GetInt64(1), .PreciosSgp = rd.GetInt64(2), .RecetasAprobadas = rd.GetInt64(3),
+                    .InsumosSinCosto = rd.GetInt64(4), .AlmacenesConApertura = rd.GetInt64(5), .Almacenes = rd.GetInt64(6),
+                    .ServiciosAsignados = rd.GetInt64(7), .Minutas = rd.GetInt64(8), .MinutasAprobadas = rd.GetInt64(9)},
+                "sgp", ProveedorPrecios, "o", op).Single())
     End Function
 
 End Class

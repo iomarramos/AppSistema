@@ -97,7 +97,7 @@ La lista completa y numerada está en `docs/CHECKLIST.md` (sección 4). En resum
 
 ## Cargar una base con datos reales
 
-Ver `datos/real/LEEME.md`. El orden es:
+Desde la aplicación: Administración > Carga de datos reales. Desde la consola: ver `datos/real/LEEME.md`. El orden es:
 
 1. `importar-catalogo`
 2. `importar-precios`
