@@ -279,7 +279,17 @@ Public Class ContinuidadTests
             Dim antes = New ServicioContinuidad(sede.CadenaAdmin).Instantanea()
             Assert.Equal("V001,V002,V003,V004,V005,V006,V007,V008,V009,V010,V011", antes("migraciones"))
 
-            Assert.Contains(New Migrador(sede.CadenaAdmin).Migrar(), Function(m) m.Version = "V012" AndAlso m.Aplicada)
+            ' Actualización segura: respaldo + migraciones + conciliación de saldos e historia.
+            Dim archivo = Path.Combine(Path.GetTempPath(), "appsistema_" & Guid.NewGuid().ToString("N") & ".dump")
+            Try
+                Dim act = New ServicioContinuidad(sede.CadenaAdmin).Actualizar(archivo)
+                Assert.Empty(act.Diferencias)
+                Assert.Contains(act.Migraciones, Function(m) m.Version = "V012" AndAlso m.Aplicada)
+                Assert.True(File.Exists(archivo) AndAlso File.Exists(archivo & ".conciliacion"))
+            Finally
+                File.Delete(archivo)
+                File.Delete(archivo & ".conciliacion")
+            End Try
             Dim despues = New ServicioContinuidad(sede.CadenaAdmin).Instantanea()
             For Each clave In {"filas.documento_stock", "filas.documento_stock_detalle", "filas.movimiento_stock", "filas.saldo_stock",
                                "saldo.cantidad_u6", "saldo.valor_u6", "libro.cantidad_u6", "libro.valor_u6", "libro.ultimo_id", "conciliacion.filas_sin_conciliar"}

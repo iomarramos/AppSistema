@@ -40,6 +40,22 @@ Public Class FormPrincipal
         End Using
         ConstruirMenu()
         _etiquetaEstado.Text = $"Empresa {_sesion.EmpresaCodigo}  |  Operacion {_sesion.Operacion}  |  Usuario {_sesion.NombreUsuario} ({_sesion.Login})"
+        If _sesion.Tiene(Permisos.ReportesVer) Then
+            ' Distingue lo confirmado en la sede de lo ya recibido por la central; se refresca cada 5 minutos.
+            Dim envio As New ToolStripStatusLabel()
+            _estado.Items.Insert(1, envio)
+            Dim refrescar = Sub()
+                                Try
+                                    envio.Text = New ServicioCierres(_config.CadenaConexion(), _sesion).EstadoEnvio().ToString()
+                                Catch ex As Exception
+                                    envio.Text = "Central: estado no disponible"
+                                End Try
+                            End Sub
+            refrescar()
+            Dim reloj As New Timer With {.Interval = 300000}
+            AddHandler reloj.Tick, Sub() refrescar()
+            reloj.Start()
+        End If
     End Sub
 
     Private Sub ConstruirMenu()
@@ -67,6 +83,8 @@ Public Class FormPrincipal
 
         Dim cierres As New ToolStripMenuItem("Cie&rres")
         Agregar(cierres, "&Pendientes, cierres y Food Cost", Permisos.ReportesVer, Function() New FormCierres(cadena, _sesion))
+        Agregar(cierres, "&Contratos y clientes", Permisos.ContratosVer, Function() New FormContratos(cadena, _sesion))
+        Agregar(cierres, "&Gastos y resultado mensual", Permisos.ResultadosVer, Function() New FormResultados(cadena, _sesion))
 
         Dim admin As New ToolStripMenuItem("&Administracion")
         Agregar(admin, "&Usuarios y roles", Permisos.UsuariosAdministrar, Function() New FormUsuarios(cadena, _sesion))

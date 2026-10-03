@@ -27,6 +27,9 @@ Imports AppSistema.Dominio.Numerico
 '''   respaldar ARCHIVO                   pg_dump consistente + ARCHIVO.conciliacion
 '''   restaurar ARCHIVO                   restaura en una base vacía y concilia con ARCHIVO.conciliacion
 '''   conciliar                           muestra la fotografía de conciliación de la base
+'''   actualizar ARCHIVO                  respalda, aplica las migraciones pendientes y concilia saldos e historia
+''' Extensiones (etapa 9):
+'''   exportar-resultados AAAA-MM ARCHIVO resultado mensual en CSV (contrato en docs/INTEGRACION_RESULTADOS.md); conexión de sede + usuario
 ''' </summary>
 Public Module Programa
 
@@ -53,6 +56,9 @@ Public Module Programa
                 Case "importar-recetas"
                     If args.Length < 2 Then Throw New ReglaNegocioException("DATO_OBLIGATORIO", "Indique el archivo de recetas normalizadas.")
                     Return ImportarRecetas(args(1), args.Contains("--aprobar"))
+                Case "exportar-resultados"
+                    Requiere(args, 3, "Indique el periodo (AAAA-MM) y el archivo.")
+                    Return ExportarResultados(args(1), args(2))
             End Select
 
             Dim conexion = Environment.GetEnvironmentVariable("APPSISTEMA_CONEXION_PROPIETARIO")
@@ -147,6 +153,23 @@ Public Module Programa
                         Return 2
                     End If
 
+                Case "actualizar"
+                    Requiere(args, 2, "Indique el archivo de respaldo previo a la actualizacion.")
+                    Dim r = New ServicioContinuidad(conexion).Actualizar(args(1))
+                    For Each m In r.Migraciones.Where(Function(x) x.Aplicada)
+                        Console.WriteLine($"  {m.Archivo,-45} APLICADA")
+                    Next
+                    Dim nuevos = New ServicioInstalacion(conexion).SincronizarPermisos()
+                    If nuevos > 0 Then Console.WriteLine($"  {nuevos} permisos nuevos creados y asignados al rol ADMIN.")
+                    If r.Diferencias.Count > 0 Then
+                        For Each d In r.Diferencias
+                            Console.Error.WriteLine("  DIFERENCIA " & d)
+                        Next
+                        Console.Error.WriteLine($"La actualizacion no concilia: restaure {args(1)} en una base nueva (restaurar) y reporte el caso.")
+                        Return 2
+                    End If
+                    Console.WriteLine($"Actualizacion conciliada: saldos, libro e historia sin cambios. Respaldo previo: {args(1)}")
+
                 Case "conciliar"
                     Console.Write(ServicioContinuidad.TextoInstantanea(New ServicioContinuidad(conexion).Instantanea()))
 
@@ -170,7 +193,8 @@ Public Module Programa
 
     Private Sub Ayuda()
         Console.WriteLine("Uso: AppSistema.Instalador <migrar | crear-empresa | crear-usuario-sede NOMBRE | convertir-sgp ARCHIVO [DIR] | importar-sgp ARCHIVO | importar-catalogo ARCHIVO | importar-recetas ARCHIVO [--aprobar] | importar-inventario ARCHIVO>")
-        Console.WriteLine("Continuidad: <configurar-sede EMPRESA SEDE | sincronizar EMPRESA [--ahora] | estado-sincronizacion EMPRESA | registrar-sede EMPRESA SEDE NOMBRE | desactivar-sede EMPRESA SEDE | crear-usuario-sincronizacion NOMBRE | reporte-central EMPRESA | respaldar ARCHIVO | restaurar ARCHIVO | conciliar>")
+        Console.WriteLine("Continuidad: <configurar-sede EMPRESA SEDE | sincronizar EMPRESA [--ahora] | estado-sincronizacion EMPRESA | registrar-sede EMPRESA SEDE NOMBRE | desactivar-sede EMPRESA SEDE | crear-usuario-sincronizacion NOMBRE | reporte-central EMPRESA | respaldar ARCHIVO | restaurar ARCHIVO | conciliar | actualizar ARCHIVO>")
+        Console.WriteLine("Extensiones: <exportar-resultados AAAA-MM ARCHIVO>")
         Console.WriteLine("La conexion del propietario se toma de APPSISTEMA_CONEXION_PROPIETARIO o se solicita.")
         Console.WriteLine("importar-sgp, importar-catalogo e importar-recetas usan la conexion de sede (APPSISTEMA_CONEXION o se solicita) y un usuario con permiso CATALOGO_IMPORTAR.")
     End Sub
@@ -246,6 +270,18 @@ Public Module Programa
         End If
         Dim r = servicio.Aplicar(almacen.Id, fecha, texto)
         Console.WriteLine($"Apertura registrada (documento {r.DocumentoId}): " & r.Resumen)
+        Return 0
+    End Function
+
+    Private Function ExportarResultados(periodo As String, archivo As String) As Integer
+        Dim f As Date
+        If Not Date.TryParseExact(periodo & "-01", "yyyy-MM-dd", Globalization.CultureInfo.InvariantCulture, Globalization.DateTimeStyles.None, f) Then
+            Throw New ReglaNegocioException("DATO_INVALIDO", "Periodo invalido; use AAAA-MM.")
+        End If
+        Dim conexion As String = Nothing
+        Dim sesion = IniciarSesionSede(conexion)
+        File.WriteAllText(archivo, New ServicioResultados(conexion, sesion).ExportarCsv(f.Year, f.Month), New UTF8Encoding(True))
+        Console.WriteLine($"Resultado {periodo} de {sesion.Operacion.Codigo} exportado a {archivo}")
         Return 0
     End Function
 

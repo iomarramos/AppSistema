@@ -85,7 +85,7 @@ Public Module Ui
                 If e.ColumnIndex < 0 Then Return
                 Dim prop = g.Columns(e.ColumnIndex).DataPropertyName
                 If Not prop.EndsWith("U6", StringComparison.Ordinal) Then Return
-                Dim esMonto = {"Precio", "Costo", "Importe", "Total", "Valor"}.Any(Function(x) prop.StartsWith(x, StringComparison.Ordinal))
+                Dim esMonto = {"Precio", "Costo", "Importe", "Total", "Valor", "Ingreso", "Gastos", "Otros", "Presupuesto", "DiferenciaPresupuesto", "Margen"}.Any(Function(x) prop.StartsWith(x, StringComparison.Ordinal)) AndAlso Not prop.Contains("Porcentaje")
                 If e.Value Is Nothing OrElse TypeOf e.Value Is DBNull Then
                     If Not esMonto Then Return
                     e.Value = "pendiente"   ' costo sin precio de referencia: nunca se muestra como cero

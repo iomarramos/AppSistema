@@ -32,6 +32,22 @@ Public NotInheritable Class LineaReporteServicio
     Public Property Observacion As String
 End Class
 
+''' <summary>Envíos a la central de esta empresa (cola de la sede): lo guardado localmente aún no sincronizado.</summary>
+Public NotInheritable Class EstadoEnvioDto
+    Public Property Configurada As Boolean
+    Public Property Pendientes As Long
+    Public Property ConError As Long
+    Public Property EnConflicto As Long
+    Public Property UltimoEnvio As DateTimeOffset?
+
+    Public Overrides Function ToString() As String
+        If Not Configurada Then Return "Central: sede sin sincronizacion configurada"
+        Return $"Central: {Pendientes} por enviar" & If(ConError > 0, $" ({ConError} con error de envio)", "") &
+               If(EnConflicto > 0, $", {EnConflicto} en conflicto", "") &
+               $"; ultimo envio {If(UltimoEnvio.HasValue, UltimoEnvio.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm"), "nunca")}"
+    End Function
+End Class
+
 Public NotInheritable Class ReporteMensualDto
     Public Property Anio As Integer
     Public Property Mes As Integer
@@ -107,6 +123,17 @@ Public NotInheritable Class ServicioCierres
             Function(u) u.Escalar("SELECT 1 FROM cierre_diario WHERE operacion_id = @o AND fecha = @f AND estado = 'cerrado'", "o", o, "f", fecha.Date) IsNot Nothing)
     End Function
 
+    ''' <summary>Estado de la cola de envío a la central (distingue confirmado localmente de sincronizado).</summary>
+    Public Function EstadoEnvio() As EstadoEnvioDto
+        Return EnTransaccion(Permisos.ReportesVer,
+            Function(u) u.Consultar(
+                "SELECT count(*) > 0, count(*) FILTER (WHERE estado IN ('pendiente','error')), count(*) FILTER (WHERE estado = 'error'), " &
+                "count(*) FILTER (WHERE estado = 'conflicto'), max(enviado_en) FROM sincronizacion_evento",
+                Function(rd) New EstadoEnvioDto With {
+                    .Configurada = rd.GetBoolean(0), .Pendientes = rd.GetInt64(1), .ConError = rd.GetInt64(2), .EnConflicto = rd.GetInt64(3),
+                    .UltimoEnvio = If(rd.IsDBNull(4), CType(Nothing, DateTimeOffset?), New DateTimeOffset(rd.GetDateTime(4)))}).Single())
+    End Function
+
     ' ---------- Mes ----------
 
     ''' <summary>Ingreso neto mensual del servicio (D13). Solo en un mes abierto.</summary>
@@ -119,7 +146,7 @@ Public NotInheritable Class ServicioCierres
                 Dim periodoId = Periodo(u, o, anio, mes)
                 Return u.Ejecutar("INSERT INTO ingreso_servicio(empresa_id, operacion_servicio_id, periodo_id, importe_neto_u6, ajustes_u6, moneda, fuente) " &
                                   "VALUES (@e, @os, @p, @i, @a, 'PEN', @f) ON CONFLICT (empresa_id, operacion_servicio_id, periodo_id) " &
-                                  "DO UPDATE SET importe_neto_u6 = EXCLUDED.importe_neto_u6, ajustes_u6 = EXCLUDED.ajustes_u6, fuente = EXCLUDED.fuente",
+                                  "DO UPDATE SET importe_neto_u6 = EXCLUDED.importe_neto_u6, ajustes_u6 = EXCLUDED.ajustes_u6, fuente = EXCLUDED.fuente, origen = 'manual'",
                                   "e", Sesion.EmpresaId, "os", operacionServicioId, "p", periodoId, "i", importeNetoU6, "a", ajustesU6,
                                   "f", ServicioAdministracion.Requerido(fuente, "fuente del ingreso"))
             End Function)
@@ -216,7 +243,7 @@ Public NotInheritable Class ServicioCierres
         Return p
     End Function
 
-    Private Function LeerReporte(u As UnidadDeTrabajo, o As Long, anio As Integer, mes As Integer) As ReporteMensualDto
+    Friend Shared Function LeerReporte(u As UnidadDeTrabajo, o As Long, anio As Integer, mes As Integer) As ReporteMensualDto
         Dim desde As New Date(anio, mes, 1), hasta = New Date(anio, mes, 1).AddMonths(1).AddDays(-1)
         Dim r As New ReporteMensualDto With {.Anio = anio, .Mes = mes}
         r.Estado = CStr(If(u.Escalar("SELECT estado FROM periodo_mensual WHERE operacion_id = @o AND anio = @a AND mes = @m", "o", o, "a", anio, "m", mes), "abierto"))
@@ -255,16 +282,21 @@ Public NotInheritable Class ServicioCierres
     End Function
 
     Private Function Periodo(u As UnidadDeTrabajo, o As Long, anio As Integer, mes As Integer) As Long
+        Return PeriodoAbierto(u, Sesion.EmpresaId, o, anio, mes)
+    End Function
+
+    ''' <summary>Id del período (lo crea si no existe) bloqueado; PERIODO_CERRADO si ya se cerró.</summary>
+    Friend Shared Function PeriodoAbierto(u As UnidadDeTrabajo, empresaId As Long, o As Long, anio As Integer, mes As Integer) As Long
         If mes < 1 OrElse mes > 12 Then Throw New ReglaNegocioException("DATO_INVALIDO", "Mes invalido.")
         u.Ejecutar("INSERT INTO periodo_mensual(empresa_id, operacion_id, anio, mes) VALUES (@e, @o, @a, @m) ON CONFLICT (empresa_id, operacion_id, anio, mes) DO NOTHING",
-                   "e", Sesion.EmpresaId, "o", o, "a", anio, "m", mes)
+                   "e", empresaId, "o", o, "a", anio, "m", mes)
         Dim p = u.Consultar("SELECT id, estado FROM periodo_mensual WHERE operacion_id = @o AND anio = @a AND mes = @m FOR UPDATE",
                             Function(rd) (rd.GetInt64(0), rd.GetString(1)), "o", o, "a", anio, "m", mes).Single()
         If p.Item2 = "cerrado" Then Throw New ReglaNegocioException("PERIODO_CERRADO", $"El mes {mes:00}/{anio} ya esta cerrado.")
         Return p.Item1
     End Function
 
-    Private Shared Sub ExigirServicio(u As UnidadDeTrabajo, operacionServicioId As Long, o As Long)
+    Friend Shared Sub ExigirServicio(u As UnidadDeTrabajo, operacionServicioId As Long, o As Long)
         If u.Escalar("SELECT 1 FROM operacion_servicio WHERE id = @os AND operacion_id = @o", "os", operacionServicioId, "o", o) Is Nothing Then
             Throw New ReglaNegocioException("OPERACION_AJENA", "El servicio no pertenece a la operacion seleccionada.")
         End If

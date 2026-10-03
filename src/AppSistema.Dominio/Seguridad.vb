@@ -24,13 +24,18 @@ Namespace Seguridad
         Public Const InventarioAprobar As String = "INVENTARIO_APROBAR"
         Public Const ReportesVer As String = "REPORTES_VER"
         Public Const CierreEjecutar As String = "CIERRE_EJECUTAR"
+        Public Const ContratosVer As String = "CONTRATOS_VER"
+        Public Const ContratosEditar As String = "CONTRATOS_EDITAR"
+        Public Const GastosEditar As String = "GASTOS_EDITAR"
+        Public Const ResultadosVer As String = "RESULTADOS_VER"
 
         Public ReadOnly Property Todos As IReadOnlyList(Of String) = New String() {
             CatalogoVer, CatalogoEditar, CatalogoImportar, ProveedoresEditar, PreciosEditar,
             StockContabilizar, UsuariosAdministrar, AuditoriaVer,
             MenusVer, MenusConfigurar, RecetasEditar, RecetasAprobar, MinutasEditar, MinutasAprobar,
             ComprasVer, ComprasEditar, ComprasAprobar, ProduccionEditar,
-            InventarioContar, InventarioAprobar, ReportesVer, CierreEjecutar}
+            InventarioContar, InventarioAprobar, ReportesVer, CierreEjecutar,
+            ContratosVer, ContratosEditar, GastosEditar, ResultadosVer}
 
         Public Function Descripcion(codigo As String) As String
             Select Case codigo
@@ -56,6 +61,10 @@ Namespace Seguridad
                 Case InventarioAprobar : Return "Revisar inventarios y autorizar ajustes (independiente del conteo)"
                 Case ReportesVer : Return "Consultar pendientes, reportes diarios y mensuales y Food Cost"
                 Case CierreEjecutar : Return "Registrar ingresos y objetivos, cerrar dias y meses"
+                Case ContratosVer : Return "Consultar clientes y contratos"
+                Case ContratosEditar : Return "Registrar clientes, contratos, ajustes e ingresos desde contrato"
+                Case GastosEditar : Return "Registrar gastos de personal y operacion"
+                Case ResultadosVer : Return "Consultar el resultado mensual (ingresos, alimentos, gastos y margen)"
                 Case Else : Return codigo
             End Select
         End Function
@@ -73,7 +82,7 @@ Namespace Seguridad
         End Sub
     End Class
 
-    ''' <summary>Roles que se crean con cada empresa. Pueden ampliarse después (accesos avanzados: etapa 9).</summary>
+    ''' <summary>Roles que se crean con cada empresa. El administrador puede crear roles propios con los permisos que elija (etapa 9).</summary>
     Public Module RolesBase
         Public Const Administrador As String = "ADMIN"
 
@@ -81,7 +90,13 @@ Namespace Seguridad
             New RolBase(Administrador, "Administrador", Permisos.Todos),
             New RolBase("SUPERVISOR", "Supervisor", Permisos.Todos.Where(Function(p) p <> Permisos.UsuariosAdministrar)),
             New RolBase("ALMACEN", "Almacen", {Permisos.CatalogoVer, Permisos.StockContabilizar, Permisos.MenusVer, Permisos.ComprasVer, Permisos.ComprasEditar, Permisos.InventarioContar}),
-            New RolBase("COCINA", "Cocina", {Permisos.CatalogoVer, Permisos.MenusVer, Permisos.RecetasEditar, Permisos.MinutasEditar, Permisos.ProduccionEditar})}
+            New RolBase("COCINA", "Cocina", {Permisos.CatalogoVer, Permisos.MenusVer, Permisos.RecetasEditar, Permisos.MinutasEditar, Permisos.ProduccionEditar}),
+            New RolBase("FINANZAS", "Finanzas y contratos", {Permisos.ReportesVer, Permisos.ContratosVer, Permisos.ContratosEditar, Permisos.GastosEditar, Permisos.ResultadosVer})}
+
+        ''' <summary>True si el código es de un rol que crea el sistema (no se modifica desde la aplicación).</summary>
+        Public Function EsRolBase(codigo As String) As Boolean
+            Return Todos.Any(Function(r) String.Equals(r.Codigo, codigo, StringComparison.OrdinalIgnoreCase))
+        End Function
     End Module
 
     Public Module PoliticaClave

@@ -9,6 +9,19 @@ Public NotInheritable Class UsuarioResumen
     Public Property Roles As String
 End Class
 
+Public NotInheritable Class RolDto
+    Public Property Codigo As String
+    Public Property Nombre As String
+    Public Property Permisos As List(Of String)
+    ''' <summary>Rol creado por el sistema (no se edita desde la aplicación).</summary>
+    Public Property EsBase As Boolean
+    Public ReadOnly Property PermisosTexto As String
+        Get
+            Return String.Join(", ", Permisos)
+        End Get
+    End Property
+End Class
+
 Public NotInheritable Class AlmacenResumen
     Public Property Id As Long
     Public Property OperacionId As Long

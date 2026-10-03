@@ -23,7 +23,7 @@ echo "######## 3/5  Capa de datos VB.NET contra PostgreSQL"
 dotnet test tests/AppSistema.Datos.Tests --nologo -v q
 
 echo
-echo "######## 4/5  Instalador de consola (migrar dos veces + crear empresa + catalogo, recetas e inventario inicial dos veces + sincronizacion con la central + respaldo y restauracion)"
+echo "######## 4/5  Instalador de consola (migrar dos veces + crear empresa + catalogo, recetas e inventario inicial dos veces + sincronizacion con la central + respaldo, restauracion y actualizacion + exportacion de resultados)"
 DB=appsistema_instalador
 dropdb --if-exists "$DB" >/dev/null 2>&1 || true
 createdb "$DB"
@@ -70,6 +70,9 @@ test "$(psql -d "$DB" -tAc "SELECT sum(valor_u6) FROM saldo_stock")" = "$(psql -
 dotnet run --project src/AppSistema.Instalador -v q -- respaldar "$RESPALDO"
 APPSISTEMA_CONEXION_PROPIETARIO="Host=$APPSISTEMA_PG_HOST;Username=$APPSISTEMA_PG_USER;Database=$RESTAURADA$CLAVE" \
   dotnet run --project src/AppSistema.Instalador -v q -- restaurar "$RESPALDO"
+dotnet run --project src/AppSistema.Instalador -v q -- actualizar "$(dirname "$RESPALDO")/antes_de_actualizar.dump"
+printf 'DEMO\nadmin\nDemo-Clave-2026\n' | dotnet run --project src/AppSistema.Instalador -v q -- exportar-resultados 2026-10 "$(dirname "$RESPALDO")/resultado.csv" | tail -1
+head -1 "$(dirname "$RESPALDO")/resultado.csv" | grep -q '^.*version;empresa;operacion;periodo' && echo "  CSV de resultados con el encabezado del contrato v1"
 unset APPSISTEMA_CREDENCIAL_SEDE APPSISTEMA_CONEXION_CENTRAL
 rm -rf "$(dirname "$RESPALDO")"
 dropdb "$DB"; dropdb "$CENTRAL"; dropdb "$RESTAURADA"

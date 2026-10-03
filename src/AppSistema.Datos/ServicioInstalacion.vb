@@ -99,6 +99,16 @@ Public NotInheritable Class ServicioInstalacion
                            "SELECT r.empresa_id, r.id, p.id FROM rol r JOIN permiso p ON p.empresa_id = r.empresa_id " &
                            "WHERE r.codigo = @admin ON CONFLICT (empresa_id, rol_id, permiso_id) DO NOTHING",
                            "admin", RolesBase.Administrador)
+                ' Roles base nuevos (p. ej. FINANZAS) en empresas ya instaladas; los existentes no se tocan.
+                For Each rol In RolesBase.Todos
+                    Dim nuevos = u.Consultar("INSERT INTO rol(empresa_id, codigo, nombre) SELECT e.id, @c, @n FROM empresa e " &
+                                             "WHERE NOT EXISTS (SELECT 1 FROM rol r WHERE r.empresa_id = e.id AND r.codigo = @c) RETURNING empresa_id, id",
+                                             Function(rd) (rd.GetInt64(0), rd.GetInt64(1)), "c", rol.Codigo, "n", rol.Nombre)
+                    For Each n In nuevos
+                        u.Ejecutar("INSERT INTO rol_permiso(empresa_id, rol_id, permiso_id) SELECT @e, @r, p.id FROM permiso p WHERE p.empresa_id = @e AND p.codigo = ANY(@ps)",
+                                   "e", n.Item1, "r", n.Item2, "ps", rol.Permisos.ToArray())
+                    Next
+                Next
                 u.Confirmar()
                 Return creados
             End Using

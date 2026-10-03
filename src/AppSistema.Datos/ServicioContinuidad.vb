@@ -377,6 +377,27 @@ Public NotInheritable Class ServicioContinuidad
         End Using
     End Function
 
+    ''' <summary>Claves de negocio que una actualización (migración) no puede cambiar.</summary>
+    Private Shared ReadOnly ClavesNegocio As String() = {
+        "filas.documento_stock", "filas.documento_stock_detalle", "filas.movimiento_stock", "filas.saldo_stock", "filas.recepcion",
+        "filas.receta_version", "filas.minuta", "filas.inventario", "filas.cierre_diario", "filas.periodo_mensual", "filas.ingreso_servicio",
+        "filas.gasto", "filas.producto_base", "filas.variante_producto", "saldo.cantidad_u6", "saldo.valor_u6", "libro.cantidad_u6",
+        "libro.valor_u6", "libro.ultimo_id", "conciliacion.filas_sin_conciliar", "documentos.huella"}
+
+    ''' <summary>
+    ''' Actualización segura: respaldo consistente, migraciones pendientes y conciliación de las claves de negocio.
+    ''' Devuelve las diferencias (vacío = la historia y los saldos se conservaron). Si hay diferencias, restaurar el respaldo.
+    ''' </summary>
+    Public Function Actualizar(archivoRespaldo As String) As (Migraciones As List(Of MigracionAplicada), Diferencias As List(Of String))
+        Dim antes = Respaldar(archivoRespaldo)
+        Dim aplicadas = New Migrador(_cadenaPropietario).Migrar()
+        Dim despues = Instantanea()
+        Dim diferencias = ClavesNegocio.Where(Function(k) antes.ContainsKey(k) AndAlso (Not despues.ContainsKey(k) OrElse antes(k) <> despues(k))).
+                                        Select(Function(k) $"{k}: antes {antes(k)}, despues {If(despues.ContainsKey(k), despues(k), "(no existe)")}").ToList()
+        If antes("conciliacion.filas_sin_conciliar") <> "0" Then diferencias.Add("conciliacion.filas_sin_conciliar: ya habia diferencias antes de actualizar")
+        Return (aplicadas, diferencias)
+    End Function
+
     ''' <summary>
     ''' Restaura un respaldo en una base VACÍA y la concilia con el archivo .conciliacion. Devuelve las diferencias (vacío = conciliada).
     ''' </summary>

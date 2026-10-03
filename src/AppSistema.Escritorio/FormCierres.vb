@@ -16,6 +16,7 @@ Public Class FormCierres
     Private ReadOnly _servicios As DataGridView = Ui.NuevaGrilla()
     Private ReadOnly _estadoDia As New Label With {.Dock = DockStyle.Bottom, .Height = 28, .Padding = New Padding(6)}
     Private ReadOnly _totales As New Label With {.Dock = DockStyle.Bottom, .Height = 28, .Padding = New Padding(6)}
+    Private ReadOnly _envio As New Label With {.Dock = DockStyle.Bottom, .Height = 28, .Padding = New Padding(6)}
 
     Public Sub New(cadena As String, sesion As SesionUsuario)
         _servicio = New ServicioCierres(cadena, sesion)
@@ -33,6 +34,7 @@ Public Class FormCierres
         Dim division As New SplitContainer With {.Dock = DockStyle.Fill, .Orientation = Orientation.Horizontal, .SplitterDistance = 220}
         division.Panel1.Controls.Add(_pendientes)
         division.Panel1.Controls.Add(_estadoDia)
+        division.Panel1.Controls.Add(_envio)
         division.Panel1.Controls.Add(barraDia)
         division.Panel2.Controls.Add(_servicios)
         division.Panel2.Controls.Add(_totales)
@@ -67,6 +69,7 @@ Public Class FormCierres
                     .Tipo = If(p.Bloqueante, "Bloquea", "Advertencia"), p.Codigo, p.Detalle}).ToList()
                 Ui.Mostrar(_pendientes, pendientes, "Tipo|Tipo", "Codigo|Codigo", "Detalle|Detalle")
                 Dim cerrado = _servicio.DiaCerrado(_fecha.Value.Date)
+                _envio.Text = _servicio.EstadoEnvio().ToString()
                 _estadoDia.Text = If(cerrado, "Dia CERRADO.", If(pendientes.Any(Function(p) p.Tipo = "Bloquea"),
                     "Dia abierto: resuelva los pendientes que bloquean antes de cerrar.", "Dia abierto: listo para cerrar."))
             End Sub)
