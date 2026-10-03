@@ -8,8 +8,7 @@ Imports AppSistema.Dominio.Seguridad
 ''' Inventario físico: corte (general o rotativo), hoja de conteo por envases y parciales (ciega opcional),
 ''' importación del conteo, reconteo, diferencias, revisión y ajuste autorizado por alguien que no contó.
 ''' </summary>
-Public Class FormInventarios
-    Inherits Form
+Partial Public Class FormInventarios
 
     Private ReadOnly _servicio As ServicioInventarios
     Private ReadOnly _catalogo As ServicioCatalogo
@@ -20,7 +19,13 @@ Public Class FormInventarios
     Private ReadOnly _hoja As DataGridView = Ui.NuevaGrilla()
     Private ReadOnly _resumen As New Label With {.Dock = DockStyle.Bottom, .Height = 28, .Padding = New Padding(6)}
 
+    Public Sub New()
+        InitializeComponent()
+    End Sub
+
     Public Sub New(cadena As String, sesion As SesionUsuario)
+        InitializeComponent()
+        Controls.Clear()
         _servicio = New ServicioInventarios(cadena, sesion)
         _catalogo = New ServicioCatalogo(cadena, sesion)
         _reportes = New ServicioReportes(cadena, sesion)
