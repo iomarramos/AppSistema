@@ -1,6 +1,6 @@
 # Checklist de avance
 
-Actualizado: 2026-10-03. Se actualiza en cada entrega.
+Actualizado: 2026-10-03, 08:01 hora de Lima. Se actualiza en cada entrega.
 
 **Leyenda**
 

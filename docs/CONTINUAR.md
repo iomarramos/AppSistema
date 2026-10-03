@@ -1,12 +1,13 @@
 # Cómo continuar (traspaso a una nueva conversación)
 
-Actualizado: 2026-10-03.
+Actualizado: 2026-10-03, 08:01 hora de Lima (13:01 UTC).
 
 | | |
 |---|---|
 | Rama | `claude/busy-mayer-9fxop6` |
 | PR | #1 (borrador, CI verde, sin conflictos) |
 | `develop` | en el mismo commit probado |
+| Último corte | 2026-10-03, 08:01 (Lima). Último commit de código: `e36829d` (07:40, Lima), con el dueño del sistema, Planificación y Abastecimiento, y el consolidado de compras. CI en verde; `develop` igual a la rama; el PR no tiene comentarios ni revisiones pendientes |
 
 El detalle de cada etapa está en `docs/SEGUIMIENTO.md`; el checklist de avance (pantallas, accesos por rol y pendientes) en `docs/CHECKLIST.md`.
 
