@@ -1,6 +1,6 @@
 # Cómo continuar (traspaso a una nueva conversación)
 
-Actualizado: 2026-10-03, 08:40 hora de Lima (13:40 UTC).
+Actualizado: 2026-10-03, 09:55 hora de Lima (14:55 UTC).
 
 | | |
 |---|---|
@@ -38,11 +38,12 @@ Plataforma: VB.NET + WinForms en Windows 10+ y PostgreSQL. Unas 20 PC; falta con
 | Venta por estructura (D13) y teórico vs real | Hecho |
 | Datos reales del SGP ordenados y cargables (`datos/real/`) | Hecho: 4 158 productos (`PRD`), 3 203 ingredientes (`ING`), 1 497 precios sin IGV, 975 productos activos, familias del SGP y 84 minutas de un ciclo propuesto con costo y venta. Conteo por tabla en `docs/ESTADO_BASE_DATOS.md` |
 | Planificación y Abastecimiento Central | **Fase 1 hecha** (seguridad: superusuario, módulo → pantalla → acción → alcance, matriz de acceso, roles centrales, stock y factores validados en la base). Fases 2–10 según `docs/ARQUITECTURA_PLANIFICACION_CENTRAL.md` |
+| Modelo objetivo del SGP (`datos/plan_real/`) | Recibido y leído: menú teórico y plan real de ago–oct 2026, comparativo de tres niveles, requisición del 1 al 7/10 y 6 capturas de ventanas. Todas sus fórmulas verificadas; comparativo de tres niveles en el dominio (`Calculos.PlanVsReal`). Ventanas que faltan y preguntas en su `LEEME.md` |
 | Falta del usuario | Menú del mes real y estructuras de loncheras, refrigerios y coffee break; hora de corte por defecto y días de llegada por zona |
 | Reportes imprimibles y exportables (minuta del día, requerimiento, kárdex, inventario, stock valorizado) | Hecho: se imprimen desde el navegador o se exportan a CSV para Excel |
 | Interfaz WinForms | **Compila, pero nunca se ejecutó en Windows.** Réplica visual de las pantallas: https://claude.ai/artifact/LqViLBPDyFwUqMktDxNqaz |
 
-Última batería de pruebas: 69 aserciones SQL, 91 de dominio, 97 de integración e instalador de punta a punta, todo verde. Migraciones V001–V021.
+Última batería de pruebas: 69 aserciones SQL, 96 de dominio, 97 de integración e instalador de punta a punta, todo verde. Migraciones V001–V021.
 
 ## Decisiones del usuario (no reabrir)
 
@@ -91,6 +92,7 @@ Plataforma: VB.NET + WinForms en Windows 10+ y PostgreSQL. Unas 20 PC; falta con
 
 ## Preguntas abiertas al usuario
 
+0. **Modelo del SGP (`datos/plan_real/LEEME.md`):** el plan real de la cena de octubre (la `Hoja7` repite agosto); tabla de nutrientes y % de aprovechamiento y cocción; costo piso y techo por servicio; requisición con bulto fraccionado o presentación completa (D12).
 0. **Hora de corte por defecto del requerimiento interno** (se permiten retrasos: lo tardío se acepta marcado) y **días de llegada desde el almacén central a Costa, Sierra y Selva**.
 
 1. Revisar `datos/real/ingredientes_por_revisar.csv`: 85 ingredientes de receta sin producto seguro. Los principales:
