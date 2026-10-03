@@ -126,25 +126,32 @@ Public NotInheritable Class AplicacionE2E
 
     ''' <summary>Cuadro de mensaje (MessageBox) abierto por la aplicación, o Nothing. Devuelve su texto.</summary>
     Public Function Mensaje() As String
+        Dim caja = CajaDeMensaje()
+        If caja Is Nothing Then Return Nothing
+        Dim textos = caja.FindAllDescendants(Function(cf) cf.ByControlType(ControlType.Text)).Select(Function(t) t.Name).Where(Function(t) Not String.IsNullOrWhiteSpace(t))
+        Return String.Join(" ", textos)
+    End Function
+
+    ''' <summary>
+    ''' Ventana del MessageBox (clase #32770). En UIA una ventana con dueño aparece como hija de su dueño (el aviso de
+    ''' clave incorrecta cuelga de FormAcceso, que cuelga de FormPrincipal): se busca también entre los descendientes.
+    ''' </summary>
+    Private Function CajaDeMensaje() As AutomationElement
         For Each v In Ventanas()
-            If v.ClassName = "#32770" Then
-                Dim textos = v.FindAllDescendants(Function(cf) cf.ByControlType(ControlType.Text)).Select(Function(t) t.Name).Where(Function(t) Not String.IsNullOrWhiteSpace(t))
-                Return String.Join(" ", textos)
-            End If
+            If v.ClassName = "#32770" Then Return v
+            Dim d = v.FindFirstDescendant(Function(cf) cf.ByClassName("#32770"))
+            If d IsNot Nothing Then Return d
         Next
         Return Nothing
     End Function
 
     ''' <summary>Cierra el cuadro de mensaje abierto (Enter = botón por defecto).</summary>
     Public Sub CerrarMensaje()
-        For Each v In Ventanas()
-            If v.ClassName = "#32770" Then
-                v.Focus()
-                Keyboard.Press(VirtualKeyShort.ENTER)
-                Retry.WhileTrue(Function() Mensaje() IsNot Nothing, TimeSpan.FromSeconds(5))
-                Return
-            End If
-        Next
+        Dim caja = CajaDeMensaje()
+        If caja Is Nothing Then Return
+        caja.Focus()
+        Keyboard.Press(VirtualKeyShort.ENTER)
+        Retry.WhileTrue(Function() CajaDeMensaje() IsNot Nothing, TimeSpan.FromSeconds(5))
     End Sub
 
     ''' <summary>Captura PNG de todas las ventanas visibles de la aplicación en artifacts/screenshots.</summary>
