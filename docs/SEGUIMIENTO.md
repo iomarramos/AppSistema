@@ -48,7 +48,7 @@ Plan: `docs/guia_construccion/04_PLAN_POR_ETAPAS.md`. Decisiones de negocio: `do
 | Aceptación etapa 2: 10 raciones/1 L → 150 = 15 L, rendimiento cero, consolidado sin duplicar | `MenusTests` | Pasa |
 | T47 importación repetida y filas inválidas | `ImportacionTests`, `ImportacionSgpTests` (listado real del SGP) | Pasa |
 
-**No ejecutados:**, T22, T27–T32, T35–T38, T40–T46, T48.
+**No ejecutados:** T22, T27–T32, T35–T38, T40–T46, T48.
 
 ## Evidencia
 
