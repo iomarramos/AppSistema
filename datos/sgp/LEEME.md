@@ -4,6 +4,8 @@
 |---|---|
 | `productos_sgp_original.tsv` | Listado tal como vino del SGP: `pro_nombre`, `pro_coduni` (presentación), `pro_facing` (factor de conversión). 4 174 líneas. |
 | `catalogo_sgp.csv` | El mismo listado en el formato del importador de catálogo (generado; no editar a mano). |
+| `origen/` | Archivos tal como se recibieron del SGP (Latin-1, separador `;`). No se modifican. |
+| `productos_precios.csv` | Último precio de compra por producto (1 520), en UTF-8 y listo para usar: familia/subfamilia/grupo, unidad de envase, último precio y fecha (ISO). Miles sin separador, decimal con punto. **Aún no se carga**: se usará con proveedores y precios. |
 | `observaciones_sgp.csv` | Productos cuyo nombre no confirma el factor, o que tienen el mismo nombre que otro producto. **Para revisión.** |
 
 Regenerar los dos últimos: `dotnet run --project src/AppSistema.Instalador -- convertir-sgp datos/sgp/productos_sgp_original.tsv datos/sgp`
@@ -88,3 +90,31 @@ Requisitos y garantías:
 * Crea las unidades KG, L y UND si faltan.
 * Es todo o nada.
 * Repetirlo no duplica nada.
+
+## Archivos recibidos el 03/10/2026
+
+* `origen/PRODUCTOS_PRESENTACION_DE_COMPRA.csv` es **el mismo listado** que `productos_sgp_original.tsv`:
+  * las 4 174 líneas coinciden;
+  * solo cambian espacios duros y comillas en 24 nombres, que el conversor ya normaliza.
+* `origen/PRODUCTOS_PRECIOS.csv`:
+  * todos sus nombres existen en el listado de presentaciones;
+  * 3 nombres aparecen dos veces, por ejemplo `CAJA CHICA - CULANTRO`;
+  * el SGP no indica proveedor ni moneda; se asumen soles, pendiente de confirmar.
+
+### Evidencia para los `pro_coduni` sin nombre
+
+Se cruzó `Uni.Env` de precios con `pro_coduni`. Cada código tiene una sola abreviatura.
+
+| Código | Uni.Env | Probable |
+|---|---|---|
+| 3 | BAR | BARRA |
+| 6 | BLI | BLISTER |
+| 20 | GR | GRAMO |
+| 28 | MIL | MILLAR |
+| 33 | PCH | ¿? |
+| 37 | RSM | RESMA |
+| 1 | (sin precios) | ¿? |
+
+El cruce también confirma los nombres ya usados: 8 BOL, 10 CAJ, 23 KG, 31 PQT, 45 UND, etc.
+
+Antes de la primera carga real conviene fijar estos nombres en `ConversorSgp.Presentaciones`.
