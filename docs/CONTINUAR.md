@@ -35,7 +35,8 @@ Plataforma: VB.NET + WinForms en Windows 10+ y PostgreSQL. Unas 20 PC; falta con
 | Etapa 8 (continuidad) | Parcial: falta el piloto real en una sede (`docs/PILOTO_ETAPA_8.md`) |
 | Etapa 9 (contratos, gastos, resultado, roles propios) | Hecha |
 | Venta por estructura (D13) y teórico vs real | Hecho |
-| Datos reales del SGP ordenados y cargables (`datos/real/`) | Hecho: 84 minutas de un ciclo de 28 días con costo y venta |
+| Datos reales del SGP ordenados y cargables (`datos/real/`) | Hecho: 4 158 productos (`PRD`), 3 203 ingredientes (`ING`), 1 497 precios sin IGV, 975 productos activos, familias del SGP y 84 minutas de un ciclo propuesto con costo y venta. Conteo por tabla en `docs/ESTADO_BASE_DATOS.md` |
+| Falta del usuario | Menú del mes real y estructuras de loncheras, refrigerios y coffee break |
 | Reportes imprimibles y exportables (minuta del día, requerimiento, kárdex, inventario, stock valorizado) | Hecho: se imprimen desde el navegador o se exportan a CSV para Excel |
 | Interfaz WinForms | **Compila, pero nunca se ejecutó en Windows.** Réplica visual de las pantallas: https://claude.ai/artifact/LqViLBPDyFwUqMktDxNqaz |
 
