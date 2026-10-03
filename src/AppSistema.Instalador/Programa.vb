@@ -28,6 +28,11 @@ Imports AppSistema.Dominio.Numerico
 '''   restaurar ARCHIVO                   restaura en una base vacía y concilia con ARCHIVO.conciliacion
 '''   conciliar                           muestra la fotografía de conciliación de la base
 '''   actualizar ARCHIVO                  respalda, aplica las migraciones pendientes y concilia saldos e historia
+''' Datos reales (datos/real/, generados por herramientas/ordenar_datos_reales.py):
+'''   importar-precios ARCHIVO            precios por presentación (proveedor SGP); conexión de sede + usuario
+'''   marcar-sin-costo ARCHIVO            insumos que no se compran (agua para receta): se costean en S/ 0
+'''   cargar-estructuras ARCHIVO          servicios Desayuno/Almuerzo/Cena con componentes y factores, asignados a la operación
+'''   cargar-ciclo ARCHIVO AAAA-MM-DD DES ALM CEN [--aprobar] [--dias N]  minutas del ciclo con esos comensales por servicio
 ''' Extensiones (etapa 9):
 '''   exportar-resultados AAAA-MM ARCHIVO resultado mensual en CSV (contrato en docs/INTEGRACION_RESULTADOS.md); conexión de sede + usuario
 ''' </summary>
@@ -56,6 +61,23 @@ Public Module Programa
                 Case "importar-recetas"
                     If args.Length < 2 Then Throw New ReglaNegocioException("DATO_OBLIGATORIO", "Indique el archivo de recetas normalizadas.")
                     Return ImportarRecetas(args(1), args.Contains("--aprobar"))
+                Case "importar-precios"
+                    Requiere(args, 2, "Indique el archivo de precios (datos/real/precios_sgp.csv).")
+                    Return CargaReal(Function(c, s) New ServicioCargaReal(c, s).ImportarPrecios(File.ReadAllText(args(1))), "Precios")
+                Case "marcar-sin-costo"
+                    Requiere(args, 2, "Indique el archivo de insumos sin costo (datos/real/insumos_sin_costo.csv).")
+                    Return CargaReal(Function(c, s) New ServicioCargaReal(c, s).MarcarInsumosSinCosto(File.ReadAllText(args(1))), "Insumos sin costo")
+                Case "cargar-estructuras"
+                    Requiere(args, 2, "Indique el archivo de estructuras (datos/real/estructuras_menu.csv).")
+                    Return CargaReal(Function(c, s) New ServicioCargaReal(c, s).CargarEstructuras(File.ReadAllText(args(1))), "Estructuras")
+                Case "cargar-ciclo"
+                    Requiere(args, 6, "Indique ARCHIVO, fecha de inicio (AAAA-MM-DD) y comensales de desayuno, almuerzo y cena.")
+                    Dim desde = Date.ParseExact(args(2), "yyyy-MM-dd", Globalization.CultureInfo.InvariantCulture)
+                    Dim comensales As New Dictionary(Of String, Long) From {
+                        {"DESAYUNO", Long.Parse(args(3))}, {"ALMUERZO", Long.Parse(args(4))}, {"CENA", Long.Parse(args(5))}}
+                    Dim i = Array.IndexOf(args, "--dias")
+                    Dim dias = If(i > 0 AndAlso i + 1 < args.Length, Integer.Parse(args(i + 1)), Integer.MaxValue)
+                    Return CargaReal(Function(c, s) New ServicioCargaReal(c, s).CargarCiclo(File.ReadAllText(args(1)), desde, comensales, args.Contains("--aprobar"), dias), "Minutas")
                 Case "exportar-resultados"
                     Requiere(args, 3, "Indique el periodo (AAAA-MM) y el archivo.")
                     Return ExportarResultados(args(1), args(2))
@@ -194,6 +216,7 @@ Public Module Programa
     Private Sub Ayuda()
         Console.WriteLine("Uso: AppSistema.Instalador <migrar | crear-empresa | crear-usuario-sede NOMBRE | convertir-sgp ARCHIVO [DIR] | importar-sgp ARCHIVO | importar-catalogo ARCHIVO | importar-recetas ARCHIVO [--aprobar] | importar-inventario ARCHIVO>")
         Console.WriteLine("Continuidad: <configurar-sede EMPRESA SEDE | sincronizar EMPRESA [--ahora] | estado-sincronizacion EMPRESA | registrar-sede EMPRESA SEDE NOMBRE | desactivar-sede EMPRESA SEDE | crear-usuario-sincronizacion NOMBRE | reporte-central EMPRESA | respaldar ARCHIVO | restaurar ARCHIVO | conciliar | actualizar ARCHIVO>")
+        Console.WriteLine("Datos reales: <importar-precios ARCHIVO | marcar-sin-costo ARCHIVO | cargar-estructuras ARCHIVO | cargar-ciclo ARCHIVO AAAA-MM-DD DES ALM CEN [--aprobar] [--dias N]>")
         Console.WriteLine("Extensiones: <exportar-resultados AAAA-MM ARCHIVO>")
         Console.WriteLine("La conexion del propietario se toma de APPSISTEMA_CONEXION_PROPIETARIO o se solicita.")
         Console.WriteLine("importar-sgp, importar-catalogo e importar-recetas usan la conexion de sede (APPSISTEMA_CONEXION o se solicita) y un usuario con permiso CATALOGO_IMPORTAR.")
@@ -270,6 +293,18 @@ Public Module Programa
         End If
         Dim r = servicio.Aplicar(almacen.Id, fecha, texto)
         Console.WriteLine($"Apertura registrada (documento {r.DocumentoId}): " & r.Resumen)
+        Return 0
+    End Function
+
+    Private Function CargaReal(accion As Func(Of String, SesionUsuario, ResultadoCargaReal), que As String) As Integer
+        Dim conexion As String = Nothing
+        Dim sesion = IniciarSesionSede(conexion)
+        Dim r = accion(conexion, sesion)
+        For Each p In r.Problemas.Take(30)
+            Console.Error.WriteLine("  " & p)
+        Next
+        If r.Problemas.Count > 30 Then Console.Error.WriteLine($"  ... y {r.Problemas.Count - 30} mas")
+        Console.WriteLine($"{que}: {r}")
         Return 0
     End Function
 

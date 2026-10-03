@@ -213,4 +213,15 @@ Public NotInheritable Class ServicioCatalogo
             Function(u) u.Consultar(SelectEmpaque & "WHERE e.activo = 1 AND v.activo = 1 ORDER BY v.codigo, e.codigo", AddressOf LeerEmpaque))
     End Function
 
+    ''' <summary>
+    ''' Marca (o desmarca) productos sin costo de compra, como el agua de red de las recetas: se costean en S/ 0 en vez de quedar
+    ''' "pendientes". Devuelve cuántos productos cambió.
+    ''' </summary>
+    Public Function MarcarSinCosto(descripciones As IEnumerable(Of String), sinCosto As Boolean) As Integer
+        Dim lista = descripciones.Select(Function(d) d.Trim().ToUpperInvariant()).Where(Function(d) d <> "").Distinct().ToArray()
+        Return EnTransaccion(Permisos.CatalogoEditar,
+            Function(u) u.Ejecutar("UPDATE producto_base SET sin_costo_compra = @s WHERE upper(descripcion) = ANY(@d) AND sin_costo_compra <> @s",
+                                   "s", sinCosto, "d", lista))
+    End Function
+
 End Class

@@ -23,7 +23,7 @@ echo "######## 3/5  Capa de datos VB.NET contra PostgreSQL"
 dotnet test tests/AppSistema.Datos.Tests --nologo -v q
 
 echo
-echo "######## 4/5  Instalador de consola (migrar dos veces + crear empresa + catalogo, recetas e inventario inicial dos veces + sincronizacion con la central + respaldo, restauracion y actualizacion + exportacion de resultados)"
+echo "######## 4/5  Instalador de consola (migrar dos veces + crear empresa + catalogo, precios, recetas e inventario inicial dos veces + estructuras y ciclo de menu + sincronizacion con la central + respaldo, restauracion y actualizacion + exportacion de resultados)"
 DB=appsistema_instalador
 dropdb --if-exists "$DB" >/dev/null 2>&1 || true
 createdb "$DB"
@@ -39,10 +39,14 @@ for archivo in datos/enlace/catalogo_por_ingrediente.csv; do
   printf 'DEMO\nadmin\nDemo-Clave-2026\nSI\n' | dotnet run --project src/AppSistema.Instalador -v q -- importar-catalogo "$archivo" | tail -1
   printf 'DEMO\nadmin\nDemo-Clave-2026\n' | dotnet run --project src/AppSistema.Instalador -v q -- importar-catalogo "$archivo" | tail -1
 done
+# Datos reales ordenados (datos/real/): precios por presentacion, recetas con el ingrediente del catalogo, agua sin costo.
+printf 'DEMO\nadmin\nDemo-Clave-2026\n' | dotnet run --project src/AppSistema.Instalador -v q -- importar-precios datos/real/precios_sgp.csv | tail -1
+printf 'DEMO\nadmin\nDemo-Clave-2026\n' | dotnet run --project src/AppSistema.Instalador -v q -- importar-precios datos/real/precios_sgp.csv | tail -1
 printf 'DEMO\nadmin\nDemo-Clave-2026\nSI\n' \
-  | dotnet run --project src/AppSistema.Instalador -v q -- importar-recetas datos/enlace/recetas_enlazadas.csv --aprobar | tail -1
+  | dotnet run --project src/AppSistema.Instalador -v q -- importar-recetas datos/real/recetas_reales.csv --aprobar | tail -1
 printf 'DEMO\nadmin\nDemo-Clave-2026\n' \
-  | dotnet run --project src/AppSistema.Instalador -v q -- importar-recetas datos/enlace/recetas_enlazadas.csv --aprobar | tail -1
+  | dotnet run --project src/AppSistema.Instalador -v q -- importar-recetas datos/real/recetas_reales.csv --aprobar | tail -1
+printf 'DEMO\nadmin\nDemo-Clave-2026\n' | dotnet run --project src/AppSistema.Instalador -v q -- marcar-sin-costo datos/real/insumos_sin_costo.csv | tail -1
 psql -d "$DB" -tAc "SELECT 'ingredientes: ' || count(DISTINCT p.id) || ', productos SGP como variantes: ' || count(v.id) FROM producto_base p LEFT JOIN variante_producto v ON v.producto_base_id = p.id AND v.codigo LIKE 'SGP%'"
 psql -d "$DB" -tAc "SELECT 'recetas aprobadas: ' || count(*) FROM receta_version WHERE estado = 'aprobada'"
 printf 'DEMO\nadmin\nDemo-Clave-2026\n2026-10-01\nSI\n' \
@@ -50,6 +54,14 @@ printf 'DEMO\nadmin\nDemo-Clave-2026\n2026-10-01\nSI\n' \
 printf 'DEMO\nadmin\nDemo-Clave-2026\n2026-10-01\n' \
   | dotnet run --project src/AppSistema.Instalador -v q -- importar-inventario datos/inventario/inventario_inicial.csv 2>&1 | tail -1 || true
 psql -d "$DB" -tAc "SELECT 'stock inicial: ' || count(*) || ' variantes, valor ' || round(sum(valor_u6) / 1000000.0, 2) FROM saldo_stock"
+# Estructuras de menu y una semana del ciclo (aprobada: costo y venta previstos); la segunda corrida no duplica.
+printf 'DEMO\nadmin\nDemo-Clave-2026\n' | dotnet run --project src/AppSistema.Instalador -v q -- cargar-estructuras datos/real/estructuras_menu.csv | tail -1
+for vez in 1 2; do
+  printf 'DEMO\nadmin\nDemo-Clave-2026\n' \
+    | dotnet run --project src/AppSistema.Instalador -v q -- cargar-ciclo datos/real/ciclo_menu.csv 2026-10-05 500 500 300 --aprobar --dias 7 2>&1 | tail -1
+done
+psql -d "$DB" -tAc "SELECT 'minutas: ' || count(*) || ', con venta calculada: ' || count(venta_prevista_u6) || ', costo medio por comensal ' || round(avg(costo_previsto_u6 / 1e6 / comensales), 2) FROM minuta"
+test "$(psql -d "$DB" -tAc "SELECT count(*) FROM minuta WHERE venta_prevista_u6 IS NULL")" = "0" && echo "  todas las minutas del ciclo tienen costo y venta"
 
 echo "  -- continuidad: central, sede, sincronizacion repetida, respaldo y restauracion conciliada"
 CENTRAL=appsistema_central; RESTAURADA=appsistema_restaurada; RESPALDO="$(mktemp -d)/sede.dump"

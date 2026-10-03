@@ -176,11 +176,11 @@ Friend Module CosteoBD
         r.RendimientoRacionesU6 = u.EscalarLong("SELECT rendimiento_raciones_u6 FROM receta_version WHERE id = @v", "v", versionId)
 
         Dim ingredientes = u.Consultar(
-            "SELECT i.id, p.descripcion, um.codigo, i.cantidad_base_bruta_u6 FROM receta_ingrediente i " &
+            "SELECT i.id, p.descripcion, um.codigo, i.cantidad_base_bruta_u6, p.sin_costo_compra FROM receta_ingrediente i " &
             "JOIN producto_base p ON p.id = i.producto_base_id JOIN unidad_medida um ON um.id = p.unidad_base_id " &
             "WHERE i.receta_version_id = @v ORDER BY i.orden, i.id",
-            Function(rd) New CostoIngredienteDto With {.IngredienteId = rd.GetInt64(0), .ProductoDescripcion = rd.GetString(1),
-                                                       .Unidad = rd.GetString(2), .CantidadBrutaU6 = rd.GetInt64(3)}, "v", versionId)
+            Function(rd) (Dto:=New CostoIngredienteDto With {.IngredienteId = rd.GetInt64(0), .ProductoDescripcion = rd.GetString(1),
+                                                             .Unidad = rd.GetString(2), .CantidadBrutaU6 = rd.GetInt64(3)}, SinCosto:=rd.GetBoolean(4)), "v", versionId)
 
         Dim precios = u.Consultar(
             "SELECT i.id AS ingrediente, pc.id AS precio, pc.precio_empaque_u6, e.envases_por_empaque, v.contenido_base_por_envase_u6, " &
@@ -201,10 +201,17 @@ Friend Module CosteoBD
                           Fecha:=rd.GetDateTime(8)),
             "v", versionId, "m", m, "f", fecha.Date)
 
-        For Each ing In ingredientes
+        For Each fila In ingredientes
+            Dim ing = fila.Dto
             Dim mejor = precios.Where(Function(p) p.Ingrediente = ing.IngredienteId) _
                                .OrderBy(Function(p) p.CostoU6).ThenBy(Function(p) p.Precio).ToList()
-            If mejor.Count = 0 Then
+            If fila.SinCosto Then
+                ' Insumo sin costo de compra (agua de red): S/ 0 explícito, no "pendiente".
+                ing.CostoUnitarioBaseU6 = 0
+                ing.CostoLineaU6 = 0
+                ing.FechaPrecio = fecha.Date
+                ing.Fuente = "insumo sin costo de compra"
+            ElseIf mejor.Count = 0 Then
                 ing.Fuente = $"sin precio vigente en {m} al {fecha:dd/MM/yyyy}"
             Else
                 ing.CostoUnitarioBaseU6 = mejor(0).CostoU6
@@ -220,6 +227,7 @@ Friend Module CosteoBD
 
     ''' <summary>Menor costo por unidad base vigente de cualquier variante del producto; Nothing si no hay precio.</summary>
     Public Function CostoProducto(u As UnidadDeTrabajo, productoBaseId As Long, fecha As Date, moneda As String) As Object
+        If CBool(u.Escalar("SELECT sin_costo_compra FROM producto_base WHERE id = @p", "p", productoBaseId)) Then Return 0L
         Dim costos = u.Consultar(
             "SELECT pc.precio_empaque_u6, e.envases_por_empaque, v.contenido_base_por_envase_u6 FROM variante_producto v " &
             "JOIN empaque_compra e ON e.variante_id = v.id AND e.activo = 1 " &
