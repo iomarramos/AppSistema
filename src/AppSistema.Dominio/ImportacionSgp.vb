@@ -54,11 +54,11 @@ Namespace Importacion
         Public Const UnidadLitro As String = "L"
         Public Const UnidadConteo As String = "UND"
 
-        ''' <summary>Significado de pro_coduni deducido del listado. Los no listados quedan como "PRES-SGP-n" hasta confirmarlos.</summary>
+        ''' <summary>Significado de pro_coduni. 3, 6, 33 y 37 confirmados por el usuario (03/10/2026). Los no listados quedan como "PRES-SGP-n".</summary>
         Public ReadOnly Property Presentaciones As IReadOnlyDictionary(Of Integer, String) = New Dictionary(Of Integer, String) From {
-            {4, "BIDON"}, {5, "BALDE"}, {8, "BOLSA"}, {9, "BOTELLA"}, {10, "CAJA"}, {14, "CAJETILLA"}, {18, "FRASCO"},
-            {19, "GALON"}, {22, "KIT"}, {23, "KILOGRAMO"}, {24, "LATA"}, {26, "LITRO"}, {31, "PAQUETE"}, {32, "PAR"},
-            {34, "POTE"}, {36, "ROLLO"}, {38, "SACHET"}, {39, "SACO"}, {41, "SIXPACK"}, {42, "SOBRE"}, {44, "TUBO"},
+            {3, "GRANO"}, {4, "BIDON"}, {5, "BALDE"}, {6, "GRAMO"}, {8, "BOLSA"}, {9, "BOTELLA"}, {10, "CAJA"}, {14, "CAJETILLA"}, {18, "FRASCO"},
+            {19, "GALON"}, {20, "GRAMO"}, {22, "KIT"}, {23, "KILOGRAMO"}, {24, "LATA"}, {26, "LITRO"}, {28, "MILLAR"}, {31, "PAQUETE"}, {32, "PAR"}, {33, "PAQUETE"},
+            {34, "POTE"}, {36, "ROLLO"}, {37, "PAQUETE"}, {38, "SACHET"}, {39, "SACO"}, {41, "SIXPACK"}, {42, "SOBRE"}, {44, "TUBO"},
             {45, "UNIDAD"}, {46, "VASO"}}
 
         Public Function NombrePresentacion(codUni As Integer) As String

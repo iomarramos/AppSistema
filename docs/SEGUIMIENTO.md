@@ -48,7 +48,7 @@ Plan: `docs/guia_construccion/04_PLAN_POR_ETAPAS.md`. Decisiones de negocio: `do
 ```bash
 ./ejecutar_pruebas.sh
 ```
-Última corrida: 67 aserciones SQL + concurrencia (T24 y carrera de 10 sesiones), 54 pruebas de dominio, 36 de integración, instalador de punta a punta (migrar dos veces + crear empresa + cargar el listado SGP dos veces) y compilación WinForms sin advertencias. Entorno: Ubuntu 24.04, PostgreSQL 16.14, SDK .NET 8.0.425 oficial de Microsoft. El mismo script corre en GitHub Actions.
+Última corrida: 67 aserciones SQL + concurrencia (T24 y carrera de 10 sesiones), 61 pruebas de dominio, 36 de integración, instalador de punta a punta (migrar dos veces + crear empresa + cargar el listado SGP dos veces) y compilación WinForms sin advertencias. Entorno: Ubuntu 24.04, PostgreSQL 16.14, SDK .NET 8.0.425 oficial de Microsoft. El mismo script corre en GitHub Actions.
 
 Se comprobó que las pruebas detectan fallos: mutación del redondeo de empaques (6 pruebas fallan), quitar el bloqueo de saldo (concurrencia falla) y desactivar el RLS (T02 falla).
 
@@ -68,7 +68,7 @@ H01, H02 y H03: **cerradas** (V003) y probadas también con el rol de la aplicac
 
 **Decisiones de negocio** (guía doc. 09): D01 valoración · D02 precio de ingrediente genérico · D03 impuestos/cargos · D04 redondeo de compra · D05 formato de bajas · D06/D07 ajustes de inventario y corte · D08 reserva · D09 sustituciones · D10 offline · D11 excesos de recepción · D12 stock crudo en cocina · D13/D14 Food Cost y costo por receta.
 
-**Preguntas al usuario:** ¿las ≈20 PC son de una sola sede? · ¿entran CD/ADS/tránsitos y raciones por cliente en la primera etapa? · ¿qué presentación son los `pro_coduni` 1, 3, 6, 20, 28, 33 y 37 del SGP? (y confirmar el resto, `datos/sgp/LEEME.md`) · revisar los 51 productos de `datos/sgp/observaciones_sgp.csv`.
+**Preguntas al usuario:** ¿las ≈20 PC son de una sola sede? · ¿entran CD/ADS/tránsitos y raciones por cliente en la primera etapa? · ¿qué presentación es el `pro_coduni` 1 del SGP? · ¿los precios del SGP están en soles? · revisar los 51 productos de `datos/sgp/observaciones_sgp.csv`.
 
 **Brechas de esquema aún abiertas:** estado "en tránsito" para traspasos entre bodegas; atributos de receta por régimen; raciones diarias por cliente; fórmula exacta de `necesidad_neta` con `reserva` y `stock_utilizable`.
 

@@ -32,6 +32,18 @@ Public Class ImportacionSgpTests
     End Sub
 
     <Theory>
+    <InlineData(3, "GRANO")>
+    <InlineData(6, "GRAMO")>
+    <InlineData(20, "GRAMO")>
+    <InlineData(28, "MILLAR")>
+    <InlineData(33, "PAQUETE")>
+    <InlineData(37, "PAQUETE")>
+    <InlineData(1, "PRES-SGP-1")>
+    Public Sub Presentaciones_confirmadas_por_el_usuario(codUni As Integer, nombre As String)
+        Assert.Equal(nombre, ConversorSgp.NombrePresentacion(codUni))
+    End Sub
+
+    <Theory>
     <InlineData("ATUN TROZOS FLORIDA 140 GR", 24, "0.17", "KG")>
     <InlineData("PAPA SECA LA SERRANITA 3 KG", 8, "5", "KG")>
     <InlineData("LEJIA SAPOLIO 3.785 ML", 9, "3.785", "L")>

@@ -42,35 +42,26 @@ Ejemplo: `ARVEJA VERDE PARTIDA CANTA CLARO BOLSA 500 GR  8  0.5` queda así:
 
 Resultado: 4 160 productos (KG 1 476, L 375, UND 2 309).
 
-## Significado de `pro_coduni` (POR CONFIRMAR)
-
-El significado se dedujo de los nombres de los productos:
+## Significado de `pro_coduni`
 
 | Código | Presentación | Código | Presentación | Código | Presentación |
 |---|---|---|---|---|---|
-| 4 | BIDON | 19 | GALON | 34 | POTE |
-| 5 | BALDE | 22 | KIT | 36 | ROLLO |
-| 8 | BOLSA | 23 | KILOGRAMO | 38 | SACHET |
-| 9 | BOTELLA | 24 | LATA | 39 | SACO |
-| 10 | CAJA | 26 | LITRO | 41 | SIXPACK |
-| 14 | CAJETILLA | 31 | PAQUETE | 42 | SOBRE |
-| 18 | FRASCO | 32 | PAR | 44 | TUBO |
-| | | | | 45 | UNIDAD |
-| | | | | 46 | VASO |
+| 3 | GRANO ✔ | 19 | GALON | 34 | POTE |
+| 4 | BIDON | 20 | GRAMO | 36 | ROLLO |
+| 5 | BALDE | 22 | KIT | 37 | PAQUETE ✔ (resma) |
+| 6 | GRAMO ✔ (blister) | 23 | KILOGRAMO | 38 | SACHET |
+| 8 | BOLSA | 24 | LATA | 39 | SACO |
+| 9 | BOTELLA | 26 | LITRO | 41 | SIXPACK |
+| 10 | CAJA | 28 | MILLAR | 42 | SOBRE |
+| 14 | CAJETILLA | 31 | PAQUETE | 44 | TUBO |
+| 18 | FRASCO | 32 | PAR | 45 | UNIDAD |
+| | | 33 | PAQUETE ✔ (PCH) | 46 | VASO |
 
-**Sin nombre confirmado.** Por ahora se cargan como `PRES-SGP-n`:
+✔ = confirmado por el usuario el 03/10/2026. Los demás nombres salen del cruce con `Uni.Env` del archivo de precios.
 
-| Código | Productos | Ejemplos |
-|---|---|---|
-| 1 | 8 | caja chica, hierbas frescas |
-| 3 | 60 | barras energéticas, cobertura |
-| 6 | 10 | mermeladas en porción |
-| 20 | 69 | caja chica, golosinas |
-| 28 | 9 | colorante, cerveza, bolsas al vacío |
-| 33 | 1 | tamal |
-| 37 | 1 | bolsas de papel |
+**Pendiente:** el código **1** (8 productos de caja chica, sin precios) sigue como `PRES-SGP-1`.
 
-Para corregir un nombre: se cambia en `ConversorSgp.Presentaciones` **antes** de la primera carga.
+El nombre de la presentación se fija en `ConversorSgp.Presentaciones` **antes** de la primera carga real.
 
 ## Cargar en una sede
 
@@ -101,7 +92,7 @@ Requisitos y garantías:
   * 3 nombres aparecen dos veces, por ejemplo `CAJA CHICA - CULANTRO`;
   * el SGP no indica proveedor ni moneda; se asumen soles, pendiente de confirmar.
 
-### Evidencia para los `pro_coduni` sin nombre
+### Evidencia usada para los `pro_coduni` (ya resueltos arriba)
 
 Se cruzó `Uni.Env` de precios con `pro_coduni`. Cada código tiene una sola abreviatura.
 
