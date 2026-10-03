@@ -53,6 +53,7 @@ Public NotInheritable Class IngredienteDto
     Public Property CantidadBrutaU6 As Long
     Public Property CantidadNetaU6 As Long?
     Public Property Orden As Long
+    Public Property Tecnica As String
     ''' <summary>Códigos de variantes permitidas separados por coma; vacío = cualquiera del producto.</summary>
     Public Property VariantesPermitidas As String
 End Class

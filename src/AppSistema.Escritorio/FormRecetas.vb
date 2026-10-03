@@ -81,7 +81,7 @@ Public Class FormRecetas
         If v Is Nothing Then _ingredientes.DataSource = Nothing : Return
         Ui.Ejecutar(Me, Sub() Ui.Mostrar(_ingredientes, _servicio.ListarIngredientes(v.Id),
                                          "ProductoCodigo|Codigo", "ProductoDescripcion|Producto", "CantidadBrutaU6|Cantidad bruta", "CantidadNetaU6|Cantidad neta",
-                                         "Unidad|Unidad", "VariantesPermitidas|Variantes permitidas"))
+                                         "Unidad|Unidad", "Tecnica|Tecnica", "VariantesPermitidas|Variantes permitidas"))
     End Sub
 
     Private Sub NuevaReceta()
@@ -133,11 +133,11 @@ Public Class FormRecetas
                     If productos.Count = 0 Then Ui.Informar(Me, "No se encontro ningun producto.") : Return
                     Using d2 As New DialogoCampos("Ingrediente")
                         d2.Opciones("producto", "Producto", productos.Take(200).Select(Function(p) CObj(New Opcion(Of ProductoBaseDto)(p, $"{p.Codigo} - {p.Descripcion} ({p.UnidadCodigo})")))) _
-                          .Texto("bruta", "Cantidad bruta (unidad base)").Texto("neta", "Cantidad neta (opcional)").Texto("orden", "Orden", (_ingredientes.Rows.Count + 1).ToString())
+                          .Texto("bruta", "Cantidad bruta (unidad base)").Texto("neta", "Cantidad neta (opcional)").Texto("tecnica", "Tecnica (opcional)").Texto("orden", "Orden", (_ingredientes.Rows.Count + 1).ToString())
                         If d2.ShowDialog(Me) <> DialogResult.OK Then Return
                         Dim neta As Long? = If(d2.Valor("neta") = "", CType(Nothing, Long?), Ui.LeerU6(d2.Valor("neta"), "cantidad neta"))
                         _servicio.AgregarIngrediente(v.Id, d2.Elegido(Of Opcion(Of ProductoBaseDto))("producto").Valor.Id,
-                                                     Ui.LeerU6(d2.Valor("bruta"), "cantidad bruta"), neta, Ui.LeerEntero(d2.Valor("orden"), "orden"))
+                                                     Ui.LeerU6(d2.Valor("bruta"), "cantidad bruta"), neta, Ui.LeerEntero(d2.Valor("orden"), "orden"), d2.Valor("tecnica"))
                     End Using
                 End Sub)
         End Using

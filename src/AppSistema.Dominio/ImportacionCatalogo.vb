@@ -201,13 +201,13 @@ Namespace Importacion
             Return 0
         End Function
 
-        Private NotInheritable Class Registro
+        Friend NotInheritable Class Registro
             Public Property Linea As Integer
             Public Property Campos As New List(Of String)
         End Class
 
         ''' <summary>Separa registros respetando comillas (pueden contener separador y saltos de línea).</summary>
-        Private Function Separar(texto As String, sep As Char) As List(Of Registro)
+        Friend Function Separar(texto As String, sep As Char) As List(Of Registro)
             Dim registros As New List(Of Registro)
             Dim actual As New Registro With {.Linea = 1}
             Dim campo As New StringBuilder()

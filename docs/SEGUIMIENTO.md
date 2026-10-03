@@ -18,9 +18,9 @@ Plan: `docs/guia_construccion/04_PLAN_POR_ETAPAS.md`. Decisiones de negocio: `do
 
 | Etapa | Estado | Qué hay / qué falta |
 |---|---|---|
-| 0 Diagnóstico y línea base | **Hecha** | Esquema portado a PostgreSQL; migraciones V001–V005 con migrador versionado; brechas H01–H03 cerradas |
+| 0 Diagnóstico y línea base | **Hecha** | Esquema portado a PostgreSQL; migraciones V001–V006 con migrador versionado; brechas H01–H03 cerradas |
 | 1 Fundamentos y catálogo | **Hecha en código y pruebas; falta validar la interfaz en Windows** | Acceso con bloqueo, permisos por operación, auditoría automática, aislamiento RLS, operaciones/almacenes/usuarios, unidades, categorías, marcas, productos, variantes, empaques, proveedores, precios con vigencia, importador CSV con vista previa, **carga del listado de productos del SGP** (4 158 productos con factor y unidad mínima de pedido; `datos/sgp/`). Pantallas WinForms compiladas **pero no ejecutadas** (no hay Windows en este entorno) |
-| 2 Menús y recetas | **Hecha en código y pruebas; falta validar la interfaz en Windows** | Servicios, regímenes y estructuras; recetas versionadas (borrador → aprobada inmutable → retirada) con rendimiento, ingredientes por producto base y variantes permitidas; minutas por día y servicio con platos y fijos; aprobación con snapshot de costo (fuente y fecha por ingrediente); costo simulado; necesidades consolidadas por producto. Pantallas: Recetas, Minutas y necesidades, Servicios y estructuras. **Regla de precio provisional** (D02 pendiente): menor costo vigente entre las variantes permitidas; sin precio → "pendiente". El precio se usa tal como se registró (D03 impuestos pendiente) |
+| 2 Menús y recetas | **Hecha en código y pruebas; falta validar la interfaz en Windows** | Servicios, regímenes y estructuras; recetas versionadas (borrador → aprobada inmutable → retirada) con rendimiento, ingredientes por producto base y variantes permitidas; minutas por día y servicio con platos y fijos; aprobación con snapshot de costo (fuente y fecha por ingrediente); costo simulado; necesidades consolidadas por producto. **Recetas del SGP cargadas**: 946 recetas (417 fichas revisadas + 529 del Recetón) con 412 ingredientes (`datos/recetas/`). Pantallas: Recetas, Minutas y necesidades, Servicios y estructuras, Importar recetas. **Regla de precio provisional** (D02 pendiente): menor costo vigente entre las variantes permitidas; sin precio → "pendiente". El precio se usa tal como se registró (D03 impuestos pendiente) |
 | 3 Previsión y compras | Parcial mínimo | Solo necesidad neta y redondeo (T12–T15) |
 | 4 Almacén y kárdex | Parcial avanzado | Servicio de contabilización atómico con sesión y permisos. Falta: idempotencia, recepciones parciales, devoluciones, reversiones, valoración real (D01) |
 | 5–9 | No iniciadas | |
@@ -52,7 +52,7 @@ Plan: `docs/guia_construccion/04_PLAN_POR_ETAPAS.md`. Decisiones de negocio: `do
 ```bash
 ./ejecutar_pruebas.sh
 ```
-Última corrida: 67 aserciones SQL + concurrencia (T24 y carrera de 10 sesiones), 67 pruebas de dominio, 45 de integración, instalador de punta a punta (migrar dos veces + crear empresa + cargar el listado SGP dos veces) y compilación WinForms sin advertencias. Entorno: Ubuntu 24.04, PostgreSQL 16.14, SDK .NET 8.0.425 oficial de Microsoft. El mismo script corre en GitHub Actions.
+Última corrida: 67 aserciones SQL + concurrencia (T24 y carrera de 10 sesiones), 70 pruebas de dominio, 49 de integración, instalador de punta a punta (migrar dos veces + crear empresa + cargar el listado SGP y las 946 recetas dos veces) y compilación WinForms sin advertencias. Entorno: Ubuntu 24.04, PostgreSQL 16.14, SDK .NET 8.0.425 oficial de Microsoft. El mismo script corre en GitHub Actions.
 
 Se comprobó que las pruebas detectan fallos: mutación del redondeo de empaques (6 pruebas fallan), quitar el bloqueo de saldo (concurrencia falla) y desactivar el RLS (T02 falla).
 
@@ -71,6 +71,8 @@ H01, H02 y H03: **cerradas** (V003) y probadas también con el rol de la aplicac
 ## Pendiente
 
 **Decisiones de negocio** (guía doc. 09): D01 valoración · D02 precio de ingrediente genérico · D03 impuestos/cargos · D04 redondeo de compra · D05 formato de bajas · D06/D07 ajustes de inventario y corte · D08 reserva · D09 sustituciones · D10 offline · D11 excesos de recepción · D12 stock crudo en cocina · D13/D14 Food Cost y costo por receta.
+
+**Enlace ingrediente → productos SGP** (necesario para costo y compras): ver `datos/recetas/LEEME.md`.
 
 **Preguntas al usuario:** ¿las ≈20 PC son de una sola sede? · ¿entran CD/ADS/tránsitos y raciones por cliente en la primera etapa? · ¿los precios del SGP están en soles? · revisar los 47 productos de `datos/sgp/observaciones_sgp.csv`.
 

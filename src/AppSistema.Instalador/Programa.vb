@@ -12,6 +12,7 @@ Imports AppSistema.Dominio.Importacion
 '''   crear-usuario-sede NOMBRE   crea el usuario de base que usan las computadoras de la sede
 '''   convertir-sgp ARCHIVO [DIR] convierte el listado de productos del SGP (sin base de datos)
 '''   importar-sgp ARCHIVO        carga ese listado en el catálogo de una empresa (conexión de sede + usuario)
+'''   importar-recetas ARCHIVO [--aprobar]  carga recetas_normalizadas.csv (ingredientes como productos base)
 ''' </summary>
 Public Module Programa
 
@@ -29,6 +30,9 @@ Public Module Programa
                 Case "importar-sgp"
                     If args.Length < 2 Then Throw New ReglaNegocioException("DATO_OBLIGATORIO", "Indique el archivo del SGP.")
                     Return ImportarSgp(args(1))
+                Case "importar-recetas"
+                    If args.Length < 2 Then Throw New ReglaNegocioException("DATO_OBLIGATORIO", "Indique el archivo de recetas normalizadas.")
+                    Return ImportarRecetas(args(1), args.Contains("--aprobar"))
             End Select
 
             Dim conexion = Environment.GetEnvironmentVariable("APPSISTEMA_CONEXION_PROPIETARIO")
@@ -73,9 +77,9 @@ Public Module Programa
     End Function
 
     Private Sub Ayuda()
-        Console.WriteLine("Uso: AppSistema.Instalador <migrar | crear-empresa | crear-usuario-sede NOMBRE | convertir-sgp ARCHIVO [DIR] | importar-sgp ARCHIVO>")
+        Console.WriteLine("Uso: AppSistema.Instalador <migrar | crear-empresa | crear-usuario-sede NOMBRE | convertir-sgp ARCHIVO [DIR] | importar-sgp ARCHIVO | importar-recetas ARCHIVO [--aprobar]>")
         Console.WriteLine("La conexion del propietario se toma de APPSISTEMA_CONEXION_PROPIETARIO o se solicita.")
-        Console.WriteLine("importar-sgp usa la conexion de sede (APPSISTEMA_CONEXION o se solicita) y un usuario con permiso CATALOGO_IMPORTAR.")
+        Console.WriteLine("importar-sgp e importar-recetas usan la conexion de sede (APPSISTEMA_CONEXION o se solicita) y un usuario con permiso CATALOGO_IMPORTAR.")
     End Sub
 
     ''' <summary>Escribe catalogo_sgp.csv (formato del importador) y observaciones_sgp.txt sin tocar la base.</summary>
@@ -101,9 +105,9 @@ Public Module Programa
         Return If(r.Errores.Count = 0, 0, 2)
     End Function
 
-    Private Function ImportarSgp(archivo As String) As Integer
-        Dim texto = File.ReadAllText(archivo)
-        Dim conexion = Environment.GetEnvironmentVariable("APPSISTEMA_CONEXION")
+    ''' <summary>Conexión de sede (APPSISTEMA_CONEXION o se solicita) e inicio de sesión con selección de operación.</summary>
+    Private Function IniciarSesionSede(ByRef conexion As String) As SesionUsuario
+        conexion = Environment.GetEnvironmentVariable("APPSISTEMA_CONEXION")
         If String.IsNullOrWhiteSpace(conexion) Then conexion = Pedir("Conexion de sede (Host=...;Database=...;Username=...;Password=...)", oculto:=True)
         Dim acceso As New ServicioAcceso(conexion)
         Dim sesion = acceso.IniciarSesion(Pedir("Codigo de empresa"), Pedir("Usuario"), Pedir("Clave", oculto:=True))
@@ -116,6 +120,36 @@ Public Module Programa
             If operacion Is Nothing Then Throw New ReglaNegocioException("DATO_INVALIDO", $"La operacion '{codigo}' no esta disponible.")
         End If
         sesion = acceso.SeleccionarOperacion(sesion, operacion.Id)
+        Return sesion
+    End Function
+
+    Private Function ImportarRecetas(archivo As String, aprobar As Boolean) As Integer
+        Dim texto = File.ReadAllText(archivo)
+        Dim conexion As String = Nothing
+        Dim sesion = IniciarSesionSede(conexion)
+        Dim servicio As New ServicioImportacionRecetas(conexion, sesion)
+        Dim vista = servicio.VistaPrevia(texto)
+        For Each f In vista.Filas.Where(Function(x) x.Estado = EstadoFilaImportacion.ConError)
+            Console.Error.WriteLine($"  Linea {f.Numero}: {f.Detalle}")
+        Next
+        Console.WriteLine("Vista previa: " & vista.Resumen)
+        If vista.HayErrores Then Return 2
+        If vista.RecetasNuevas = 0 Then
+            Console.WriteLine("Nada que importar: las recetas ya estan cargadas.")
+            Return 0
+        End If
+        If Not Pedir("Escriba SI para importar" & If(aprobar, " y APROBAR las recetas nuevas", " (quedan en borrador)")).Equals("SI", StringComparison.OrdinalIgnoreCase) Then
+            Console.WriteLine("Cancelado. No se importo nada.")
+            Return 1
+        End If
+        Console.WriteLine("Importado: " & servicio.Aplicar(texto, aprobar).Resumen)
+        Return 0
+    End Function
+
+    Private Function ImportarSgp(archivo As String) As Integer
+        Dim texto = File.ReadAllText(archivo)
+        Dim conexion As String = Nothing
+        Dim sesion = IniciarSesionSede(conexion)
         Dim servicio As New ServicioImportacionCatalogo(conexion, sesion)
         Dim vista = servicio.VistaPreviaSgp(texto)
         For Each f In vista.Filas.Where(Function(x) x.Estado = EstadoFilaImportacion.ConError)

@@ -14,6 +14,8 @@ VB.NET + WinForms (.NET 8) en **Windows 10 o superior**, con **PostgreSQL** como
 | `database/postgresql` | Migraciones SQL y pruebas de la base (incluida concurrencia) |
 | `tests/` | Pruebas xUnit de dominio e integración |
 | `datos/sgp/` | Listado de productos del SGP (factor de conversión y unidad mínima de pedido) y su conversión al catálogo |
+| `datos/recetas/` | Recetas del SGP (fichas revisadas y Recetón), normalizadas para importar, con ingredientes y observaciones |
+| `herramientas/` | Conversor de recetas del SGP (Python, uso puntual) |
 | `docs/` | Requerimientos, guía de construcción, seguimiento y flujo de ramas |
 
 ## Instalar una sede (servidor)

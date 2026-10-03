@@ -43,8 +43,8 @@ Public NotInheritable Class ServicioRecetas
                                           "VALUES (@e, @r, @v, @rend, @i) RETURNING id",
                                           "e", Sesion.EmpresaId, "r", recetaId, "v", ultima.Version + 1, "rend", ultima.Rend, "i", ultima.Instr)
                 Dim mapa = u.Consultar(
-                    "INSERT INTO receta_ingrediente(empresa_id, receta_version_id, producto_base_id, cantidad_base_bruta_u6, cantidad_base_neta_u6, orden) " &
-                    "SELECT empresa_id, @n, producto_base_id, cantidad_base_bruta_u6, cantidad_base_neta_u6, orden FROM receta_ingrediente " &
+                    "INSERT INTO receta_ingrediente(empresa_id, receta_version_id, producto_base_id, cantidad_base_bruta_u6, cantidad_base_neta_u6, orden, tecnica) " &
+                    "SELECT empresa_id, @n, producto_base_id, cantidad_base_bruta_u6, cantidad_base_neta_u6, orden, tecnica FROM receta_ingrediente " &
                     "WHERE receta_version_id = @v ORDER BY orden, id RETURNING id, producto_base_id",
                     Function(rd) (rd.GetInt64(0), rd.GetInt64(1)), "n", nueva, "v", ultima.Id)
                 u.Ejecutar("INSERT INTO ingrediente_variante_permitida(empresa_id, ingrediente_id, variante_id) " &
@@ -63,16 +63,17 @@ Public NotInheritable Class ServicioRecetas
                                               "r", rendimientoRacionesU6, "i", Opcional(instrucciones), "id", versionId)))
     End Sub
 
-    Public Function AgregarIngrediente(versionId As Long, productoBaseId As Long, cantidadBrutaU6 As Long, cantidadNetaU6 As Long?, orden As Long) As Long
+    Public Function AgregarIngrediente(versionId As Long, productoBaseId As Long, cantidadBrutaU6 As Long, cantidadNetaU6 As Long?, orden As Long,
+                                       Optional tecnica As String = Nothing) As Long
         If cantidadBrutaU6 <= 0 Then Throw New ReglaNegocioException("CANTIDAD_INVALIDA", "La cantidad bruta debe ser mayor que cero.")
         If cantidadNetaU6.HasValue AndAlso (cantidadNetaU6.Value < 0 OrElse cantidadNetaU6.Value > cantidadBrutaU6) Then
             Throw New ReglaNegocioException("CANTIDAD_INVALIDA", "La cantidad neta debe estar entre cero y la cantidad bruta.")
         End If
         Return EnTransaccion(Permisos.RecetasEditar,
-            Function(u) u.EscalarLong("INSERT INTO receta_ingrediente(empresa_id, receta_version_id, producto_base_id, cantidad_base_bruta_u6, cantidad_base_neta_u6, orden) " &
-                                      "VALUES (@e, @v, @p, @b, @n, @o) RETURNING id",
+            Function(u) u.EscalarLong("INSERT INTO receta_ingrediente(empresa_id, receta_version_id, producto_base_id, cantidad_base_bruta_u6, cantidad_base_neta_u6, orden, tecnica) " &
+                                      "VALUES (@e, @v, @p, @b, @n, @o, @t) RETURNING id",
                                       "e", Sesion.EmpresaId, "v", versionId, "p", productoBaseId, "b", cantidadBrutaU6,
-                                      "n", If(cantidadNetaU6.HasValue, CType(cantidadNetaU6.Value, Object), Nothing), "o", orden))
+                                      "n", If(cantidadNetaU6.HasValue, CType(cantidadNetaU6.Value, Object), Nothing), "o", orden, "t", Opcional(tecnica)))
     End Function
 
     Public Sub QuitarIngrediente(ingredienteId As Long)
@@ -131,7 +132,7 @@ Public NotInheritable Class ServicioRecetas
     Public Function ListarIngredientes(versionId As Long) As List(Of IngredienteDto)
         Return EnTransaccion(Permisos.MenusVer,
             Function(u) u.Consultar(
-                "SELECT i.id, i.producto_base_id, p.codigo, p.descripcion, um.codigo AS unidad, i.cantidad_base_bruta_u6, i.cantidad_base_neta_u6, i.orden, " &
+                "SELECT i.id, i.producto_base_id, p.codigo, p.descripcion, um.codigo AS unidad, i.cantidad_base_bruta_u6, i.cantidad_base_neta_u6, i.orden, i.tecnica, " &
                 "  COALESCE((SELECT string_agg(v.codigo, ', ' ORDER BY v.codigo) FROM ingrediente_variante_permitida ivp " &
                 "            JOIN variante_producto v ON v.id = ivp.variante_id WHERE ivp.ingrediente_id = i.id), '') AS variantes " &
                 "FROM receta_ingrediente i JOIN producto_base p ON p.id = i.producto_base_id JOIN unidad_medida um ON um.id = p.unidad_base_id " &
@@ -139,7 +140,7 @@ Public NotInheritable Class ServicioRecetas
                 Function(rd) New IngredienteDto With {
                     .Id = rd.Largo("id"), .ProductoBaseId = rd.Largo("producto_base_id"), .ProductoCodigo = rd.Texto("codigo"),
                     .ProductoDescripcion = rd.Texto("descripcion"), .Unidad = rd.Texto("unidad"), .CantidadBrutaU6 = rd.Largo("cantidad_base_bruta_u6"),
-                    .CantidadNetaU6 = rd.LongONada("cantidad_base_neta_u6"), .Orden = rd.Largo("orden"), .VariantesPermitidas = rd.Texto("variantes")},
+                    .CantidadNetaU6 = rd.LongONada("cantidad_base_neta_u6"), .Orden = rd.Largo("orden"), .Tecnica = rd.TextoONada("tecnica"), .VariantesPermitidas = rd.Texto("variantes")},
                 "v", versionId))
     End Function
 

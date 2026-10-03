@@ -55,6 +55,7 @@ Public Class FormPrincipal
         Agregar(menus, "&Recetas", Permisos.MenusVer, Function() New FormRecetas(cadena, _sesion))
         Agregar(menus, "&Minutas y necesidades", Permisos.MenusVer, Function() New FormMinutas(cadena, _sesion))
         Agregar(menus, "&Servicios y estructuras", Permisos.MenusConfigurar, Function() New FormServicios(cadena, _sesion))
+        Agregar(menus, "&Importar recetas...", Permisos.RecetasEditar, Function() New FormImportacion(cadena, _sesion))
 
         Dim admin As New ToolStripMenuItem("&Administracion")
         Agregar(admin, "&Usuarios y roles", Permisos.UsuariosAdministrar, Function() New FormUsuarios(cadena, _sesion))

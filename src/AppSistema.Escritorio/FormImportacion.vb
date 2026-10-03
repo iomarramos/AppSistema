@@ -12,6 +12,9 @@ Public Class FormImportacion
     Inherits Form
 
     Private ReadOnly _servicio As ServicioImportacionCatalogo
+    Private ReadOnly _recetas As ServicioImportacionRecetas
+    Private ReadOnly _sesion As SesionUsuario
+    Private _vistaRecetas As ResultadoImportacionRecetas
     Private ReadOnly _archivo As New Label With {.AutoSize = True, .Text = "(sin archivo)", .Margin = New Padding(3, 9, 3, 3)}
     Private ReadOnly _resumen As New Label With {.Dock = DockStyle.Bottom, .AutoSize = False, .Height = 40, .Padding = New Padding(6)}
     Private ReadOnly _filas As DataGridView = Ui.NuevaGrilla()
@@ -22,6 +25,8 @@ Public Class FormImportacion
 
     Public Sub New(cadena As String, sesion As SesionUsuario)
         _servicio = New ServicioImportacionCatalogo(cadena, sesion)
+        _recetas = New ServicioImportacionRecetas(cadena, sesion)
+        _sesion = sesion
         Text = "Importar catalogo"
         _importar = Ui.Boton("Importar", AddressOf Importar)
         _importar.Enabled = False
@@ -84,6 +89,8 @@ Public Class FormImportacion
     Private Sub VistaPrevia()
         If _texto Is Nothing Then Ui.Informar(Me, "Elija primero un archivo.") : Return
         _importar.Enabled = False
+        If LectorCsvRecetas.EsArchivoRecetas(_texto) Then VistaPreviaRecetas() : Return
+        _vistaRecetas = Nothing
         Ui.Ejecutar(Me,
             Sub()
                 _ultimaVista = If(ConversorSgp.EsListadoSgp(_texto), _servicio.VistaPreviaSgp(_texto), _servicio.VistaPrevia(_texto))
@@ -95,7 +102,31 @@ Public Class FormImportacion
             End Sub)
     End Sub
 
+    Private Sub VistaPreviaRecetas()
+        _ultimaVista = Nothing
+        _observaciones.Enabled = False
+        Ui.Ejecutar(Me,
+            Sub()
+                _vistaRecetas = _recetas.VistaPrevia(_texto)
+                Ui.Mostrar(_filas, _vistaRecetas.Filas, "Numero|Fila", "Estado|Estado", "Detalle|Detalle")
+                _resumen.Text = "Vista previa de recetas: " & _vistaRecetas.Resumen
+                _importar.Enabled = Not _vistaRecetas.HayErrores AndAlso _vistaRecetas.RecetasNuevas > 0
+            End Sub)
+    End Sub
+
+    Private Sub ImportarRecetas()
+        If Not Ui.Confirmar(Me, "Se importara: " & _vistaRecetas.Resumen & Environment.NewLine & "Desea continuar?") Then Return
+        Dim aprobar = _sesion.Tiene(Dominio.Seguridad.Permisos.RecetasAprobar) AndAlso
+                      MessageBox.Show(Me, "Aprobar las recetas nuevas? (Si responde No quedan en borrador para revisarlas)", Text,
+                                      MessageBoxButtons.YesNo, MessageBoxIcon.Question) = DialogResult.Yes
+        If Ui.Ejecutar(Me, Sub() _vistaRecetas = _recetas.Aplicar(_texto, aprobar)) Then
+            Ui.Informar(Me, "Importacion terminada. " & _vistaRecetas.Resumen)
+        End If
+        VistaPrevia()
+    End Sub
+
     Private Sub Importar()
+        If _vistaRecetas IsNot Nothing Then ImportarRecetas() : Return
         If _ultimaVista Is Nothing OrElse Not Ui.Confirmar(Me, "Se importara: " & _ultimaVista.Resumen & Environment.NewLine & "Desea continuar?") Then Return
         If Ui.Ejecutar(Me, Sub() _ultimaVista = If(ConversorSgp.EsListadoSgp(_texto), _servicio.AplicarSgp(_texto), _servicio.Aplicar(_texto))) Then
             Ui.Informar(Me, "Importacion terminada. " & _ultimaVista.Resumen)
