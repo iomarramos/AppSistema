@@ -15,9 +15,21 @@ Imports AppSistema.Dominio.Stock
             Me.CostoUnitarioBaseU6 = costoUnitarioBaseU6
         End Sub
 
+        Private ReadOnly _valorU6 As Long?
+
+        ''' <summary>
+        ''' Línea con valor exacto conocido (p. ej. apertura: envases × precio del envase). El costo unitario base
+        ''' se deriva del valor; el valor no se recalcula para no introducir residuos de redondeo.
+        ''' </summary>
+        Public Sub New(varianteId As Long, cantidadBaseU6 As Long, costoUnitarioBaseU6 As Long, valorU6 As Long)
+            Me.New(varianteId, cantidadBaseU6, costoUnitarioBaseU6)
+            If valorU6 < 0 Then Throw New ReglaNegocioException("CANTIDAD_INVALIDA", "El valor no puede ser negativo.")
+            _valorU6 = valorU6
+        End Sub
+
         Friend ReadOnly Property ValorU6 As Long
             Get
-                Return EscalaU6.Multiplicar(CantidadBaseU6, CostoUnitarioBaseU6)
+                Return If(_valorU6, EscalaU6.Multiplicar(CantidadBaseU6, CostoUnitarioBaseU6))
             End Get
         End Property
     End Class
@@ -60,6 +72,29 @@ Imports AppSistema.Dominio.Stock
             Return EnTransaccion(Seguridad.Permisos.StockContabilizar, Function(u) Ejecutar(u, doc))
         End Function
 
+        ''' <summary>Saldo por variante del almacén (cantidad en unidad base y valor).</summary>
+        Public Function ConsultarSaldos(almacenId As Long, texto As String) As List(Of SaldoStockDto)
+            Return EnTransaccion(Seguridad.Permisos.CatalogoVer,
+                Function(u) u.Consultar(
+                    "SELECT pb.codigo, pb.descripcion, v.codigo, v.descripcion_comercial, um.codigo, s.cantidad_base_u6, s.valor_u6 FROM saldo_stock s " &
+                    "JOIN almacen a ON a.id = s.almacen_id JOIN variante_producto v ON v.id = s.variante_id " &
+                    "JOIN producto_base pb ON pb.id = v.producto_base_id JOIN unidad_medida um ON um.id = pb.unidad_base_id " &
+                    "WHERE s.almacen_id = @a AND a.operacion_id = @o AND s.cantidad_base_u6 > 0 " &
+                    "  AND (@t = '' OR pb.descripcion ILIKE '%' || @t || '%' OR v.descripcion_comercial ILIKE '%' || @t || '%') " &
+                    "ORDER BY pb.descripcion, v.codigo",
+                    Function(rd)
+                        Dim d As New SaldoStockDto With {.ProductoCodigo = rd.GetString(0), .ProductoDescripcion = rd.GetString(1), .VarianteCodigo = rd.GetString(2),
+                                                         .VarianteDescripcion = rd.GetString(3), .Unidad = rd.GetString(4), .CantidadBaseU6 = rd.GetInt64(5), .ValorU6 = rd.GetInt64(6)}
+                        d.CostoPromedioU6 = EscalaU6.MultiplicarDividir(d.ValorU6, EscalaU6.Factor, d.CantidadBaseU6)
+                        Return d
+                    End Function, "a", almacenId, "o", Sesion.OperacionId, "t", If(texto, "").Trim()))
+        End Function
+
+        Friend Function ContabilizarEn(u As UnidadDeTrabajo, doc As DocumentoStockNuevo) As Long
+            Sesion.Exigir(Seguridad.Permisos.StockContabilizar)
+            Return Ejecutar(u, doc)
+        End Function
+
         Private Function Ejecutar(u As UnidadDeTrabajo, doc As DocumentoStockNuevo) As Long
             Dim e As Long = Sesion.EmpresaId
             ' 1. Serializa las confirmaciones del almacén (secuencia sin colisiones) y valida que sea de la operación.
@@ -99,3 +134,14 @@ Imports AppSistema.Dominio.Stock
         End Function
 
     End Class
+
+Public NotInheritable Class SaldoStockDto
+    Public Property ProductoCodigo As String
+    Public Property ProductoDescripcion As String
+    Public Property VarianteCodigo As String
+    Public Property VarianteDescripcion As String
+    Public Property Unidad As String
+    Public Property CantidadBaseU6 As Long
+    Public Property ValorU6 As Long
+    Public Property CostoPromedioU6 As Long
+End Class

@@ -102,6 +102,34 @@ Public Class ImportacionRecetasDatosTests
     End Sub
 
     <FactPostgres>
+    Public Sub Inventario_inicial_real_carga_379_saldos_con_valor_exacto_y_no_se_repite()
+        Using bd = BaseDatosPrueba.Crear()
+            Dim s = bd.Sesion("B")
+            Call New ServicioImportacionCatalogo(bd.CadenaAplicacion, s).Aplicar(Archivo("enlace", "catalogo_por_ingrediente.csv"), crearUnidadesBase:=True)
+            Dim inv As New ServicioInventarioInicial(bd.CadenaAplicacion, s)
+            Dim texto = Archivo("inventario", "inventario_inicial.csv")
+            Dim prev = inv.VistaPrevia(bd.B.AlmacenId, texto)
+            Assert.False(prev.HayErrores, prev.Resumen)
+            Assert.Equal(EscalaU6.DesdeDecimal(307498.452459D), prev.ValorTotalU6)
+
+            inv.Aplicar(bd.B.AlmacenId, New Date(2026, 10, 1), texto)
+            Assert.Equal(379L, Contar(bd, $"SELECT count(*) FROM saldo_stock WHERE almacen_id = {bd.B.AlmacenId}"))
+            Assert.Equal(EscalaU6.DesdeDecimal(307498.452459D), Contar(bd, $"SELECT sum(valor_u6) FROM saldo_stock WHERE almacen_id = {bd.B.AlmacenId}"))
+            Assert.Equal(0L, bd.FilasSinConciliar())
+            ' 42 bidones CIELO de 5 L a S/34,12 = 210 L por S/1 433,04.
+            Dim aceite = New ServicioStock(bd.CadenaAplicacion, s).ConsultarSaldos(bd.B.AlmacenId, "CIELO 5 LT").Single()
+            Assert.Equal(EscalaU6.DesdeDecimal(210D), aceite.CantidadBaseU6)
+            Assert.Equal(EscalaU6.DesdeDecimal(1433.04D), aceite.ValorU6)
+            Assert.Equal("L", aceite.Unidad)
+
+            Dim otra = inv.VistaPrevia(bd.B.AlmacenId, texto)
+            Assert.NotNull(otra.Bloqueo)
+            Assert.Equal("IMPORTACION_CON_ERRORES", Assert.Throws(Of ReglaNegocioException)(Function() inv.Aplicar(bd.B.AlmacenId, New Date(2026, 10, 1), texto)).Codigo)
+            Assert.Equal(379L, Contar(bd, $"SELECT count(*) FROM movimiento_stock WHERE almacen_id = {bd.B.AlmacenId}"))
+        End Using
+    End Sub
+
+    <FactPostgres>
     Public Sub Receta_existente_con_otros_ingredientes_es_error_y_no_importa_nada()
         Using bd = BaseDatosPrueba.Crear()
             Dim imp As New ServicioImportacionRecetas(bd.CadenaAplicacion, bd.Sesion("A"))

@@ -13,6 +13,7 @@ Imports AppSistema.Dominio.Importacion
 '''   convertir-sgp ARCHIVO [DIR] convierte el listado de productos del SGP (sin base de datos)
 '''   importar-sgp ARCHIVO        carga ese listado en el catálogo de una empresa (conexión de sede + usuario)
 '''   importar-catalogo ARCHIVO   carga un CSV de catálogo (p. ej. datos/enlace/catalogo_por_ingrediente.csv)
+'''   importar-inventario ARCHIVO carga el inventario inicial valorizado (documento de apertura) de un almacén
 '''   importar-recetas ARCHIVO [--aprobar]  carga recetas_normalizadas.csv (ingredientes como productos base)
 ''' </summary>
 Public Module Programa
@@ -34,6 +35,9 @@ Public Module Programa
                 Case "importar-catalogo"
                     If args.Length < 2 Then Throw New ReglaNegocioException("DATO_OBLIGATORIO", "Indique el archivo de catalogo.")
                     Return ImportarSgp(args(1), esListadoSgp:=False)
+                Case "importar-inventario"
+                    If args.Length < 2 Then Throw New ReglaNegocioException("DATO_OBLIGATORIO", "Indique el archivo de inventario inicial.")
+                    Return ImportarInventario(args(1))
                 Case "importar-recetas"
                     If args.Length < 2 Then Throw New ReglaNegocioException("DATO_OBLIGATORIO", "Indique el archivo de recetas normalizadas.")
                     Return ImportarRecetas(args(1), args.Contains("--aprobar"))
@@ -81,7 +85,7 @@ Public Module Programa
     End Function
 
     Private Sub Ayuda()
-        Console.WriteLine("Uso: AppSistema.Instalador <migrar | crear-empresa | crear-usuario-sede NOMBRE | convertir-sgp ARCHIVO [DIR] | importar-sgp ARCHIVO | importar-catalogo ARCHIVO | importar-recetas ARCHIVO [--aprobar]>")
+        Console.WriteLine("Uso: AppSistema.Instalador <migrar | crear-empresa | crear-usuario-sede NOMBRE | convertir-sgp ARCHIVO [DIR] | importar-sgp ARCHIVO | importar-catalogo ARCHIVO | importar-recetas ARCHIVO [--aprobar] | importar-inventario ARCHIVO>")
         Console.WriteLine("La conexion del propietario se toma de APPSISTEMA_CONEXION_PROPIETARIO o se solicita.")
         Console.WriteLine("importar-sgp, importar-catalogo e importar-recetas usan la conexion de sede (APPSISTEMA_CONEXION o se solicita) y un usuario con permiso CATALOGO_IMPORTAR.")
     End Sub
@@ -125,6 +129,39 @@ Public Module Programa
         End If
         sesion = acceso.SeleccionarOperacion(sesion, operacion.Id)
         Return sesion
+    End Function
+
+    Private Function ImportarInventario(archivo As String) As Integer
+        Dim texto = File.ReadAllText(archivo)
+        Dim conexion As String = Nothing
+        Dim sesion = IniciarSesionSede(conexion)
+        Dim almacenes = New ServicioAdministracion(conexion, sesion).ListarAlmacenes()
+        If almacenes.Count = 0 Then Throw New ReglaNegocioException("DATO_OBLIGATORIO", "La operacion no tiene almacenes.")
+        Dim almacen = almacenes(0)
+        If almacenes.Count > 1 Then
+            Dim codigo = Pedir("Almacen (" & String.Join(", ", almacenes.Select(Function(a) a.Codigo)) & ")")
+            almacen = almacenes.FirstOrDefault(Function(a) a.Codigo = codigo)
+            If almacen Is Nothing Then Throw New ReglaNegocioException("DATO_INVALIDO", $"El almacen '{codigo}' no existe.")
+        End If
+        Dim textoFecha = Pedir("Fecha del inventario (aaaa-mm-dd)")
+        Dim fecha As Date
+        If Not Date.TryParseExact(textoFecha, "yyyy-MM-dd", Globalization.CultureInfo.InvariantCulture, Globalization.DateTimeStyles.None, fecha) Then
+            Throw New ReglaNegocioException("DATO_INVALIDO", "Fecha invalida; use aaaa-mm-dd.")
+        End If
+        Dim servicio As New ServicioInventarioInicial(conexion, sesion)
+        Dim vista = servicio.VistaPrevia(almacen.Id, texto)
+        For Each l In vista.Lineas.Where(Function(x) x.Problema IsNot Nothing)
+            Console.Error.WriteLine($"  Linea {l.Linea}: {l.Problema}")
+        Next
+        Console.WriteLine($"Vista previa ({almacen.Codigo}): " & vista.Resumen)
+        If vista.HayErrores Then Return 2
+        If Not Pedir("Escriba SI para registrar la apertura").Equals("SI", StringComparison.OrdinalIgnoreCase) Then
+            Console.WriteLine("Cancelado. No se registro nada.")
+            Return 1
+        End If
+        Dim r = servicio.Aplicar(almacen.Id, fecha, texto)
+        Console.WriteLine($"Apertura registrada (documento {r.DocumentoId}): " & r.Resumen)
+        Return 0
     End Function
 
     Private Function ImportarRecetas(archivo As String, aprobar As Boolean) As Integer

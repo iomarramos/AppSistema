@@ -23,7 +23,7 @@ echo "######## 3/5  Capa de datos VB.NET contra PostgreSQL"
 dotnet test tests/AppSistema.Datos.Tests --nologo -v q
 
 echo
-echo "######## 4/5  Instalador de consola (migrar dos veces + crear empresa + cargar catalogo por ingrediente y recetas dos veces)"
+echo "######## 4/5  Instalador de consola (migrar dos veces + crear empresa + cargar catalogo por ingrediente, recetas e inventario inicial dos veces)"
 DB=appsistema_instalador
 dropdb --if-exists "$DB" >/dev/null 2>&1 || true
 createdb "$DB"
@@ -45,6 +45,11 @@ printf 'DEMO\nadmin\nDemo-Clave-2026\n' \
   | dotnet run --project src/AppSistema.Instalador -v q -- importar-recetas datos/enlace/recetas_enlazadas.csv --aprobar | tail -1
 psql -d "$DB" -tAc "SELECT 'ingredientes: ' || count(DISTINCT p.id) || ', productos SGP como variantes: ' || count(v.id) FROM producto_base p LEFT JOIN variante_producto v ON v.producto_base_id = p.id AND v.codigo LIKE 'SGP%'"
 psql -d "$DB" -tAc "SELECT 'recetas aprobadas: ' || count(*) FROM receta_version WHERE estado = 'aprobada'"
+printf 'DEMO\nadmin\nDemo-Clave-2026\n2026-10-01\nSI\n' \
+  | dotnet run --project src/AppSistema.Instalador -v q -- importar-inventario datos/inventario/inventario_inicial.csv | tail -1
+printf 'DEMO\nadmin\nDemo-Clave-2026\n2026-10-01\n' \
+  | dotnet run --project src/AppSistema.Instalador -v q -- importar-inventario datos/inventario/inventario_inicial.csv 2>&1 | tail -1 || true
+psql -d "$DB" -tAc "SELECT 'stock inicial: ' || count(*) || ' variantes, valor ' || round(sum(valor_u6) / 1000000.0, 2) FROM saldo_stock"
 dropdb "$DB"
 
 echo

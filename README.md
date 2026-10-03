@@ -16,6 +16,7 @@ VB.NET + WinForms (.NET 8) en **Windows 10 o superior**, con **PostgreSQL** como
 | `datos/sgp/` | Listado de productos del SGP (factor de conversión y unidad mínima de pedido) y su conversión al catálogo |
 | `datos/recetas/` | Recetas del SGP (fichas revisadas y Recetón), normalizadas para importar, con ingredientes y observaciones |
 | `datos/enlace/` | Enlace producto SGP → ingrediente: catálogo por ingrediente (productos SGP como variantes) y recetas enlazadas. **Flujo de carga recomendado** |
+| `datos/inventario/` | Inventario inicial valorizado (379 productos, S/ 307 498,45) para el documento de apertura |
 | `herramientas/` | Conversores de recetas y del enlace (Python, uso puntual) |
 | `docs/` | Requerimientos, guía de construcción, seguimiento y flujo de ramas |
 
@@ -30,7 +31,7 @@ VB.NET + WinForms (.NET 8) en **Windows 10 o superior**, con **PostgreSQL** como
    AppSistema.Instalador crear-usuario-sede app_sede
    ```
    No existen usuarios ni claves por defecto: la clave del administrador se define en `crear-empresa`.
-3. (Opcional) Cargar catálogo y recetas del SGP: `set APPSISTEMA_CONEXION=...app_sede...`, luego `AppSistema.Instalador importar-catalogo catalogo_por_ingrediente.csv` y `AppSistema.Instalador importar-recetas recetas_enlazadas.csv --aprobar` (detalle en [`datos/enlace/LEEME.md`](datos/enlace/LEEME.md)). También desde la aplicación: Catálogo > Importar y Menús > Importar recetas.
+3. (Opcional) Cargar catálogo y recetas del SGP: `set APPSISTEMA_CONEXION=...app_sede...`, luego `AppSistema.Instalador importar-catalogo catalogo_por_ingrediente.csv` `AppSistema.Instalador importar-recetas recetas_enlazadas.csv --aprobar` y `AppSistema.Instalador importar-inventario inventario_inicial.csv` (detalle en [`datos/enlace/LEEME.md`](datos/enlace/LEEME.md)). También desde la aplicación: Catálogo > Importar y Menús > Importar recetas.
 4. En cada computadora, abrir **AppSistema**, indicar servidor, base, `app_sede` y su clave (se guarda cifrada con DPAPI en `%PROGRAMDATA%\AppSistema\conexion.json`) e iniciar sesión con empresa, usuario y clave.
 
 ## Pruebas
