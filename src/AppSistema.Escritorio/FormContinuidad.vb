@@ -9,8 +9,7 @@ Imports AppSistema.Dominio.Numerico
 ''' central: sedes registradas, registrar (la credencial se muestra una sola vez) y desactivar. Restaurar y actualizar se
 ''' hacen solo con el Instalador, con los usuarios fuera del sistema.
 ''' </summary>
-Public Class FormContinuidad
-    Inherits Form
+Partial Public Class FormContinuidad
 
     Private ReadOnly _config As Configuracion
     Private ReadOnly _sesion As SesionUsuario
@@ -18,7 +17,13 @@ Public Class FormContinuidad
     Private ReadOnly _estado As New Label With {.Dock = DockStyle.Top, .Height = 64, .Padding = New Padding(6)}
     Private ReadOnly _sedes As DataGridView = Ui.NuevaGrilla()
 
+    Public Sub New()
+        InitializeComponent()
+    End Sub
+
     Public Sub New(config As Configuracion, sesion As SesionUsuario)
+        InitializeComponent()
+        Controls.Clear()
         _config = config
         _sesion = sesion
         Text = "Sincronizacion y respaldo"
