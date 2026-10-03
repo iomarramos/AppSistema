@@ -26,13 +26,13 @@ Public Class ImportacionSgpTests
             Dim prev = imp.VistaPreviaSgp(texto)
             Assert.False(prev.HayErrores, String.Join(" | ", prev.Filas.Where(Function(f) f.Estado = EstadoFilaImportacion.ConError).Take(5).Select(Function(f) $"{f.Numero}: {f.Detalle}")))
             Assert.Equal(2, prev.UnidadesNuevas)          ' L ya existía en A; se crean KG y UND
-            Assert.Equal(4160, prev.ProductosNuevos)
+            Assert.Equal(4158, prev.ProductosNuevos)
             Assert.Equal(1L, Contar(bd, "producto_base", bd.A.EmpresaId))   ' la vista previa no escribe
 
             Dim r = imp.AplicarSgp(texto)
             Assert.True(r.Aplicado)
-            Assert.Equal(4161L, Contar(bd, "producto_base", bd.A.EmpresaId))
-            Assert.Equal(4161L, Contar(bd, "empaque_compra", bd.A.EmpresaId))   ' + la caja del aceite sembrado
+            Assert.Equal(4159L, Contar(bd, "producto_base", bd.A.EmpresaId))
+            Assert.Equal(4159L, Contar(bd, "empaque_compra", bd.A.EmpresaId))   ' + la caja del aceite sembrado
             Assert.Equal(0L, Contar(bd, "producto_base", bd.B.EmpresaId))
 
             ' Arveja en bolsa de 500 g: base KG, 0.5 por bolsa; se pide de a 1 bolsa.
@@ -44,7 +44,7 @@ Public Class ImportacionSgpTests
 
             Dim otra = imp.AplicarSgp(texto)
             Assert.Equal(0, otra.ProductosNuevos + otra.VariantesNuevas + otra.EmpaquesNuevos + otra.UnidadesNuevas + otra.CategoriasNuevas)
-            Assert.Equal(4161L, Contar(bd, "producto_base", bd.A.EmpresaId))
+            Assert.Equal(4159L, Contar(bd, "producto_base", bd.A.EmpresaId))
         End Using
     End Sub
 

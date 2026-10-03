@@ -17,6 +17,7 @@ Public Class ImportacionSgpTests
     <InlineData("ARVEJA VERDE PARTIDA CANTA CLARO BOLSA 500 GR", 8, "0.5", "KG", "BOLSA")>
     <InlineData("LECHE CONDENSADA GLORIA 393 GR", 24, "0.395", "KG", "LATA")>
     <InlineData("ARROZ EXTRA PARBOILED", 23, "1", "KG", "KILOGRAMO")>
+    <InlineData("CAJA CHICA - YEMA DE ALFALFA", 1, "1", "KG", "KILOGRAMO")>
     <InlineData("CAJA CHICA - VINO BLANCO COUSIÑO", 26, "1", "L", "LITRO")>
     <InlineData("INFUSION MANZANILLA DEL VALLE 100 SOBRES", 10, "100", "UND", "CAJA")>
     <InlineData("AZUCAR RUBIA PERSONAL ONZA PAQ 1 MILLAR", 38, "1000", "UND", "SACHET")>
@@ -38,7 +39,8 @@ Public Class ImportacionSgpTests
     <InlineData(28, "MILLAR")>
     <InlineData(33, "PAQUETE")>
     <InlineData(37, "PAQUETE")>
-    <InlineData(1, "PRES-SGP-1")>
+    <InlineData(1, "KILOGRAMO")>
+    <InlineData(99, "PRES-SGP-99")>
     Public Sub Presentaciones_confirmadas_por_el_usuario(codUni As Integer, nombre As String)
         Assert.Equal(nombre, ConversorSgp.NombrePresentacion(codUni))
     End Sub

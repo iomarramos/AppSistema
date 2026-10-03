@@ -43,7 +43,7 @@ Namespace Importacion
     ''' Reglas:
     ''' - pro_facing es el contenido de UNA presentación (pro_coduni) en la unidad base; se guarda tal cual.
     ''' - La unidad base (KG, L o UND) se deduce comparando el factor con el tamaño escrito en el nombre
-    '''   (tolerancia 3 %). Si no hay tamaño: código 23 → KG, código 26 → L, factor 1 o entero → UND.
+    '''   (tolerancia 3 %). Si no hay tamaño: código 1 o 23 → KG, código 26 → L, factor 1 o entero → UND.
     ''' - Cuando el nombre contradice el factor se carga igual con el factor del SGP y se deja una observación.
     ''' - La presentación del SGP es la unidad mínima de pedido del almacén: empaque de 1 envase, mínimo 1, múltiplo 1.
     ''' - Códigos SGP00001… en el orden del archivo; mismo archivo → mismos códigos.
@@ -54,9 +54,9 @@ Namespace Importacion
         Public Const UnidadLitro As String = "L"
         Public Const UnidadConteo As String = "UND"
 
-        ''' <summary>Significado de pro_coduni. 3, 6, 33 y 37 confirmados por el usuario (03/10/2026). Los no listados quedan como "PRES-SGP-n".</summary>
+        ''' <summary>Significado de pro_coduni. 1, 3, 6, 33 y 37 confirmados por el usuario (03/10/2026). Los no listados quedan como "PRES-SGP-n".</summary>
         Public ReadOnly Property Presentaciones As IReadOnlyDictionary(Of Integer, String) = New Dictionary(Of Integer, String) From {
-            {3, "GRANO"}, {4, "BIDON"}, {5, "BALDE"}, {6, "GRAMO"}, {8, "BOLSA"}, {9, "BOTELLA"}, {10, "CAJA"}, {14, "CAJETILLA"}, {18, "FRASCO"},
+            {1, "KILOGRAMO"}, {3, "GRANO"}, {4, "BIDON"}, {5, "BALDE"}, {6, "GRAMO"}, {8, "BOLSA"}, {9, "BOTELLA"}, {10, "CAJA"}, {14, "CAJETILLA"}, {18, "FRASCO"},
             {19, "GALON"}, {20, "GRAMO"}, {22, "KIT"}, {23, "KILOGRAMO"}, {24, "LATA"}, {26, "LITRO"}, {28, "MILLAR"}, {31, "PAQUETE"}, {32, "PAR"}, {33, "PAQUETE"},
             {34, "POTE"}, {36, "ROLLO"}, {37, "PAQUETE"}, {38, "SACHET"}, {39, "SACO"}, {41, "SIXPACK"}, {42, "SOBRE"}, {44, "TUBO"},
             {45, "UNIDAD"}, {46, "VASO"}}
@@ -103,7 +103,8 @@ Namespace Importacion
                     r.Errores.Add(New ErrorFila(linea, $"pro_facing '{c(iFac).Trim()}' debe ser un numero positivo con hasta 6 decimales")) : Continue For
                 End If
 
-                Dim clave = nombre & "|" & codUni.ToString(CultureInfo.InvariantCulture) & "|" & factor.ToString(CultureInfo.InvariantCulture)
+                ' Dos códigos con la misma presentación (p. ej. 1 y 23 = KILOGRAMO) son la misma fila.
+                Dim clave = nombre & "|" & NombrePresentacion(codUni) & "|" & factor.ToString(CultureInfo.InvariantCulture)
                 If vistos.ContainsKey(clave) Then r.RepetidasIdenticas += 1 : Continue For
 
                 Dim p As New ProductoSgp With {
@@ -233,7 +234,7 @@ Namespace Importacion
             Dim t = Tamanos(nombre)
             Dim coincide = t.Where(Function(x) Cerca(factor, x.EnBase)).ToList()
             If coincide.Count > 0 Then Return Codigo(coincide(0).Dimension)
-            If codUni = 23 AndAlso factor = 1D Then Return UnidadKg
+            If (codUni = 1 OrElse codUni = 23) AndAlso factor = 1D Then Return UnidadKg
             If codUni = 26 AndAlso factor = 1D Then Return UnidadLitro
             If factor = 1D Then Return UnidadConteo
 

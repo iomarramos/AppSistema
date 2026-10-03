@@ -33,20 +33,16 @@
 2314;SGP02309;TAPA ENVASE DESCARTABLE REDONDO 1000 CC / 500CC 500 UND;PAQUETE;1000;UND;el nombre indica 500 unidades y el factor es 1000, se toma 1000 UND
 2315;SGP02310;ENVASE DESCARTABLE SIN TAPA REDONDO 500 CC 200UND;PAQUETE;500;UND;el nombre indica 200 unidades y el factor es 500, se toma 500 UND
 2322;SGP02317;PLATO TENDIDO PARA SEGUNDO NEGRO DESCARTABLE 23 CM 500 UND;PAQUETE;450;UND;el nombre indica 500 unidades y el factor es 450, se toma 450 UND
-2775;SGP02770;CAJA CHICA - TOMILLO FRESCO (KILOGRAMO x 1 KG);KILOGRAMO;1;KG;el SGP tiene este nombre con otra presentacion o factor
-3144;SGP03138;CAJA CHICA - ROMERO FRESCO (KILOGRAMO x 1 KG);KILOGRAMO;1;KG;el SGP tiene este nombre con otra presentacion o factor
-3261;SGP03254;CAJA CHICA - TOMILLO FRESCO (PRES-SGP-1 x 1 UND);PRES-SGP-1;1;UND;el SGP tiene este nombre con otra presentacion o factor
-3265;SGP03258;CAJA CHICA - TOMATE CHERRY (PAQUETE x 1 UND);PAQUETE;1;UND;el SGP tiene este nombre con otra presentacion o factor
-3266;SGP03259;CAJA CHICA - ROMERO FRESCO (PRES-SGP-1 x 1 UND);PRES-SGP-1;1;UND;el SGP tiene este nombre con otra presentacion o factor
-3546;SGP03537;CAJA CHICA - AGUA SAN LUIS 20 LT (BIDON x 1 UND);BIDON;1;UND;el SGP tiene este nombre con otra presentacion o factor
-3667;SGP03656;CAJA CHICA - PLATANO BELLACO (KILOGRAMO x 1 KG);KILOGRAMO;1;KG;el SGP tiene este nombre con otra presentacion o factor
-3772;SGP03761;CAJA CHICA - TOMATE CHERRY (KILOGRAMO x 1 KG);KILOGRAMO;1;KG;el SGP tiene este nombre con otra presentacion o factor
-3784;SGP03773;CAJA CHICA - AGUA SAN LUIS 20 LT (CAJA x 1 UND);CAJA;1;UND;el SGP tiene este nombre con otra presentacion o factor
-3802;SGP03791;CAJA CHICA - CANCHITA SALADA X 12 GR (UNIDAD x 1 UND);UNIDAD;1;UND;el SGP tiene este nombre con otra presentacion o factor
-3803;SGP03792;CAJA CHICA - CANCHITA SALADA X 12 GR (BOLSA x 1 UND);BOLSA;1;UND;el SGP tiene este nombre con otra presentacion o factor
-4064;SGP04053;CAJA CHICA - ANIS ESTRELLA X 250 GR (GRAMO x 0.25 KG);GRAMO;0.25;KG;el SGP tiene este nombre con otra presentacion o factor
-4065;SGP04054;CAJA CHICA - ANIS ESTRELLA X 250 GR (GRAMO x 1 UND);GRAMO;1;UND;el SGP tiene este nombre con otra presentacion o factor
-4108;SGP04093;CAJA CHICA - ENVASE DELI 1/2 LT SUPER FAST TR + TAPATR (LITRO x 1 L);LITRO;1;L;el SGP tiene este nombre con otra presentacion o factor
-4112;SGP04097;CAJA CHICA - COPA FLORENTINA TRANSPARENTE C/10 (PAQUETE x 1 UND);PAQUETE;1;UND;el SGP tiene este nombre con otra presentacion o factor
-4116;SGP04101;CAJA CHICA - ENVASE DELI 1/2 LT SUPER FAST TR + TAPATR (MILLAR x 1 L);MILLAR;1;L;el SGP tiene este nombre con otra presentacion o factor
-4117;SGP04102;CAJA CHICA - COPA FLORENTINA TRANSPARENTE C/10 (UNIDAD x 1 UND);UNIDAD;1;UND;el SGP tiene este nombre con otra presentacion o factor
+3265;SGP03257;CAJA CHICA - TOMATE CHERRY (PAQUETE x 1 UND);PAQUETE;1;UND;el SGP tiene este nombre con otra presentacion o factor
+3546;SGP03535;CAJA CHICA - AGUA SAN LUIS 20 LT (BIDON x 1 UND);BIDON;1;UND;el SGP tiene este nombre con otra presentacion o factor
+3667;SGP03654;CAJA CHICA - PLATANO BELLACO (KILOGRAMO x 1 KG);KILOGRAMO;1;KG;el SGP tiene este nombre con otra presentacion o factor
+3772;SGP03759;CAJA CHICA - TOMATE CHERRY (KILOGRAMO x 1 KG);KILOGRAMO;1;KG;el SGP tiene este nombre con otra presentacion o factor
+3784;SGP03771;CAJA CHICA - AGUA SAN LUIS 20 LT (CAJA x 1 UND);CAJA;1;UND;el SGP tiene este nombre con otra presentacion o factor
+3802;SGP03789;CAJA CHICA - CANCHITA SALADA X 12 GR (UNIDAD x 1 UND);UNIDAD;1;UND;el SGP tiene este nombre con otra presentacion o factor
+3803;SGP03790;CAJA CHICA - CANCHITA SALADA X 12 GR (BOLSA x 1 UND);BOLSA;1;UND;el SGP tiene este nombre con otra presentacion o factor
+4064;SGP04051;CAJA CHICA - ANIS ESTRELLA X 250 GR (GRAMO x 0.25 KG);GRAMO;0.25;KG;el SGP tiene este nombre con otra presentacion o factor
+4065;SGP04052;CAJA CHICA - ANIS ESTRELLA X 250 GR (GRAMO x 1 UND);GRAMO;1;UND;el SGP tiene este nombre con otra presentacion o factor
+4108;SGP04091;CAJA CHICA - ENVASE DELI 1/2 LT SUPER FAST TR + TAPATR (LITRO x 1 L);LITRO;1;L;el SGP tiene este nombre con otra presentacion o factor
+4112;SGP04095;CAJA CHICA - COPA FLORENTINA TRANSPARENTE C/10 (PAQUETE x 1 UND);PAQUETE;1;UND;el SGP tiene este nombre con otra presentacion o factor
+4116;SGP04099;CAJA CHICA - ENVASE DELI 1/2 LT SUPER FAST TR + TAPATR (MILLAR x 1 L);MILLAR;1;L;el SGP tiene este nombre con otra presentacion o factor
+4117;SGP04100;CAJA CHICA - COPA FLORENTINA TRANSPARENTE C/10 (UNIDAD x 1 UND);UNIDAD;1;UND;el SGP tiene este nombre con otra presentacion o factor

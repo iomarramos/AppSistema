@@ -5,7 +5,7 @@
 | `productos_sgp_original.tsv` | Listado tal como vino del SGP: `pro_nombre`, `pro_coduni` (presentación), `pro_facing` (factor de conversión). 4 174 líneas. |
 | `catalogo_sgp.csv` | El mismo listado en el formato del importador de catálogo (generado; no editar a mano). |
 | `origen/` | Archivos tal como se recibieron del SGP (Latin-1, separador `;`). No se modifican. |
-| `productos_precios.csv` | Último precio de compra por producto (1 520), en UTF-8 y listo para usar: familia/subfamilia/grupo, unidad de envase, último precio y fecha (ISO). Miles sin separador, decimal con punto. **Aún no se carga**: se usará con proveedores y precios. |
+| `productos_precios.csv` | Último precio de compra por producto (1 520), en UTF-8 y listo para usar: familia/subfamilia/grupo, unidad de envase, último precio y fecha (ISO). Miles sin separador, decimal con punto. **Aún no se carga**: se usará con proveedores y precios. **Regla del usuario (03/10/2026):** un producto sin precio en este archivo se deja sin precio; no se le asigna 0 ni un precio estimado. |
 | `observaciones_sgp.csv` | Productos cuyo nombre no confirma el factor, o que tienen el mismo nombre que otro producto. **Para revisión.** |
 
 Regenerar los dos últimos: `dotnet run --project src/AppSistema.Instalador -- convertir-sgp datos/sgp/productos_sgp_original.tsv datos/sgp`
@@ -34,18 +34,19 @@ Ejemplo: `ARVEJA VERDE PARTIDA CANTA CLARO BOLSA 500 GR  8  0.5` queda así:
    * `pro_coduni` 23 con factor 1 → KG;
    * `pro_coduni` 26 con factor 1 → L;
    * factor 1 o entero → UND (unidades).
-3. Si el nombre contradice el factor, el producto **se carga igual con el factor del SGP** y queda en `observaciones_sgp.csv`. Son 51 productos.
+3. Si el nombre contradice el factor, el producto **se carga igual con el factor del SGP** y queda en `observaciones_sgp.csv`. Son 47 productos.
    * Ejemplo: `PAPA SECA LA SERRANITA 3 KG`, factor 5.
    * Se corrige desde Catálogo, con "Corregir contenido", mientras la presentación no tenga movimientos.
 4. Los productos con nombre repetido y otra presentación llevan la presentación en la descripción, por ejemplo `CAJA CHICA - TOMATE CHERRY (KILOGRAMO x 1 KG)`.
-5. Las 14 líneas idénticas a otra anterior se cargan una sola vez.
+5. Las 16 líneas idénticas a otra anterior se cargan una sola vez. Cuentan como idénticas dos códigos con la misma presentación: por ejemplo 1 y 23 son KILOGRAMO.
 
-Resultado: 4 160 productos (KG 1 476, L 375, UND 2 309).
+Resultado: 4 158 productos (KG 1 482, L 375, UND 2 301).
 
 ## Significado de `pro_coduni`
 
 | Código | Presentación | Código | Presentación | Código | Presentación |
 |---|---|---|---|---|---|
+| 1 | KILOGRAMO ✔ | | | | |
 | 3 | GRANO ✔ | 19 | GALON | 34 | POTE |
 | 4 | BIDON | 20 | GRAMO | 36 | ROLLO |
 | 5 | BALDE | 22 | KIT | 37 | PAQUETE ✔ (resma) |
@@ -59,7 +60,7 @@ Resultado: 4 160 productos (KG 1 476, L 375, UND 2 309).
 
 ✔ = confirmado por el usuario el 03/10/2026. Los demás nombres salen del cruce con `Uni.Env` del archivo de precios.
 
-**Pendiente:** el código **1** (8 productos de caja chica, sin precios) sigue como `PRES-SGP-1`.
+Todos los códigos del listado tienen nombre. Un código nuevo que no esté en la tabla se carga como `PRES-SGP-n`.
 
 El nombre de la presentación se fija en `ConversorSgp.Presentaciones` **antes** de la primera carga real.
 
