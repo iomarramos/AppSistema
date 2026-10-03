@@ -13,8 +13,7 @@ End Enum
 ''' Importación del catálogo desde CSV: plantilla, vista previa por fila e importación todo o nada.
 ''' En modo Recetas importa recetas normalizadas. En modo Catálogo también acepta el listado de productos del SGP (pro_nombre, pro_coduni, pro_facing), que se convierte al vuelo.
 ''' </summary>
-Public Class FormImportacion
-    Inherits Form
+Partial Public Class FormImportacion
 
     Private ReadOnly _modo As ModoImportacion
     Private ReadOnly _servicio As ServicioImportacionCatalogo
@@ -31,7 +30,13 @@ Public Class FormImportacion
 
     ''' <param name="modo">Catálogo (Catálogo > Importar catálogo, permiso CATALOGO_IMPORTAR) o Recetas (Menús > Importar recetas,
     ''' permiso RECETAS_EDITAR). Cada menú abre su propia ventana y solo acepta su tipo de archivo.</param>
+    Public Sub New()
+        InitializeComponent()
+    End Sub
+
     Public Sub New(cadena As String, sesion As SesionUsuario, modo As ModoImportacion)
+        InitializeComponent()
+        Controls.Clear()
         _servicio = New ServicioImportacionCatalogo(cadena, sesion)
         _recetas = New ServicioImportacionRecetas(cadena, sesion)
         _sesion = sesion
