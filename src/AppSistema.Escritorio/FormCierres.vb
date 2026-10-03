@@ -6,8 +6,7 @@ Imports AppSistema.Dominio.Seguridad
 ''' Cierres y control: tablero de pendientes del dia, cierre diario, ingreso mensual y objetivo de Food Cost por
 ''' servicio, reporte mensual y cierre de mes. Un periodo cerrado ya no cambia.
 ''' </summary>
-Public Class FormCierres
-    Inherits Form
+Partial Public Class FormCierres
 
     Private ReadOnly _servicio As ServicioCierres
     Private ReadOnly _fecha As New DateTimePicker With {.Format = DateTimePickerFormat.Short, .Width = 110}
@@ -18,7 +17,13 @@ Public Class FormCierres
     Private ReadOnly _totales As New Label With {.Dock = DockStyle.Bottom, .Height = 28, .Padding = New Padding(6)}
     Private ReadOnly _envio As New Label With {.Dock = DockStyle.Bottom, .Height = 28, .Padding = New Padding(6)}
 
+    Public Sub New()
+        InitializeComponent()
+    End Sub
+
     Public Sub New(cadena As String, sesion As SesionUsuario)
+        InitializeComponent()
+        Controls.Clear()
         _servicio = New ServicioCierres(cadena, sesion)
         Text = "Cierres y Food Cost - " & sesion.Operacion.Nombre
         Dim cierra = sesion.Tiene(Permisos.CierreEjecutar)
