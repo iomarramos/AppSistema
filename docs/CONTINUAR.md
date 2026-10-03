@@ -1,13 +1,13 @@
 # Cómo continuar (traspaso a una nueva conversación)
 
-Actualizado: 2026-10-03, 08:01 hora de Lima (13:01 UTC).
+Actualizado: 2026-10-03, 08:40 hora de Lima (13:40 UTC).
 
 | | |
 |---|---|
 | Rama | `claude/busy-mayer-9fxop6` |
 | PR | #1 (borrador, CI verde, sin conflictos) |
 | `develop` | en el mismo commit probado |
-| Último corte | 2026-10-03, 08:01 (Lima). Último commit de código: `e36829d` (07:40, Lima), con el dueño del sistema, Planificación y Abastecimiento, y el consolidado de compras. CI en verde; `develop` igual a la rama; el PR no tiene comentarios ni revisiones pendientes |
+| Último corte | 2026-10-03, 08:40 (Lima): **fase 1 de Planificación y Abastecimiento Central** (seguridad de cuatro niveles, V021). Antes: análisis y diseño en `docs/ARQUITECTURA_PLANIFICACION_CENTRAL.md` (commit `18c21a8`, CI verde, `develop` al día) |
 
 El detalle de cada etapa está en `docs/SEGUIMIENTO.md`; el checklist de avance (pantallas, accesos por rol y pendientes) en `docs/CHECKLIST.md`.
 
@@ -37,11 +37,12 @@ Plataforma: VB.NET + WinForms en Windows 10+ y PostgreSQL. Unas 20 PC; falta con
 | Etapa 9 (contratos, gastos, resultado, roles propios) | Hecha |
 | Venta por estructura (D13) y teórico vs real | Hecho |
 | Datos reales del SGP ordenados y cargables (`datos/real/`) | Hecho: 4 158 productos (`PRD`), 3 203 ingredientes (`ING`), 1 497 precios sin IGV, 975 productos activos, familias del SGP y 84 minutas de un ciclo propuesto con costo y venta. Conteo por tabla en `docs/ESTADO_BASE_DATOS.md` |
-| Falta del usuario | Menú del mes real y estructuras de loncheras, refrigerios y coffee break |
+| Planificación y Abastecimiento Central | **Fase 1 hecha** (seguridad: superusuario, módulo → pantalla → acción → alcance, matriz de acceso, roles centrales, stock y factores validados en la base). Fases 2–10 según `docs/ARQUITECTURA_PLANIFICACION_CENTRAL.md` |
+| Falta del usuario | Menú del mes real y estructuras de loncheras, refrigerios y coffee break; hora de corte del requerimiento; zonas de cada operación |
 | Reportes imprimibles y exportables (minuta del día, requerimiento, kárdex, inventario, stock valorizado) | Hecho: se imprimen desde el navegador o se exportan a CSV para Excel |
 | Interfaz WinForms | **Compila, pero nunca se ejecutó en Windows.** Réplica visual de las pantallas: https://claude.ai/artifact/LqViLBPDyFwUqMktDxNqaz |
 
-Última batería de pruebas: 69 aserciones SQL, 91 de dominio, 92 de integración e instalador de punta a punta, todo verde. Migraciones V001–V020.
+Última batería de pruebas: 69 aserciones SQL, 91 de dominio, 97 de integración e instalador de punta a punta, todo verde. Migraciones V001–V021.
 
 ## Decisiones del usuario (no reabrir)
 
@@ -75,6 +76,11 @@ Plataforma: VB.NET + WinForms en Windows 10+ y PostgreSQL. Unas 20 PC; falta con
   * el dueño del sistema es el administrador general: tiene clave personal y todos los permisos en todas las operaciones, y decide qué módulos y hasta qué nivel tiene cada persona;
   * hay dos áreas separadas: **Planificación** arma el menú con los factores teóricos, los costos del día y los pax a vender; **Abastecimiento** consolida las compras de todas las operaciones por periodo, por ejemplo un mes;
   * el sistema es para las sedes locales y los sitios remotos propios.
+* **Planificación y Abastecimiento Central (2026-10-03, respuestas del usuario):**
+  * el **superusuario es el usuario** (el dueño del sistema de V020, por empresa);
+  * la **liberación** la hace el área de Planificación o el superusuario directamente; no se exige un revisor distinto;
+  * **existe un almacén central** y las sedes se agrupan por **regiones o zonas** (`operacion.zona`; un rol puede valer en toda su zona);
+  * la liberación funciona primero en el mismo servidor; el canal remoto a otras sedes queda para la fase 3b.
 * **D10 (2026-10-03):** por ahora es **una sola sede**, pero puede ampliarse a varias. Se mantiene un servidor por sede con la central opcional, y el resultado consolidado de varias sedes queda para cuando se amplíe.
 
 ## Propuestas aplicadas que falta confirmar
@@ -83,6 +89,9 @@ Plataforma: VB.NET + WinForms en Windows 10+ y PostgreSQL. Unas 20 PC; falta con
 * **Enlace manual** en `datos/real/enlace_manual.csv`: solo la mantequilla 8 g, propuesta.
 
 ## Preguntas abiertas al usuario
+
+0. **Hora de corte del requerimiento interno.** Es el pedido de insumos de la cocina al almacén de su sede (y de la sede al almacén central). No es la compra global a proveedores. ¿A qué hora del día anterior se cierra? Después del corte, un cambio de comensales o factores genera un **adicional** y la entrega ya hecha no se toca.
+0. **Zonas:** ¿qué zona o región tiene cada operación?
 
 1. Revisar `datos/real/ingredientes_por_revisar.csv`: 85 ingredientes de receta sin producto seguro. Los principales:
    * AJO MOLIDO ENVASADO;

@@ -101,6 +101,7 @@ Public Class FormPrincipal
 
         Dim admin As New ToolStripMenuItem("&Administracion")
         Agregar(admin, "&Usuarios y roles", Permisos.UsuariosAdministrar, Function() New FormUsuarios(cadena, _sesion))
+        Agregar(admin, "&Matriz de acceso", Permisos.UsuariosAdministrar, Function() New FormMatrizAcceso(cadena, _sesion))
         Agregar(admin, "&Operaciones y almacenes", Permisos.UsuariosAdministrar, Function() New FormOperaciones(cadena, _sesion))
         Agregar(admin, "&Auditoria", Permisos.AuditoriaVer, Function() New FormAuditoria(cadena, _sesion))
         Agregar(admin, "&Carga de datos reales", Permisos.CatalogoImportar, Function() New FormCargaReal(cadena, _sesion))

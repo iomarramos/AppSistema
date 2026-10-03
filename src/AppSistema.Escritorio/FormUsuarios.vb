@@ -22,6 +22,8 @@ Public Class FormUsuarios
                                      Ui.Boton("Quitar rol", AddressOf QuitarRol), Ui.Boton("Desactivar", AddressOf Desactivar),
                                      Ui.Boton("Roles y permisos", AddressOf VerRoles), Ui.Boton("Rol propio...", AddressOf EditarRol),
                                      Ui.Boton("Accesos por modulo", AddressOf VerAccesos),
+                                     Ui.Boton("Asignaciones y alcance", AddressOf VerAsignaciones),
+                                     Ui.BotonSi(sesion.EsDueno, "Alcance...", AddressOf CambiarAlcance),
                                      Ui.BotonSi(sesion.EsDueno, "Dar rango de dueno", Sub() Dueno(True)),
                                      Ui.BotonSi(sesion.EsDueno, "Quitar rango de dueno", Sub() Dueno(False))))
         AddHandler Load, Sub() Cargar()
@@ -61,6 +63,28 @@ Public Class FormUsuarios
                                               "Planificacion|Planificacion", "Abastecimiento|Abastecimiento", "Catalogo|Catalogo", "Produccion|Produccion",
                                               "Almacen|Almacen", "Inventario|Inventario", "Cierres|Cierres y Food Cost", "Resultados|Resultados",
                                               "Administracion|Administracion"))
+    End Sub
+
+    Private Sub VerAsignaciones()
+        Ui.Ejecutar(Me, Sub() Ui.MostrarLista(Me, "Asignaciones y alcance",
+                                              "Alcance: OPERACION (solo esa sede), ZONA (todas las sedes de su zona o region) o TODAS (toda la empresa).",
+                                              _servicio.ListarAsignaciones(), "Login|Usuario", "Operacion|Operacion", "Zona|Zona", "Rol|Rol", "Alcance|Alcance"))
+    End Sub
+
+    ''' <summary>Solo el superusuario amplía el alcance de una asignación (por zona o a todas las operaciones).</summary>
+    Private Sub CambiarAlcance()
+        Dim u = Ui.Seleccionado(Of UsuarioResumen)(_usuarios)
+        If u Is Nothing Then Return
+        Using d As New DialogoCampos($"Alcance de un rol de {u.Login}")
+            Dim ops = OpcionesOperaciones().ToList()
+            d.Opciones("operacion", "Operacion de la asignacion", ops, ops.FirstOrDefault(Function(o) DirectCast(o, Opcion(Of Long)).Valor = _sesion.OperacionId.Value))
+            d.Opciones("rol", "Rol", OpcionesRoles())
+            d.Opciones("alcance", "Alcance", Alcances.Todos.Select(Function(a) CObj(New Opcion(Of String)(a, a))))
+            If d.ShowDialog(Me) <> DialogResult.OK Then Return
+            Ui.Ejecutar(Me, Sub() _servicio.FijarAlcance(u.Id, d.Elegido(Of Opcion(Of Long))("operacion").Valor, d.Elegido(Of Opcion(Of String))("rol").Valor,
+                                                          d.Elegido(Of Opcion(Of String))("alcance").Valor))
+        End Using
+        Cargar()
     End Sub
 
     Private Sub Dueno(darRango As Boolean)

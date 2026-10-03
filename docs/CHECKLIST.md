@@ -1,6 +1,6 @@
 # Checklist de avance
 
-Actualizado: 2026-10-03, 08:01 hora de Lima. Se actualiza en cada entrega.
+Actualizado: 2026-10-03, 08:40 hora de Lima. Se actualiza en cada entrega.
 
 **Leyenda**
 
@@ -20,7 +20,7 @@ Todas las pantallas **compilan, pero ninguna se ejecutó en Windows todavía** (
 | Catálogo > Proveedores y precios | CATALOGO_VER | Proveedores: PROVEEDORES_EDITAR · Precios: PRECIOS_EDITAR | 🟡 |
 | Catálogo > Importar catálogo | CATALOGO_IMPORTAR | Solo acepta archivos de catálogo o del listado SGP | 🟡 |
 | Menús > Recetas | MENUS_VER | Editar: RECETAS_EDITAR · Aprobar y retirar: RECETAS_APROBAR | 🟡 |
-| Menús > Minutas y necesidades | MENUS_VER | Planificar y cambiar comensales: MINUTAS_EDITAR · Aprobar y factores de la operación: MINUTAS_APROBAR · Imprimir minuta: todos | 🟡 |
+| Menús > Minutas y necesidades | MENUS_VER | Planificar y cambiar comensales: MINUTAS_EDITAR · Aprobar: MINUTAS_APROBAR · Factores de la operación: **FACTORES_EDITAR** (V021; la base también lo exige) · Imprimir minuta: todos | 🟡 |
 | Menús > Servicios y estructuras | MENUS_CONFIGURAR | Estructura teórica, factor teórico y Food Cost objetivo | 🟡 |
 | Menús > Importar recetas | RECETAS_EDITAR | Solo acepta archivos de recetas | 🟡 |
 | Menús > Producción | MENUS_VER | Requerimientos, producción, merma, venta real y consumo: PRODUCCION_EDITAR · Entregar: STOCK_CONTABILIZAR · Teórico vs real e imprimir requerimiento: todos | 🟡 |
@@ -31,8 +31,9 @@ Todas las pantallas **compilan, pero ninguna se ejecutó en Windows todavía** (
 | Cierres y control > Pendientes, cierres y Food Cost | REPORTES_VER | Cerrar, ingresos, venta por estructura y objetivo: CIERRE_EJECUTAR | 🟡 |
 | Cierres y control > Contratos y clientes | CONTRATOS_VER | Editar: CONTRATOS_EDITAR | 🟡 |
 | Cierres y control > Gastos y resultado mensual | RESULTADOS_VER | Gastos: GASTOS_EDITAR | 🟡 |
-| Administración > Usuarios y roles | USUARIOS_ADMINISTRAR | Roles propios por módulo y nivel; asignar en cualquier operación propia; **Accesos por módulo**; dar o quitar el rango de dueño (solo el dueño) | 🟡 |
-| Administración > Operaciones y almacenes | USUARIOS_ADMINISTRAR | **Nueva** | 🟡 |
+| Administración > Usuarios y roles | USUARIOS_ADMINISTRAR | Roles propios por módulo y nivel; asignar en cualquier operación propia; **Accesos por módulo**; **Asignaciones y alcance**; **Alcance…** (OPERACION, ZONA o TODAS: solo el superusuario); dar o quitar el rango de dueño (solo el dueño) | 🟡 |
+| Administración > **Matriz de acceso** | USUARIOS_ADMINISTRAR | **Nueva (fase 1).** Persona y operación → módulo, pantalla, acción, por rol, excepción y efectivo. Conceder o negar aquí o en todas, y quitar la excepción: solo el superusuario | 🟡 |
+| Administración > Operaciones y almacenes | USUARIOS_ADMINISTRAR | Nueva · **Zona o región** de cada operación (fase 1) | 🟡 |
 | Administración > Auditoría | AUDITORIA_VER | **Nueva**, solo lectura | 🟡 |
 | Administración > Sincronización y respaldo (TI) | USUARIOS_ADMINISTRAR | **Nueva**. Además pide la conexión del propietario de la base (no se guarda). Sede: estado de la cola, configurar, enviar ahora, respaldar y conciliación. Central: sedes, registrar (la credencial se muestra una vez) y desactivar | 🟡 |
 | Administración > Carga de datos reales | CATALOGO_IMPORTAR | **Nueva**. Precios: PRECIOS_EDITAR · Sin costo: CATALOGO_EDITAR · Estructuras: MENUS_CONFIGURAR · Ciclo: MINUTAS_EDITAR (aprobar: MINUTAS_APROBAR). Catálogo, recetas e inventario inicial abren su pantalla propia | 🟡 |
@@ -67,6 +68,24 @@ El **dueño del sistema** (administrador general, V020) tiene todo, en todas las
 | Sincronización y respaldo (TI) | ✔ | ✔ | — | — | — | — | — | — |
 | Auditoría | ✔ | ✔ | ✔ | — | — | — | — | — |
 
+**Roles centrales (fase 1, V021).** Se suman a los anteriores, que no cambian:
+
+| Rol | Tiene | No tiene |
+|---|---|---|
+| PLANIFICADOR_CENTRAL | Catálogo (ver), recetas (editar y aprobar), servicios, estructuras y factores teóricos, minutas (editar y aprobar), compras (ver), reportes | Stock (T54), factores de la operación |
+| COMPRAS_CENTRAL | Catálogo, proveedores y precios, compras (ver, preparar, aprobar), consolidado, reportes. Se le da alcance TODAS | Recetas, minutas, stock |
+| OPERACIONES | Minutas (editar), **factores de la operación**, producción, compras (ver), reportes. Se le puede dar alcance ZONA | Planificación central, stock |
+| CHEF | Minutas (editar), **factores de la operación**, producción | Stock, recetas centrales |
+| ALMACEN (existente) | Sin cambios | **Factores** (T53), recetas, planificación |
+
+**Superusuario (= dueño del sistema).** Respuesta del usuario: "el superusuario soy yo". Es el dueño de V020 en su empresa.
+
+**Alcance (cuarto nivel).** Cada asignación de rol vale en su operación (OPERACION), en todas las de su zona o región (ZONA) o en todas (TODAS). Solo el superusuario lo amplía.
+
+**Matriz de acceso.** El superusuario concede o niega un permiso a una persona fuera de su rol, en una operación o en todas. Lo negado gana. Los permisos efectivos se calculan en la base (`fn_permisos_usuario`): la sesión y los triggers usan el mismo cálculo.
+
+**Validado en la base, no solo en botones:** mover stock (STOCK_CONTABILIZAR en la operación del almacén) y cambiar factores (FACTORES_EDITAR en la operación; MENUS_CONFIGURAR para el teórico). Un usuario sin permiso tampoco puede hacerlo por SQL con la sesión de la aplicación.
+
 **Privilegios:**
 * quien administra usuarios solo puede dar permisos que él mismo tiene en esa operación (`ESCALADA_NO_PERMITIDA`);
 * el dueño no tiene límite;
@@ -78,7 +97,7 @@ Además, el administrador puede crear **roles propios** con los permisos que eli
 
 - ✅ **Botones por posición.** En Minutas, "Aprobar" se veía para todos y "Cambiar comensales" exigía el permiso de aprobar. Ahora todos los botones con permiso se definen con `Ui.BotonSi`, en 9 pantallas.
 - ✅ **Importación duplicada.** Las dos opciones abrían la misma ventana. Ahora cada una tiene su modo (catálogo o recetas) y rechaza el archivo del otro tipo, indicando a qué menú ir.
-- ✅ **Factores de la operación.** Pasaron de Servicios y estructuras a **Minutas**. Allí aparecen con el permiso que los exige (MINUTAS_APROBAR); antes estaban en una ventana con otro permiso.
+- ✅ **Factores de la operación.** Pasaron de Servicios y estructuras a **Minutas**. Allí aparecen con el permiso que los exige: desde V021, **FACTORES_EDITAR**, que tienen todos los roles que antes tenían MINUTAS_APROBAR.
 - ✅ **Producción.** "Previsto vs real" estaba duplicado por "Teórico vs real", así que se quitó. El comparativo suma lo entregado, lo devuelto y las mermas. Se agregó "Anular requerimiento", que antes no tenía botón.
 - ✅ **Gastos.** La lista de servicios usa el permiso de resultados; antes exigía el de contratos.
 - ✅ **Pantallas que faltaban.** Operaciones y almacenes, y Auditoría. En Catálogo, "Sin costo de compra" y "Corregir contenido".
@@ -129,6 +148,7 @@ Cada reporte sale con el botón **Imprimir…** de su pantalla. Se puede imprimi
 | Consolidado de compras por periodo entre todas las operaciones | ✅ |
 | D02 producto activo por operación (Catálogo, carga masiva, costeo y pedidos) y D03 precios sin IGV | ✅ |
 | Reportes imprimibles y exportables (HTML para imprimir o PDF, CSV para Excel), con el permiso de la pantalla de origen | ✅ |
+| **Planificación y Abastecimiento Central, fase 1 (seguridad):** superusuario, módulo → pantalla → acción → alcance (operación, zona o todas), matriz de acceso, roles centrales, stock y factores validados en la base (T53, T54, T61, T62, T63) | ✅ |
 
 ## 4. Pendiente por crear o confirmar
 
@@ -148,5 +168,8 @@ Cada reporte sale con el botón **Imprimir…** de su pantalla. Se puede imprimi
 | 14 | ✅ Bulto de pedido: los sacos son individuales. Si no hay un múltiplo, se pide de a uno (decisión del usuario, 2026-10-03). Si más adelante un producto se compra por caja, se le agrega un empaque en Catálogo | Usuario (respondido) |
 | 15 | ✅ Familias del SGP cargadas: familia › subfamilia › grupo (V019, `familias_sgp.csv`, 1 516 presentaciones en 112 grupos). El ingrediente sin categoría toma la familia de sus presentaciones | Programación (hecho) |
 | 16 | ⬜ **Menú del mes real** y **estructuras de servicio** que faltan (loncheras, refrigerios, coffee break), además de confirmar las de desayuno, almuerzo y cena. Estado actual en `docs/ESTADO_BASE_DATOS.md` | Usuario (los va a presentar) |
+| 17 | ⬜ **Planificación y Abastecimiento Central, fases 2–10** (`docs/ARQUITECTURA_PLANIFICACION_CENTRAL.md`): planificación teórica con versiones, liberación, plan operativo, programación del día del chef, requerimiento y adicional, ejecución real, 3 comparativos, aprendizaje de factores, compras globales con almacén central y tránsito, controles reutilizables | Programación (fase 1 hecha) |
+| 18 | ⬜ **Hora de corte del requerimiento interno** (cocina → almacén de la sede, y sede → almacén central): después del corte solo se acepta un adicional | Usuario |
+| 19 | ⬜ **Zonas o regiones** de cada operación (se cargan en Operaciones y almacenes) | Usuario |
 | 11 | ⬜ Piloto de un mes en una sede (`docs/PILOTO_ETAPA_8.md`) | Sede real |
 | 12 | ⬜ Integraciones (SAP, ADS, SGO) | Especificación del cliente |

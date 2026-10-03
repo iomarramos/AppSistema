@@ -95,10 +95,8 @@ Public NotInheritable Class ServicioAdministracion
     ''' </summary>
     Private Sub ExigirSinEscalada(u As UnidadDeTrabajo, permisosPedidos As IEnumerable(Of String), operacionId As Long)
         If Sesion.EsDueno Then Return
-        Dim propios = New HashSet(Of String)(u.Consultar(
-            "SELECT DISTINCT p.codigo FROM usuario_operacion_rol uor JOIN rol_permiso rp ON rp.rol_id = uor.rol_id " &
-            "JOIN permiso p ON p.id = rp.permiso_id WHERE uor.usuario_id = @u AND uor.operacion_id = @o",
-            Function(rd) rd.GetString(0), "u", Sesion.UsuarioId, "o", operacionId))
+        Dim propios = New HashSet(Of String)(u.Consultar("SELECT fn_permisos_usuario(@u, @o)", Function(rd) rd.GetString(0),
+                                                         "u", Sesion.UsuarioId, "o", operacionId))
         Dim faltan = permisosPedidos.Where(Function(p) Not propios.Contains(p)).Distinct().ToList()
         If faltan.Count > 0 Then
             Throw New ReglaNegocioException("ESCALADA_NO_PERMITIDA",
@@ -125,14 +123,17 @@ Public NotInheritable Class ServicioAdministracion
     Public Function AccesosPorModulo() As List(Of AccesoModuloDto)
         Return EnTransaccion(Permisos.UsuariosAdministrar,
             Function(u)
+                ' Permisos efectivos (V021): roles según su alcance (operación, zona o todas) y excepciones de la matriz.
                 Dim filas = u.Consultar(
                     "SELECT us.login, us.nombre, o.codigo || ' - ' || o.nombre, us.es_dueno, " &
-                    "       COALESCE(string_agg(DISTINCT r.codigo, ', '), ''), COALESCE(array_agg(DISTINCT p.codigo) FILTER (WHERE p.codigo IS NOT NULL), '{}') " &
+                    "       COALESCE((SELECT string_agg(DISTINCT r.codigo || CASE uor.alcance WHEN 'OPERACION' THEN '' ELSE ' (' || uor.alcance || ')' END, ', ') " &
+                    "                 FROM usuario_operacion_rol uor JOIN rol r ON r.id = uor.rol_id JOIN operacion b ON b.id = uor.operacion_id " &
+                    "                 WHERE uor.usuario_id = us.id AND (uor.operacion_id = o.id OR uor.alcance = 'TODAS' " &
+                    "                       OR (uor.alcance = 'ZONA' AND NULLIF(btrim(b.zona), '') = NULLIF(btrim(o.zona), '')))), ''), " &
+                    "       ARRAY(SELECT fn_permisos_usuario(us.id, o.id)) " &
                     "FROM usuario us CROSS JOIN operacion o " &
-                    "LEFT JOIN usuario_operacion_rol uor ON uor.usuario_id = us.id AND uor.operacion_id = o.id " &
-                    "LEFT JOIN rol r ON r.id = uor.rol_id LEFT JOIN rol_permiso rp ON rp.rol_id = r.id LEFT JOIN permiso p ON p.id = rp.permiso_id " &
-                    "WHERE us.activo = 1 AND o.activo = 1 GROUP BY us.login, us.nombre, o.codigo, o.nombre, us.es_dueno " &
-                    "HAVING us.es_dueno OR count(uor.id) > 0 ORDER BY us.login, o.codigo",
+                    "WHERE us.activo = 1 AND o.activo = 1 AND (us.es_dueno OR EXISTS (SELECT 1 FROM fn_permisos_usuario(us.id, o.id))) " &
+                    "ORDER BY us.login, o.codigo",
                     Function(rd) (Login:=rd.GetString(0), Nombre:=rd.GetString(1), Operacion:=rd.GetString(2), Dueno:=rd.GetBoolean(3),
                                   Roles:=rd.GetString(4), Permisos:=DirectCast(rd.GetValue(5), String())))
                 Return filas.Select(Function(f)
@@ -185,11 +186,113 @@ Public NotInheritable Class ServicioAdministracion
                                                      .Activo = rd.GetBoolean(3), .EsDueno = rd.GetBoolean(4), .Roles = rd.GetString(5)}))
     End Function
 
-    Public Function CrearOperacion(codigo As String, nombre As String) As Long
+    Public Function CrearOperacion(codigo As String, nombre As String, Optional zona As String = Nothing) As Long
         Return EnTransaccion(Permisos.UsuariosAdministrar,
-            Function(u) u.EscalarLong("INSERT INTO operacion(empresa_id, codigo, nombre) VALUES (@e, @c, @n) RETURNING id",
-                                      "e", Sesion.EmpresaId, "c", Requerido(codigo, "codigo"), "n", Requerido(nombre, "nombre")))
+            Function(u) u.EscalarLong("INSERT INTO operacion(empresa_id, codigo, nombre, zona) VALUES (@e, @c, @n, @z) RETURNING id",
+                                      "e", Sesion.EmpresaId, "c", Requerido(codigo, "codigo"), "n", Requerido(nombre, "nombre"), "z", ZonaNormalizada(zona)))
     End Function
+
+    ''' <summary>Zona o región de la operación (p. ej. SUR, NORTE). Agrupa sedes para el acceso por zona y las compras.</summary>
+    Public Sub FijarZona(operacionId As Long, zona As String)
+        EnTransaccion(Permisos.UsuariosAdministrar,
+            Function(u) ServicioRecetas.ExigirFila(u.Ejecutar("UPDATE operacion SET zona = @z WHERE id = @o", "z", ZonaNormalizada(zona), "o", operacionId)))
+    End Sub
+
+    Private Shared Function ZonaNormalizada(zona As String) As Object
+        Return If(String.IsNullOrWhiteSpace(zona), CObj(DBNull.Value), zona.Trim().ToUpperInvariant())
+    End Function
+
+    ' ---------- Alcance y matriz de acceso (V021) ----------
+
+    ''' <summary>
+    ''' Alcance de una asignación de rol: OPERACION (su operación), ZONA (las de la zona de esa operación) o TODAS. Solo el
+    ''' superusuario amplía un alcance (la base también lo exige).
+    ''' </summary>
+    Public Sub FijarAlcance(usuarioId As Long, operacionId As Long, rolCodigo As String, alcance As String)
+        alcance = If(alcance, "").Trim().ToUpperInvariant()
+        If Not Alcances.Todos.Contains(alcance) Then Throw New ReglaNegocioException("DATO_INVALIDO", "Alcance desconocido: use OPERACION, ZONA o TODAS.")
+        If alcance <> Alcances.Operacion AndAlso Not Sesion.EsDueno Then
+            Throw New ReglaNegocioException("SOLO_DUENO", "Solo el superusuario da acceso por zona o a todas las operaciones.")
+        End If
+        EnTransaccion(Permisos.UsuariosAdministrar,
+            Function(u)
+                If u.Ejecutar("UPDATE usuario_operacion_rol SET alcance = @a WHERE usuario_id = @u AND operacion_id = @o AND rol_id = (SELECT id FROM rol WHERE codigo = @c)",
+                              "a", alcance, "u", usuarioId, "o", operacionId, "c", rolCodigo) = 0 Then
+                    Throw New ReglaNegocioException("NO_ENCONTRADO", "El usuario no tiene ese rol en la operacion.")
+                End If
+                Return 0
+            End Function)
+    End Sub
+
+    ''' <summary>Asignaciones de rol de la empresa con su alcance.</summary>
+    Public Function ListarAsignaciones() As List(Of AsignacionRolDto)
+        Return EnTransaccion(Permisos.UsuariosAdministrar,
+            Function(u) u.Consultar(
+                "SELECT us.id, us.login, o.id, o.codigo || ' - ' || o.nombre, COALESCE(o.zona, ''), r.codigo, uor.alcance " &
+                "FROM usuario_operacion_rol uor JOIN usuario us ON us.id = uor.usuario_id JOIN operacion o ON o.id = uor.operacion_id " &
+                "JOIN rol r ON r.id = uor.rol_id ORDER BY us.login, o.codigo, r.codigo",
+                Function(rd) New AsignacionRolDto With {.UsuarioId = rd.GetInt64(0), .Login = rd.GetString(1), .OperacionId = rd.GetInt64(2),
+                                                        .Operacion = rd.GetString(3), .Zona = rd.GetString(4), .Rol = rd.GetString(5), .Alcance = rd.GetString(6)}))
+    End Function
+
+    ''' <summary>
+    ''' Matriz de acceso de una persona en una operación: módulo → pantalla → acción, si su rol lo da, la excepción de la
+    ''' matriz (concedido o negado) y el resultado efectivo.
+    ''' </summary>
+    Public Function MatrizDeAcceso(usuarioId As Long, operacionId As Long) As List(Of MatrizAccesoDto)
+        Return EnTransaccion(Permisos.UsuariosAdministrar,
+            Function(u)
+                Dim efectivos = New HashSet(Of String)(u.Consultar("SELECT fn_permisos_usuario(@u, @o)", Function(rd) rd.GetString(0), "u", usuarioId, "o", operacionId))
+                Dim porRol = New HashSet(Of String)(u.Consultar(
+                    "SELECT DISTINCT p.codigo FROM usuario_operacion_rol uor JOIN operacion b ON b.id = uor.operacion_id JOIN operacion o ON o.id = @o " &
+                    "JOIN rol_permiso rp ON rp.rol_id = uor.rol_id JOIN permiso p ON p.id = rp.permiso_id " &
+                    "WHERE uor.usuario_id = @u AND (uor.operacion_id = o.id OR uor.alcance = 'TODAS' " &
+                    "      OR (uor.alcance = 'ZONA' AND NULLIF(btrim(b.zona), '') = NULLIF(btrim(o.zona), '')))",
+                    Function(rd) rd.GetString(0), "u", usuarioId, "o", operacionId))
+                Dim excepciones = u.Consultar(
+                    "SELECT p.codigo, up.concedido, up.operacion_id IS NULL FROM usuario_permiso up JOIN permiso p ON p.id = up.permiso_id " &
+                    "WHERE up.usuario_id = @u AND (up.operacion_id IS NULL OR up.operacion_id = @o)",
+                    Function(rd) (Codigo:=rd.GetString(0), Concedido:=rd.GetBoolean(1), Todas:=rd.GetBoolean(2)), "u", usuarioId, "o", operacionId)
+                Dim orden = Modulos.Todos.ToList()
+                Dim acciones = Pantallas.Acciones.ToList()
+                Return Permisos.Todos.Select(
+                    Function(p)
+                        Dim propias = excepciones.Where(Function(x) x.Codigo = p).ToList()
+                        Dim excepcion = ""
+                        If propias.Count > 0 Then
+                            excepcion = If(propias.Any(Function(x) Not x.Concedido), "NEGADO", "CONCEDIDO") & If(propias.All(Function(x) x.Todas), " (todas)", "")
+                        End If
+                        Return New MatrizAccesoDto With {
+                            .Permiso = p, .Modulo = Modulos.ModuloDe(p), .Pantalla = Pantallas.PantallaDe(p), .Accion = Pantallas.AccionDe(p),
+                            .Descripcion = Permisos.Descripcion(p), .PorRol = porRol.Contains(p), .Efectivo = efectivos.Contains(p), .Excepcion = excepcion}
+                    End Function) _
+                    .OrderBy(Function(m) orden.IndexOf(m.Modulo)).ThenBy(Function(m) m.Pantalla).ThenBy(Function(m) acciones.IndexOf(m.Accion)).ToList()
+            End Function)
+    End Function
+
+    ''' <summary>
+    ''' Excepción de la matriz: concede (True) o niega (False) un permiso a la persona en una operación (Nothing = en todas);
+    ''' concedido Nothing quita la excepción y vuelve a lo que da el rol. Solo el superusuario (la base también lo exige).
+    ''' </summary>
+    Public Sub FijarExcepcion(usuarioId As Long, permiso As String, operacionId As Long?, concedido As Boolean?, Optional motivo As String = Nothing)
+        If Not Sesion.EsDueno Then Throw New ReglaNegocioException("SOLO_DUENO", "Solo el superusuario modifica la matriz de acceso.")
+        If Not Permisos.Todos.Contains(permiso) Then Throw New ReglaNegocioException("DATO_INVALIDO", $"Permiso desconocido: {permiso}.")
+        EnTransaccion(Permisos.UsuariosAdministrar,
+            Function(u)
+                Dim op As Object = If(operacionId.HasValue, CObj(operacionId.Value), DBNull.Value)
+                If Not concedido.HasValue Then
+                    Return u.Ejecutar("DELETE FROM usuario_permiso WHERE usuario_id = @u AND operacion_id IS NOT DISTINCT FROM @o::bigint " &
+                                      "AND permiso_id = (SELECT id FROM permiso WHERE codigo = @p)", "u", usuarioId, "o", op, "p", permiso)
+                End If
+                Return u.Ejecutar(
+                    "INSERT INTO usuario_permiso(empresa_id, usuario_id, permiso_id, operacion_id, concedido, motivo, registrado_por) " &
+                    "SELECT @e, @u, id, @o::bigint, @c, @m, @r FROM permiso WHERE codigo = @p " &
+                    "ON CONFLICT (empresa_id, usuario_id, permiso_id, operacion_id) DO UPDATE SET concedido = EXCLUDED.concedido, motivo = EXCLUDED.motivo, " &
+                    "registrado_por = EXCLUDED.registrado_por, actualizado_en = now()",
+                    "e", Sesion.EmpresaId, "u", usuarioId, "o", op, "c", concedido.Value,
+                    "m", If(String.IsNullOrWhiteSpace(motivo), CObj(DBNull.Value), motivo.Trim()), "r", Sesion.UsuarioId, "p", permiso)
+            End Function)
+    End Sub
 
     Public Function CrearAlmacen(operacionId As Long, codigo As String, nombre As String) As Long
         Return EnTransaccion(Permisos.UsuariosAdministrar,
@@ -202,9 +305,10 @@ Public NotInheritable Class ServicioAdministracion
         Return EnTransaccion(Permisos.UsuariosAdministrar,
             Function(u) u.Consultar(
                 "SELECT o.id, o.codigo, o.nombre, o.ubicacion, (SELECT count(*) FROM almacen a WHERE a.operacion_id = o.id AND a.activo = 1), " &
-                "(SELECT count(DISTINCT uor.usuario_id) FROM usuario_operacion_rol uor WHERE uor.operacion_id = o.id) FROM operacion o ORDER BY o.codigo",
+                "(SELECT count(DISTINCT uor.usuario_id) FROM usuario_operacion_rol uor WHERE uor.operacion_id = o.id), o.zona FROM operacion o ORDER BY o.codigo",
                 Function(rd) New OperacionDto With {.Id = rd.GetInt64(0), .Codigo = rd.GetString(1), .Nombre = rd.GetString(2),
-                                                    .Ubicacion = rd.TextoONada("ubicacion"), .Almacenes = rd.GetInt64(4), .Usuarios = rd.GetInt64(5)}))
+                                                    .Ubicacion = rd.TextoONada("ubicacion"), .Almacenes = rd.GetInt64(4), .Usuarios = rd.GetInt64(5),
+                                                    .Zona = rd.TextoONada("zona")}))
     End Function
 
     ''' <summary>Almacenes de cualquier operación de la empresa (administración).</summary>

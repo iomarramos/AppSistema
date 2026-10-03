@@ -33,18 +33,22 @@ erDiagram
     permiso ||--o{ rol_permiso : "permiso_id"
     rol ||--o{ rol_permiso : "rol_id"
     rol ||--o{ usuario_operacion_rol : "rol_id"
+    usuario ||--o{ usuario_permiso : "usuario_id"
+    permiso ||--o{ usuario_permiso : "permiso_id"
+    operacion ||--o{ usuario_permiso : "operacion_id (NULL = todas)"
 ```
 
 | Tabla | PK | Llaves foráneas (columna → tabla.columna) | La referencian |
 |---|---|---|---|
 | `empresa` | `id` | — | todas las tablas de datos |
-| `operacion` | `id` | `empresa_id` → `empresa.id` | `almacen`, `cierre_diario`, `contrato`, `operacion_servicio`, `periodo_mensual`, `producto_operacion`, `sincronizacion_evento`, `usuario_operacion_rol` |
+| `operacion` | `id` | `empresa_id` → `empresa.id` | `almacen`, `cierre_diario`, `contrato`, `operacion_servicio`, `periodo_mensual`, `producto_operacion`, `sincronizacion_evento`, `usuario_operacion_rol`, `usuario_permiso` |
 | `almacen` | `id` | `empresa_id` → `empresa.id`<br>`operacion_id` → `operacion.id` (misma empresa) | `documento_stock`, `inventario`, `movimiento_stock`, `pedido_compra`, `politica_abastecimiento`, `prevision`, `recepcion`, `requerimiento`, `saldo_stock` |
-| `usuario` | `id` | `empresa_id` → `empresa.id` | `auditoria`, `cierre_diario`, `consumo_plato`, `documento_stock`, `factor_consumo_operacion`, `gasto`, `inventario`, `inventario_ajuste`, `inventario_detalle`, `minuta`, `movimiento_stock`, `pedido_compra`, `periodo_mensual`, `prevision`, `produccion`, `producto_operacion`, `recepcion`, `requerimiento`, `usuario_operacion_rol`, `venta_servicio` |
+| `usuario` | `id` | `empresa_id` → `empresa.id` | `auditoria`, `cierre_diario`, `consumo_plato`, `documento_stock`, `factor_consumo_operacion`, `gasto`, `inventario`, `inventario_ajuste`, `inventario_detalle`, `minuta`, `movimiento_stock`, `pedido_compra`, `periodo_mensual`, `prevision`, `produccion`, `producto_operacion`, `recepcion`, `requerimiento`, `usuario_operacion_rol`, `usuario_permiso` (persona y `registrado_por`), `venta_servicio` |
 | `rol` | `id` | `empresa_id` → `empresa.id` | `rol_permiso`, `usuario_operacion_rol` |
-| `permiso` | `id` | `empresa_id` → `empresa.id` | `rol_permiso` |
+| `permiso` | `id` | `empresa_id` → `empresa.id` | `rol_permiso`, `usuario_permiso` |
 | `rol_permiso` | `id` | `empresa_id` → `empresa.id`<br>`permiso_id` → `permiso.id` (misma empresa)<br>`rol_id` → `rol.id` (misma empresa) |  |
-| `usuario_operacion_rol` | `id` | `empresa_id` → `empresa.id`<br>`operacion_id` → `operacion.id` (misma empresa)<br>`rol_id` → `rol.id` (misma empresa)<br>`usuario_id` → `usuario.id` (misma empresa) |  |
+| `usuario_operacion_rol` | `id` | `empresa_id` → `empresa.id`<br>`operacion_id` → `operacion.id` (misma empresa)<br>`rol_id` → `rol.id` (misma empresa)<br>`usuario_id` → `usuario.id` (misma empresa)<br>Columna `alcance` (V021): OPERACION, ZONA o TODAS |  |
+| `usuario_permiso` (V021) | `id` | `empresa_id` → `empresa.id`<br>`usuario_id` → `usuario.id` (misma empresa)<br>`permiso_id` → `permiso.id` (misma empresa)<br>`operacion_id` → `operacion.id` (misma empresa; NULL = todas)<br>`registrado_por` → `usuario.id` (misma empresa) |  |
 | `auditoria` | `id` | `empresa_id` → `empresa.id`<br>`usuario_id` → `usuario.id` (misma empresa) |  |
 
 ## Catálogo

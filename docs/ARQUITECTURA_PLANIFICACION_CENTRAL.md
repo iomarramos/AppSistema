@@ -271,7 +271,30 @@ Se mantienen ADMIN, SUPERVISOR, COCINA, FINANZAS, PLANIFICACION y ABASTECIMIENTO
 * Teórico, operativo y real nunca comparten registro.
 * Ningún cambio central altera en silencio lo que ya está en ejecución.
 
-## 11. Decisiones que necesito del usuario antes de la fase 1
+## 11. Decisiones del usuario (2026-10-03) y fase 1
+
+**Respuestas:**
+1. **C2:** "el superusuario soy yo": es el dueño del sistema, por empresa (opción A).
+2. y 3. **Liberación:** la hace el área de Planificación o el superusuario directamente. No se exige un revisor distinto. Empieza en el mismo servidor (fase 3a).
+4. **Corte del requerimiento:** el usuario preguntó si es el interno o el pedido global. Es el **interno** (cocina → almacén de la sede, y sede → almacén central); la compra global a proveedores no tiene corte diario. Falta la hora.
+5. **Almacén central:** existe.
+6. **Regiones:** las sedes se agrupan por regiones o zonas. Se usa `operacion.zona`.
+
+**Fase 1 hecha (V021):**
+* La tabla `pantalla` propuesta se reemplazó por el catálogo `Seguridad.Pantallas` del dominio: cada permiso tiene su pantalla y su acción. Los permisos también se crean desde el código, así hay una sola fuente.
+* Alcance OPERACION, ZONA o TODAS en `usuario_operacion_rol`; solo el superusuario lo amplía.
+* `usuario_permiso`: excepciones concedidas o negadas por el superusuario.
+* `fn_permisos_usuario` da los permisos efectivos; la sesión, el consolidado de compras, el control de escalada y los triggers usan ese mismo cálculo.
+* Triggers: mover stock exige STOCK_CONTABILIZAR, el factor de la operación exige FACTORES_EDITAR y el factor teórico exige MENUS_CONFIGURAR.
+* Roles PLANIFICADOR_CENTRAL, COMPRAS_CENTRAL, OPERACIONES y CHEF.
+* Pantalla Administración > Matriz de acceso; zona en Operaciones; alcance en Usuarios.
+* Pruebas T53, T54, T61, T62 y T63, más alcance y matriz (`SeguridadCentralTests`).
+
+**Siguiente:** fase 2, planificación central con versiones (V022).
+
+### Preguntas originales
+
+
 
 1. **C2:** ¿superusuario por empresa (recomendado) o un acceso global a todas las empresas?
 2. **C3:** ¿empezamos con la liberación en el mismo servidor y el canal remoto después (recomendado)?

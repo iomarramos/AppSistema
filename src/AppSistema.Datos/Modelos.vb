@@ -48,6 +48,29 @@ Public NotInheritable Class OperacionDto
     Public Property Ubicacion As String
     Public Property Almacenes As Long
     Public Property Usuarios As Long
+    Public Property Zona As String
+End Class
+
+Public NotInheritable Class AsignacionRolDto
+    Public Property UsuarioId As Long
+    Public Property Login As String
+    Public Property OperacionId As Long
+    Public Property Operacion As String
+    Public Property Zona As String
+    Public Property Rol As String
+    Public Property Alcance As String
+End Class
+
+''' <summary>Una fila de la matriz de acceso: módulo → pantalla → acción, si lo da el rol, la excepción y el efectivo.</summary>
+Public NotInheritable Class MatrizAccesoDto
+    Public Property Permiso As String
+    Public Property Modulo As String
+    Public Property Pantalla As String
+    Public Property Accion As String
+    Public Property Descripcion As String
+    Public Property PorRol As Boolean
+    Public Property Excepcion As String
+    Public Property Efectivo As Boolean
 End Class
 
 Public NotInheritable Class AuditoriaDto

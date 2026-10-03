@@ -15,7 +15,7 @@ Public Class FormOperaciones
         Text = "Operaciones y almacenes"
         Dim division As New SplitContainer With {.Dock = DockStyle.Fill}
         division.Panel1.Controls.Add(_operaciones)
-        division.Panel1.Controls.Add(Ui.BarraBotones(Ui.Boton("Nueva operacion...", AddressOf NuevaOperacion)))
+        division.Panel1.Controls.Add(Ui.BarraBotones(Ui.Boton("Nueva operacion...", AddressOf NuevaOperacion), Ui.Boton("Zona o region...", AddressOf CambiarZona)))
         division.Panel2.Controls.Add(_almacenes)
         division.Panel2.Controls.Add(Ui.BarraBotones(Ui.Boton("Nuevo almacen...", AddressOf NuevoAlmacen)))
         Controls.Add(division)
@@ -32,7 +32,7 @@ Public Class FormOperaciones
     End Property
 
     Private Sub Cargar()
-        Ui.Ejecutar(Me, Sub() Ui.Mostrar(_operaciones, _servicio.ListarOperaciones(), "Codigo|Codigo", "Nombre|Operacion", "Ubicacion|Ubicacion",
+        Ui.Ejecutar(Me, Sub() Ui.Mostrar(_operaciones, _servicio.ListarOperaciones(), "Codigo|Codigo", "Nombre|Operacion", "Zona|Zona o region", "Ubicacion|Ubicacion",
                                          "Almacenes|Almacenes", "Usuarios|Usuarios"))
     End Sub
 
@@ -44,9 +44,21 @@ Public Class FormOperaciones
 
     Private Sub NuevaOperacion()
         Using d As New DialogoCampos("Nueva operacion")
-            d.Texto("codigo", "Codigo").Texto("nombre", "Nombre")
+            d.Texto("codigo", "Codigo").Texto("nombre", "Nombre").Texto("zona", "Zona o region (opcional, p. ej. SUR)")
             If d.ShowDialog(Me) <> DialogResult.OK Then Return
-            Ui.Ejecutar(Me, Sub() _servicio.CrearOperacion(d.Valor("codigo"), d.Valor("nombre")))
+            Ui.Ejecutar(Me, Sub() _servicio.CrearOperacion(d.Valor("codigo"), d.Valor("nombre"), d.Valor("zona")))
+        End Using
+        Cargar()
+    End Sub
+
+    ''' <summary>La zona agrupa sedes: un rol con alcance ZONA vale en todas las operaciones de la misma zona.</summary>
+    Private Sub CambiarZona()
+        Dim o = Operacion
+        If o Is Nothing Then Ui.Informar(Me, "Seleccione una operacion.") : Return
+        Using d As New DialogoCampos("Zona o region de " & o.Nombre)
+            d.Texto("zona", "Zona o region (vacio = sin zona)", If(o.Zona, ""))
+            If d.ShowDialog(Me) <> DialogResult.OK Then Return
+            Ui.Ejecutar(Me, Sub() _servicio.FijarZona(o.Id, d.Valor("zona")))
         End Using
         Cargar()
     End Sub

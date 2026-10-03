@@ -35,7 +35,7 @@ Public Class FormMinutas
                                            Ui.BotonSi(edita, "Nueva minuta", AddressOf NuevaMinuta),
                                            Ui.BotonSi(edita, "Cambiar comensales...", AddressOf CambiarComensales),
                                            Ui.BotonSi(aprueba, "Aprobar", AddressOf Aprobar),
-                                           Ui.BotonSi(aprueba, "Factores de la operacion...", AddressOf FactoresOperacion),
+                                           Ui.BotonSi(sesion.Tiene(Permisos.FactoresEditar), "Factores de la operacion...", AddressOf FactoresOperacion),
                                            Ui.Boton("Necesidades del periodo...", AddressOf Necesidades),
                                            Ui.Boton("Imprimir minuta...", AddressOf ImprimirMinuta))
         Dim barraPlatos = Ui.BarraBotones(Ui.Boton("Agregar plato", AddressOf AgregarPlato), Ui.Boton("Quitar plato", AddressOf QuitarPlato),

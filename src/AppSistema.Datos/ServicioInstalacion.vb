@@ -82,10 +82,6 @@ Public NotInheritable Class ServicioInstalacion
     End Function
 
     ''' <summary>
-    ''' Tras una actualización: crea en cada empresa los permisos nuevos del sistema y los asigna al rol ADMIN.
-    ''' Los demás roles no cambian (lo decide el administrador). Idempotente; devuelve cuántos permisos creó.
-    ''' </summary>
-    ''' <summary>
     ''' Crea el dueño del sistema (administrador general) con su clave personal, o da ese rango a un usuario existente y
     ''' le fija la clave. El dueño entra a todas las operaciones con todos los permisos. Se hace con la conexión del
     ''' propietario: desde la aplicación solo otro dueño puede otorgarlo.
@@ -112,6 +108,10 @@ Public NotInheritable Class ServicioInstalacion
         End Try
     End Function
 
+    ''' <summary>
+    ''' Tras una actualización: crea en cada empresa los permisos nuevos del sistema y los asigna al rol ADMIN.
+    ''' Los demás roles no cambian (lo decide el administrador). Idempotente; devuelve cuántos permisos creó.
+    ''' </summary>
     Public Function SincronizarPermisos() As Integer
         Try
             Using u As New UnidadDeTrabajo(_cadenaPropietario, Nothing, Nothing)

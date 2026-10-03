@@ -57,7 +57,7 @@ End Class
 
 ''' <summary>
 ''' Abastecimiento: consolidado de compras de un periodo (por ejemplo, un mes) entre TODAS las operaciones a las que la
-''' persona tiene acceso con COMPRAS_CONSOLIDAR (el dueño, todas). La demanda sale de las minutas que hizo
+''' persona tiene COMPRAS_CONSOLIDAR, según el alcance de su rol (V021; el dueño, todas). La demanda sale de las minutas que hizo
 ''' Planificación (menú, factores y pax). Por operación se descuenta su stock y lo pendiente de recibir, y se suma su
 ''' reserva. El costo usa el precio del producto activo de cada operación (D02) y no incluye IGV (D03).
 ''' </summary>
@@ -75,10 +75,9 @@ Public NotInheritable Class ServicioConsolidadoCompras
             Function(u)
                 Dim r As New ConsolidadoComprasDto With {.Desde = desde.Date, .Hasta = hasta.Date, .IncluyeBorradores = incluirBorradores}
                 Dim operaciones = u.Consultar(
-                    "SELECT o.id, o.codigo || ' - ' || o.nombre FROM operacion o WHERE o.activo = 1 AND (@d OR EXISTS (" &
-                    "  SELECT 1 FROM usuario_operacion_rol uor JOIN rol_permiso rp ON rp.rol_id = uor.rol_id JOIN permiso p ON p.id = rp.permiso_id " &
-                    "  WHERE uor.usuario_id = @u AND uor.operacion_id = o.id AND p.codigo = @p)) ORDER BY o.codigo",
-                    Function(rd) (Id:=rd.GetInt64(0), Nombre:=rd.GetString(1)), "d", Sesion.EsDueno, "u", Sesion.UsuarioId, "p", Permisos.ComprasConsolidar)
+                    "SELECT o.id, o.codigo || ' - ' || o.nombre FROM operacion o WHERE o.activo = 1 " &
+                    "AND @p IN (SELECT fn_permisos_usuario(@u, o.id)) ORDER BY o.codigo",
+                    Function(rd) (Id:=rd.GetInt64(0), Nombre:=rd.GetString(1)), "u", Sesion.UsuarioId, "p", Permisos.ComprasConsolidar)
                 Dim estados = If(incluirBorradores, New String() {"borrador", "aprobada", "cerrada"}, New String() {"aprobada", "cerrada"})
                 Dim productos = u.Consultar(
                     "SELECT p.id, p.codigo, p.descripcion, um.codigo, COALESCE(c.nombre, '') FROM producto_base p " &

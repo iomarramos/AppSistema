@@ -56,10 +56,12 @@ Public NotInheritable Class ServicioAcceso
                 ' El dueño del sistema entra a todas las operaciones activas; los demás, a las que tienen algún rol.
                 ' to_jsonb: una base aún sin V020 (antes de actualizar) no tiene la columna; ahí nadie es dueño.
                 Dim esDueno = CBool(u.Escalar("SELECT COALESCE((to_jsonb(us) ->> 'es_dueno')::boolean, false) FROM usuario us WHERE us.id = @u", "u", usuarioId))
+                ' Con V021, las operaciones salen de los permisos efectivos (alcance por operación, zona o todas, y excepciones).
+                Dim filtro = If(TieneSeguridadPorAlcance(u),
+                    "o.id IN (SELECT fn_operaciones_usuario(@u))",
+                    "(@d OR EXISTS (SELECT 1 FROM usuario_operacion_rol r WHERE r.operacion_id = o.id AND r.usuario_id = @u))")
                 Dim operaciones = u.Consultar(
-                    "SELECT DISTINCT o.id, o.codigo, o.nombre FROM operacion o " &
-                    "WHERE o.activo = 1 AND (@d OR EXISTS (SELECT 1 FROM usuario_operacion_rol r WHERE r.operacion_id = o.id AND r.usuario_id = @u)) " &
-                    "ORDER BY o.nombre",
+                    "SELECT DISTINCT o.id, o.codigo, o.nombre FROM operacion o WHERE o.activo = 1 AND " & filtro & " ORDER BY o.nombre",
                     Function(rd) New OperacionDisponible(rd.GetInt64(0), rd.GetString(1), rd.GetString(2)), "u", usuarioId, "d", esDueno)
                 Return New SesionUsuario(usuarioId, login.Trim(), nombre, empresaId, empresaCodigo.Trim(), operaciones, Nothing, Nothing, esDueno)
             End Using
@@ -68,7 +70,7 @@ Public NotInheritable Class ServicioAcceso
         End Try
     End Function
 
-    ''' <summary>Fija la operación de trabajo y carga los permisos del usuario en ella.</summary>
+    ''' <summary>Fija la operación de trabajo y carga los permisos efectivos del usuario en ella.</summary>
     Public Function SeleccionarOperacion(sesion As SesionUsuario, operacionId As Long) As SesionUsuario
         If sesion Is Nothing Then Throw New ArgumentNullException(NameOf(sesion))
         Dim op = sesion.Operaciones.FirstOrDefault(Function(o) o.Id = operacionId)
@@ -76,6 +78,10 @@ Public NotInheritable Class ServicioAcceso
         If sesion.EsDueno Then Return sesion.ConOperacion(op, Permisos.Todos)
         Try
             Using u = UnidadDeTrabajo.ParaSesion(_cadena, sesion)
+                If TieneSeguridadPorAlcance(u) Then
+                    Return sesion.ConOperacion(op, u.Consultar("SELECT fn_permisos_usuario(@u, @o)", Function(rd) rd.GetString(0),
+                                                               "u", sesion.UsuarioId, "o", operacionId))
+                End If
                 Dim permisos = u.Consultar(
                     "SELECT DISTINCT p.codigo FROM usuario_operacion_rol uor " &
                     "JOIN rol_permiso rp ON rp.empresa_id = uor.empresa_id AND rp.rol_id = uor.rol_id " &
@@ -87,6 +93,11 @@ Public NotInheritable Class ServicioAcceso
         Catch ex As PostgresException
             Throw ErroresBD.Traducir(ex)
         End Try
+    End Function
+
+    ''' <summary>True si la base ya tiene V021 (permisos efectivos en la base). Una base anterior, antes de actualizarse, no.</summary>
+    Private Shared Function TieneSeguridadPorAlcance(u As UnidadDeTrabajo) As Boolean
+        Return CBool(u.Escalar("SELECT to_regprocedure('fn_permisos_usuario(bigint,bigint)') IS NOT NULL"))
     End Function
 
     Public Sub CambiarClave(sesion As SesionUsuario, claveActual As String, claveNueva As String)

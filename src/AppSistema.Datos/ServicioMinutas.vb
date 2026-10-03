@@ -199,7 +199,7 @@ Public NotInheritable Class ServicioMinutas
     ''' <summary>La operación ajusta el factor de un componente (Nothing = volver al teórico). Aplica a las minutas que se planifiquen después.</summary>
     Public Sub FijarFactorOperacion(operacionServicioId As Long, estructuraId As Long, factorConsumoBp As Long?)
         Dim op = OperacionId
-        EnTransaccion(Permisos.MinutasAprobar,
+        EnTransaccion(Permisos.FactoresEditar,
             Function(u)
                 ExigirServicioDeOperacion(u, operacionServicioId, op)
                 If Not factorConsumoBp.HasValue Then
