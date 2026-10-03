@@ -1,5 +1,7 @@
 # Estado de la base de datos con los datos reales
 
+Las llaves primarias y foráneas de cada tabla, con un diagrama por área, están en `docs/RELACIONES_BASE_DATOS.md`.
+
 Actualizado: 2026-10-03. Es el resultado de cargar todo `datos/real/` en una base nueva con los pasos de `datos/real/LEEME.md` (migraciones V001–V019, 71 tablas).
 
 Los productos usan códigos `PRDnnnnn` y los ingredientes `INGnnnnn`; ya no hay códigos con "SGP". El proveedor de los precios de referencia es `REF`.
