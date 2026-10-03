@@ -8,8 +8,7 @@ Imports AppSistema.Dominio.Seguridad
 ''' Gastos del mes (personal, operación, administración, otros; reales o presupuestados) y resultado mensual por servicio:
 ''' ingreso − alimentos − gastos = margen. Exporta el resultado en CSV para contabilidad.
 ''' </summary>
-Public Class FormResultados
-    Inherits Form
+Partial Public Class FormResultados
 
     Private ReadOnly _servicio As ServicioResultados
     Private ReadOnly _sesion As SesionUsuario
@@ -18,7 +17,13 @@ Public Class FormResultados
     Private ReadOnly _gastos As DataGridView = Ui.NuevaGrilla()
     Private ReadOnly _estado As New Label With {.Dock = DockStyle.Bottom, .Height = 28, .Padding = New Padding(6)}
 
+    Public Sub New()
+        InitializeComponent()
+    End Sub
+
     Public Sub New(cadena As String, sesion As SesionUsuario)
+        InitializeComponent()
+        Controls.Clear()
         _servicio = New ServicioResultados(cadena, sesion)
         _sesion = sesion
         Text = "Gastos y resultado mensual - " & sesion.Operacion.Nombre
