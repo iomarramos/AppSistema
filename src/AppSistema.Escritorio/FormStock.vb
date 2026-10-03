@@ -9,8 +9,7 @@ Imports AppSistema.Dominio.Seguridad
 ''' Stock por variante del almacén (cantidad base, valor y costo promedio) y movimientos: inventario inicial,
 ''' recepción de pedidos, salida a cocina, baja, traspaso, devolución, kárdex y documentos.
 ''' </summary>
-Public Class FormStock
-    Inherits Form
+Partial Public Class FormStock
 
     Private ReadOnly _stock As ServicioStock
     Private ReadOnly _apertura As ServicioInventarioInicial
@@ -23,7 +22,13 @@ Public Class FormStock
     Private ReadOnly _saldos As DataGridView = Ui.NuevaGrilla()
     Private ReadOnly _total As New Label With {.Dock = DockStyle.Bottom, .Height = 28, .Padding = New Padding(6)}
 
+    Public Sub New()
+        InitializeComponent()
+    End Sub
+
     Public Sub New(cadena As String, sesion As SesionUsuario)
+        InitializeComponent()
+        Controls.Clear()
         _stock = New ServicioStock(cadena, sesion)
         _apertura = New ServicioInventarioInicial(cadena, sesion)
         _almacenes = New ServicioAlmacen(cadena, sesion)

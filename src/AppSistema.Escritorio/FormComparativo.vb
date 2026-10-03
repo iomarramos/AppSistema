@@ -2,8 +2,7 @@ Imports System.Windows.Forms
 Imports AppSistema.Datos
 
 ''' <summary>Planificado vs realizado: resumen (raciones, venta, costo, Food Cost), componentes y productos.</summary>
-Public Class FormComparativo
-    Inherits Form
+Partial Public Class FormComparativo
 
     Public NotInheritable Class FilaResumen
         Public Property Concepto As String
@@ -12,7 +11,13 @@ Public Class FormComparativo
         Public Property Diferencia As String
     End Class
 
+    Public Sub New()
+        InitializeComponent()
+    End Sub
+
     Public Sub New(c As ComparativoDto)
+        InitializeComponent()
+        Controls.Clear()
         Text = "Teorico vs real - " & c.Titulo
         Width = 1100 : Height = 700
         StartPosition = FormStartPosition.CenterParent

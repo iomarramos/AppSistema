@@ -2,15 +2,20 @@ Imports System.Windows.Forms
 Imports AppSistema.Datos
 
 ''' <summary>Servicios (desayuno, almuerzo…), su estructura (sopa, fondo, bebida…), regímenes y servicios de la operación.</summary>
-Public Class FormServicios
-    Inherits Form
+Partial Public Class FormServicios
 
     Private ReadOnly _servicio As ServicioMinutas
     Private ReadOnly _servicios As DataGridView = Ui.NuevaGrilla()
     Private ReadOnly _estructuras As DataGridView = Ui.NuevaGrilla()
     Private ReadOnly _operacion As DataGridView = Ui.NuevaGrilla()
 
+    Public Sub New()
+        InitializeComponent()
+    End Sub
+
     Public Sub New(cadena As String, sesion As SesionUsuario)
+        InitializeComponent()
+        Controls.Clear()
         _servicio = New ServicioMinutas(cadena, sesion)
         Text = "Servicios y estructuras"
 

@@ -6,14 +6,19 @@ Imports AppSistema.Dominio.Seguridad
 ''' Usuarios de la empresa, sus roles por operación y hasta qué nivel llega cada uno en cada módulo. El dueño del sistema
 ''' ve y asigna en todas las operaciones; los demás administradores solo pueden dar permisos que ellos mismos tienen.
 ''' </summary>
-Public Class FormUsuarios
-    Inherits Form
+Partial Public Class FormUsuarios
 
     Private ReadOnly _servicio As ServicioAdministracion
     Private ReadOnly _sesion As SesionUsuario
     Private ReadOnly _usuarios As DataGridView = Ui.NuevaGrilla()
 
+    Public Sub New()
+        InitializeComponent()
+    End Sub
+
     Public Sub New(cadena As String, sesion As SesionUsuario)
+        InitializeComponent()
+        Controls.Clear()
         _servicio = New ServicioAdministracion(cadena, sesion)
         _sesion = sesion
         Text = "Usuarios y roles"

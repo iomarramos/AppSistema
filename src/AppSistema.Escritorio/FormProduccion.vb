@@ -6,8 +6,7 @@ Imports AppSistema.Dominio.Seguridad
 ''' Producción por minuta: requerimiento calculado y adicionales, entrega del almacén en presentaciones completas,
 ''' raciones producidas/servidas, mermas, venta real, consumo por componente y comparación teórico vs real.
 ''' </summary>
-Public Class FormProduccion
-    Inherits Form
+Partial Public Class FormProduccion
 
     Private ReadOnly _produccion As ServicioProduccion
     Private ReadOnly _comparativo As ServicioComparativo
@@ -20,7 +19,13 @@ Public Class FormProduccion
     Private ReadOnly _gRequerimientos As DataGridView = Ui.NuevaGrilla()
     Private ReadOnly _gLineas As DataGridView = Ui.NuevaGrilla()
 
+    Public Sub New()
+        InitializeComponent()
+    End Sub
+
     Public Sub New(cadena As String, sesion As SesionUsuario)
+        InitializeComponent()
+        Controls.Clear()
         _produccion = New ServicioProduccion(cadena, sesion)
         _comparativo = New ServicioComparativo(cadena, sesion)
         _minutas = New ServicioMinutas(cadena, sesion)

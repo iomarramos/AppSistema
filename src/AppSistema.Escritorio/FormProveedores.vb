@@ -3,8 +3,7 @@ Imports AppSistema.Datos
 Imports AppSistema.Dominio.Seguridad
 
 ''' <summary>Proveedores, empaques que ofrece cada uno y su historial de precios.</summary>
-Public Class FormProveedores
-    Inherits Form
+Partial Public Class FormProveedores
 
     Private ReadOnly _servicio As ServicioProveedores
     Private ReadOnly _catalogo As ServicioCatalogo
@@ -12,7 +11,13 @@ Public Class FormProveedores
     Private ReadOnly _empaques As DataGridView = Ui.NuevaGrilla()
     Private ReadOnly _precios As DataGridView = Ui.NuevaGrilla()
 
+    Public Sub New()
+        InitializeComponent()
+    End Sub
+
     Public Sub New(cadena As String, sesion As SesionUsuario)
+        InitializeComponent()
+        Controls.Clear()
         _servicio = New ServicioProveedores(cadena, sesion)
         _catalogo = New ServicioCatalogo(cadena, sesion)
         Text = "Proveedores y precios"

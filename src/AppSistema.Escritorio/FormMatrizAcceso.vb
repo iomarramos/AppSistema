@@ -7,15 +7,20 @@ Imports AppSistema.Dominio.Seguridad
 ''' da, la excepción (concedido o negado) y el resultado efectivo. Solo el superusuario concede o niega fuera del rol;
 ''' la base también lo exige, y lo que muestra esta pantalla es lo mismo que valida la base.
 ''' </summary>
-Public Class FormMatrizAcceso
-    Inherits Form
+Partial Public Class FormMatrizAcceso
 
     Private ReadOnly _servicio As ServicioAdministracion
     Private ReadOnly _usuario As New ComboBox With {.DropDownStyle = ComboBoxStyle.DropDownList, .Width = 220}
     Private ReadOnly _operacion As New ComboBox With {.DropDownStyle = ComboBoxStyle.DropDownList, .Width = 240}
     Private ReadOnly _matriz As DataGridView = Ui.NuevaGrilla()
 
+    Public Sub New()
+        InitializeComponent()
+    End Sub
+
     Public Sub New(cadena As String, sesion As SesionUsuario)
+        InitializeComponent()
+        Controls.Clear()
         _servicio = New ServicioAdministracion(cadena, sesion)
         Text = "Matriz de acceso"
         Dim dueno = sesion.EsDueno

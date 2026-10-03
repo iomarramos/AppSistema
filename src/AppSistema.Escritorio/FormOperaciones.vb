@@ -3,14 +3,19 @@ Imports AppSistema.Datos
 Imports AppSistema.Dominio.Seguridad
 
 ''' <summary>Operaciones (sedes) de la empresa y sus almacenes. Los usuarios se asignan a una operación en Usuarios y roles.</summary>
-Public Class FormOperaciones
-    Inherits Form
+Partial Public Class FormOperaciones
 
     Private ReadOnly _servicio As ServicioAdministracion
     Private ReadOnly _operaciones As DataGridView = Ui.NuevaGrilla()
     Private ReadOnly _almacenes As DataGridView = Ui.NuevaGrilla()
 
+    Public Sub New()
+        InitializeComponent()
+    End Sub
+
     Public Sub New(cadena As String, sesion As SesionUsuario)
+        InitializeComponent()
+        Controls.Clear()
         _servicio = New ServicioAdministracion(cadena, sesion)
         Text = "Operaciones y almacenes"
         Dim division As New SplitContainer With {.Dock = DockStyle.Fill}

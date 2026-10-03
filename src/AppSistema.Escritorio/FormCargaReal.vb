@@ -9,8 +9,7 @@ Imports AppSistema.Dominio.Seguridad
 ''' pantalla propia (catálogo, recetas, inventario inicial) la abren, para no duplicarla; el resto carga el archivo aquí.
 ''' Todos los pasos son repetibles: lo que ya existe no se duplica ni se pisa. Cada paso exige su propio permiso.
 ''' </summary>
-Public Class FormCargaReal
-    Inherits Form
+Partial Public Class FormCargaReal
 
     Private ReadOnly _cadena As String
     Private ReadOnly _sesion As SesionUsuario
@@ -19,7 +18,13 @@ Public Class FormCargaReal
     Private ReadOnly _resultado As New TextBox With {.Dock = DockStyle.Fill, .Multiline = True, .ReadOnly = True, .ScrollBars = ScrollBars.Both,
                                                      .WordWrap = False, .Font = New Drawing.Font("Consolas", 9.0F)}
 
+    Public Sub New()
+        InitializeComponent()
+    End Sub
+
     Public Sub New(cadena As String, sesion As SesionUsuario)
+        InitializeComponent()
+        Controls.Clear()
         _cadena = cadena
         _sesion = sesion
         _carga = New ServicioCargaReal(cadena, sesion)

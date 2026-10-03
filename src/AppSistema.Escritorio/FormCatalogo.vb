@@ -4,8 +4,7 @@ Imports AppSistema.Dominio.Catalogo
 Imports AppSistema.Dominio.Seguridad
 
 ''' <summary>Productos base (izquierda) con sus variantes y empaques (derecha).</summary>
-Public Class FormCatalogo
-    Inherits Form
+Partial Public Class FormCatalogo
 
     Private ReadOnly _servicio As ServicioCatalogo
     Private ReadOnly _sesion As SesionUsuario
@@ -15,7 +14,13 @@ Public Class FormCatalogo
     Private ReadOnly _variantes As DataGridView = Ui.NuevaGrilla()
     Private ReadOnly _empaques As DataGridView = Ui.NuevaGrilla()
 
+    Public Sub New()
+        InitializeComponent()
+    End Sub
+
     Public Sub New(cadena As String, sesion As SesionUsuario)
+        InitializeComponent()
+        Controls.Clear()
         _servicio = New ServicioCatalogo(cadena, sesion)
         _sesion = sesion
         Text = "Catalogo: productos, variantes y empaques"
