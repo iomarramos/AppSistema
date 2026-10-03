@@ -91,6 +91,7 @@ Public Class FormPrincipal
         Agregar(admin, "&Operaciones y almacenes", Permisos.UsuariosAdministrar, Function() New FormOperaciones(cadena, _sesion))
         Agregar(admin, "&Auditoria", Permisos.AuditoriaVer, Function() New FormAuditoria(cadena, _sesion))
         Agregar(admin, "&Carga de datos reales", Permisos.CatalogoImportar, Function() New FormCargaReal(cadena, _sesion))
+        Agregar(admin, "&Sincronizacion y respaldo (TI)", Permisos.UsuariosAdministrar, Function() New FormContinuidad(_config, _sesion))
 
         Dim sesionMenu As New ToolStripMenuItem("&Sesion")
         sesionMenu.DropDownItems.Add("Cambiar &clave...", Nothing, Sub() CambiarClave())

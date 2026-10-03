@@ -33,6 +33,7 @@ Todas las pantallas **compilan, pero ninguna se ejecutó en Windows todavía** (
 | Administración > Usuarios y roles | USUARIOS_ADMINISTRAR | Incluye roles propios | 🟡 |
 | Administración > Operaciones y almacenes | USUARIOS_ADMINISTRAR | **Nueva** | 🟡 |
 | Administración > Auditoría | AUDITORIA_VER | **Nueva**, solo lectura | 🟡 |
+| Administración > Sincronización y respaldo (TI) | USUARIOS_ADMINISTRAR | **Nueva**. Además pide la conexión del propietario de la base (no se guarda). Sede: estado de la cola, configurar, enviar ahora, respaldar y conciliación. Central: sedes, registrar (la credencial se muestra una vez) y desactivar | 🟡 |
 | Administración > Carga de datos reales | CATALOGO_IMPORTAR | **Nueva**. Precios: PRECIOS_EDITAR · Sin costo: CATALOGO_EDITAR · Estructuras: MENUS_CONFIGURAR · Ciclo: MINUTAS_EDITAR (aprobar: MINUTAS_APROBAR). Catálogo, recetas e inventario inicial abren su pantalla propia | 🟡 |
 | Barra de estado | REPORTES_VER | Estado de envío a la central | 🟡 |
 
@@ -60,6 +61,7 @@ Los menús sin ninguna opción para el usuario ya no se muestran.
 | Contratos, gastos y resultado | ✔ | ✔ | — | — | ✔ |
 | Usuarios, operaciones y almacenes | ✔ | — | — | — | — |
 | Carga de datos reales | ✔ | ✔ | — | — | — |
+| Sincronización y respaldo (TI) | ✔ | — | — | — | — |
 | Auditoría | ✔ | ✔ | — | — | — |
 
 Además, el administrador puede crear **roles propios** con los permisos que elija.
@@ -101,7 +103,7 @@ Cada reporte sale con el botón **Imprimir…** de su pantalla. Se puede imprimi
 | Producción (entrega por presentación completa, mermas) | ✅ |
 | Inventario físico | ✅ |
 | Cierres diario y mensual, Food Cost | ✅ |
-| Continuidad (cola, sincronización, respaldo, restauración, actualización) | ✅ (falta el piloto) |
+| Continuidad (cola, sincronización, respaldo, restauración, actualización), con pantalla para TI | ✅ (falta el piloto) |
 | Contratos, gastos, resultado y roles propios | ✅ |
 | Datos reales del SGP ordenados y cargables (`datos/real/`), desde la consola o la pantalla de carga; archivo equivocado rechazado | ✅ |
 | Reportes imprimibles y exportables (HTML para imprimir o PDF, CSV para Excel), con el permiso de la pantalla de origen | ✅ |
@@ -117,7 +119,7 @@ Cada reporte sale con el botón **Imprimir…** de su pantalla. Se puede imprimi
 | 5 | ⬜ Recetas con precio para cereales y yogurt del desayuno | Usuario |
 | 6 | ⬜ D02 (regla de precio del ingrediente), D03 (impuestos) y D10 (¿una sede o varias?) | Usuario |
 | 7 | 🟡 Pantalla para la carga de datos reales: **hecha** (Administración > Carga de datos reales, 7 pasos con el estado de lo cargado). Falta probarla en Windows | Programación (hecho) · PC con Windows |
-| 8 | ⬜ Pantalla de sincronización y respaldo para TI (hoy solo desde el Instalador y el script de Windows) | Programación |
+| 8 | 🟡 Pantalla de sincronización y respaldo para TI: **hecha** (Administración > Sincronización y respaldo). Pide la conexión del propietario y no la guarda. Restaurar y actualizar siguen solo en el Instalador, a propósito. Falta probarla en el piloto | Programación (hecho) · Piloto |
 | 9 | ⬜ Resultado consolidado de varias sedes en la central | Programación, con D10 |
 | 10 | 🟡 Reportes imprimibles o exportables: **hecho** (minuta del día, requerimiento, kárdex, hoja de conteo, resultado de inventario y stock valorizado). Falta verlos impresos desde Windows | Programación (hecho) · PC con Windows |
 | 11 | ⬜ Piloto de un mes en una sede (`docs/PILOTO_ETAPA_8.md`) | Sede real |
