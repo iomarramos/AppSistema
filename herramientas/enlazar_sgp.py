@@ -11,6 +11,7 @@ Entradas:
   datos/enlace/origen/PRODUCTO_INGREDIENTE.csv   Producto;Ingrediente;Categoria (Windows-1252)
   datos/sgp/catalogo_sgp.csv                      generado por "AppSistema.Instalador convertir-sgp"
   datos/recetas/recetas_normalizadas.csv          generado por herramientas/convertir_recetas_sgp.py
+  datos/enlace/correcciones_contenido.csv         contenidos por envase corregidos por el usuario (reemplazan pro_facing)
 Salidas (datos/enlace/):
   catalogo_por_ingrediente.csv   formato del importador de catálogo (importar-catalogo)
   recetas_enlazadas.csv          recetas con el ingrediente del enlace (importar-recetas)
@@ -127,6 +128,12 @@ def main():
     for n, clave in enumerate(sorted(base_de), 1):
         base_de[clave] = f"ING{n:05d}"
 
+    # Contenidos corregidos por el usuario (2026-10-03): el nombre manda salvo en carnes, que se compran por kilo.
+    correcciones = {f["variante_codigo"]: f["contenido_correcto"] for f in leer_csv(os.path.join(SALIDA, "correcciones_contenido.csv"))}
+    for _, unidad, p in filas:
+        if p["variante_codigo"] in correcciones:
+            p["contenido_por_envase"] = correcciones[p["variante_codigo"]]
+            p["empaque_descripcion"] = f'{p["empaque_codigo"]} x {p["contenido_por_envase"]} {unidad}'
     with open(os.path.join(SALIDA, "catalogo_por_ingrediente.csv"), "w", encoding="utf-8", newline="") as fh:
         w = csv.writer(fh, delimiter=";", lineterminator="\n")
         w.writerow(["producto_codigo", "producto_descripcion", "unidad_base", "categoria", "variante_codigo", "marca", "descripcion_comercial",

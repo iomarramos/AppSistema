@@ -25,7 +25,7 @@ python3 herramientas/ordenar_datos_reales.py
 | `ingredientes_por_revisar.csv` | Los que no se enlazaron solos, con el mejor candidato y su coincidencia. Para confirmarlos, se copian a `enlace_manual.csv`. |
 | `recetas_reales.csv` | Las 946 recetas con el ingrediente del catálogo. **Es lo que se importa.** |
 | `insumos_sin_costo.csv` | AGUA PARA RECETA: no se compra y se costea en S/ 0, en vez de dejar la receta con costo "pendiente". |
-| `contenido_por_revisar.csv` | 60 presentaciones cuyo contenido cargado no coincide con la medida del nombre. Por ejemplo, LECHE CONDENSADA GLORIA 393 GR está cargada con 0,395 kg y ATÚN FLORIDA 140 GR con 0,170 kg. No se corrigen solas porque cambian el costo por kilo o litro. Primero van las 13 que son producto activo. No se incluyen la venta por peso (porciones de "120 GR" de un producto que se compra por kilo), los paquetes "6X4 LITROS" ni la caja chica. |
+| `contenido_por_revisar.csv` | Presentaciones cuyo contenido no coincide con la medida del nombre. **Hoy está vacío**: el usuario revisó las 60 el 2026-10-03 y quedaron así (ver `datos/enlace/correcciones_contenido.csv`): 30 corregidas a la medida del nombre (con dos pesos, vale el segundo); las carnes se compran por kilo (contenido 1 kg; el peso del nombre solo describe la presentación); y "3.785 ML" es un error del nombre, son litros. |
 | `familias_sgp.csv` | Familia › subfamilia › grupo del SGP por presentación (1 516 presentaciones, 112 grupos). La caja chica solo trae familia. |
 | `productos_activos.csv` | D02: por ingrediente, el producto activo en la operación, es decir el que tiene stock en el inventario o el de compra más reciente en el SGP. Su precio es el que se costea. Se corrige en Catálogo > Producto activo en la operación. |
 | `recetas_clasificadas.csv` | Cada receta con:<br>• su componente de menú (bebida caliente, jugo, pan, sopa, fondo, guarnición, entrada, postre, refresco, complemento, huevo…);<br>• la proteína del fondo;<br>• el **gramaje por ración** (g, ml, und);<br>• el costo estimado por ración y si todos sus ingredientes tienen precio. |
@@ -65,7 +65,7 @@ Las raciones de cada plato salen de comensales × factor × reparto. Con `--apro
 | Servicio | Minutas | Costo por comensal (promedio, mín–máx) | Precio de venta por comensal (48 %) |
 |---|---|---|---|
 | Desayuno | 28 | S/ 3,54 (2,67–4,58) | S/ 7,38 |
-| Almuerzo | 28 | S/ 7,87 (5,28–12,00) | S/ 16,41 |
+| Almuerzo | 28 | S/ 7,87 (5,28–12,00) | S/ 16,40 |
 | Cena | 28 | S/ 6,15 (3,64–12,59) | S/ 12,82 |
 
 Con la regla D02 se usa el precio del **producto activo** de cada ingrediente (`productos_activos.csv`): el que tiene stock en el inventario o, si no, el de compra más reciente en el SGP. Antes se tomaba el más barato y el costo salía entre 12 % y 23 % menor. Los precios no incluyen IGV (D03).

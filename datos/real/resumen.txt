@@ -1,4 +1,4 @@
-Precios: 1497 presentaciones con precio (377 del inventario, el resto ultimo precio SGP; 0 precios sin producto en el catalogo).
+Precios: 1497 presentaciones con precio (378 del inventario, el resto ultimo precio SGP; 0 precios sin producto en el catalogo).
 Precios atipicos apartados para revisar: 20 (precios_atipicos.csv).
 Ingredientes con costo por unidad base: 975.
 Enlace complementario: 49 ingredientes de receta enlazados por nombre; 85 por revisar (448 lineas).
@@ -7,5 +7,5 @@ Recetas por componente: BEBIDA CALIENTE 86, CEREAL 2, COMPLEMENTO 19, ENTRADA 10
 Fondos por proteina: CERDO 14, GALLINA 9, OTRAS CARNES 13, PAVO 13, PESCADO 22, POLLO 68, RES 31, VEGETARIANO/OTRO 16
 Ciclo: 28 dias, 700 lineas; con costo completo: 700.
 Familias SGP: 1516 presentaciones con familia; 112 grupos.
-Contenido por envase: 977 presentaciones coinciden con la medida del nombre; 60 por revisar (contenido_por_revisar.csv), 13 de ellas son el producto activo.
+Contenido por envase: 1006 presentaciones coinciden con la medida del nombre; 0 por revisar (contenido_por_revisar.csv), 0 de ellas son el producto activo.
 Componentes fuera del ciclo por no tener ninguna receta con precio: DESAYUNO / Cereales / yogurt.

@@ -415,7 +415,11 @@ def main():
             coinciden_contenido += 1
             continue
         por_peso = cargado == 1 and c["unidad_base"] == "KG" and declarado < 1 and re.search(r"KGM|GRANEL|CONGELAD|CORTE|TROZ|FILETE|CHULETA|ALBONDIGA|PORCION", nombre)
-        if por_peso:
+        # Decisión del usuario (2026-10-03): las carnes se compran por kilo; el peso o rango del nombre solo describe la presentación.
+        carne_por_kilo = cargado == 1 and c["unidad_base"] == "KG" and re.search(r"\b(POLLO|LECHON|PAVO|CERDO|RES|CARNE|PIERNA|PECHUGA|CORDERO|PATO)\b", nombre)
+        # "3.785 ML" en un bidón de 3,785 L: el nombre dice ML por error; el contenido cargado es el correcto.
+        ml_por_litros = unidad == "ML" and dec(cantidad.replace(",", ".")) == cargado
+        if por_peso or carne_por_kilo or ml_por_litros:
             continue
         en_uso = "si" if variante_activa.get(c["producto_codigo"]) == c["variante_codigo"] else "no"
         revisar_contenido.append([c["variante_codigo"], c["descripcion_comercial"], c["producto_descripcion"], c["unidad_base"],

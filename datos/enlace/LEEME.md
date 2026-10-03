@@ -46,3 +46,12 @@ Se prueban estas opciones, en orden:
 El paso 2 reutiliza los ingredientes del paso 1, buscándolos por descripción y unidad: son 287. Además crea 113 ingredientes que no tienen producto comprable, como AGUA PARA RECETA, BASE CRIOLLA o AJO MOLIDO ENVASADO.
 
 Este flujo **reemplaza** a `importar-sgp`, que creaba un producto base por cada producto SGP. En una base nueva use solo este flujo.
+
+## Correcciones de contenido (`correcciones_contenido.csv`)
+
+El usuario revisó el 2026-10-03 los contenidos por envase que no coincidían con el nombre del producto. `enlazar_sgp.py` aplica esas correcciones sobre `pro_facing` al generar `catalogo_por_ingrediente.csv`.
+
+* **Regla general:** vale la medida del nombre (por ejemplo, LECHE CONDENSADA GLORIA 393 GR = 0,393 kg). Si el nombre tiene dos pesos ("250/235 GR"), vale el segundo, que es el vigente.
+* **Carnes** (pollo, lechón, pavo, cerdo…): se compran por kilo, así que el contenido es 1 kg. El peso o el rango del nombre ("RANGO 1.4 KG") solo describe la presentación.
+* **"3.785 ML" en bidones de limpieza:** es un error del nombre; son litros y el contenido cargado (3,785 L) es correcto.
+
