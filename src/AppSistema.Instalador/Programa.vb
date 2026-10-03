@@ -39,6 +39,8 @@ Public Module Programa
                     For Each m In New Migrador(conexion).Migrar()
                         Console.WriteLine($"  {m.Archivo,-45} {If(m.Aplicada, "APLICADA", "ya estaba")}")
                     Next
+                    Dim nuevos = New ServicioInstalacion(conexion).SincronizarPermisos()
+                    If nuevos > 0 Then Console.WriteLine($"  {nuevos} permisos nuevos creados y asignados al rol ADMIN.")
                     Console.WriteLine("Migraciones al dia.")
 
                 Case "crear-empresa"

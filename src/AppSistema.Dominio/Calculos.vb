@@ -22,6 +22,40 @@ Namespace Calculos
 
     End Module
 
+    ''' <summary>Costo previsto (R06). Montos y cantidades en u6; costos por unidad base.</summary>
+    Public Module Costeo
+
+        ''' <summary>
+        ''' Costo de una unidad base a partir del precio del empaque:
+        ''' precio / (envases por empaque × contenido por envase). Caja de 4 × 4 L a S/128 → S/8 por L.
+        ''' </summary>
+        Public Function CostoUnitarioBaseU6(precioEmpaqueU6 As Long, envasesPorEmpaque As Long, contenidoPorEnvaseU6 As Long) As Long
+            If precioEmpaqueU6 < 0 Then Throw New ReglaNegocioException("CANTIDAD_INVALIDA", "El precio no puede ser negativo.")
+            If envasesPorEmpaque <= 0 OrElse contenidoPorEnvaseU6 <= 0 Then
+                Throw New ReglaNegocioException("CONTENIDO_INVALIDO", "El empaque debe tener contenido positivo.")
+            End If
+            Return EscalaU6.MultiplicarDividir(precioEmpaqueU6, EscalaU6.Factor, contenidoPorEnvaseU6 * envasesPorEmpaque)
+        End Function
+
+        ''' <summary>
+        ''' Costo por ración = Σ(cantidad bruta × costo unitario) / rendimiento. Devuelve Nothing si falta el costo
+        ''' de algún ingrediente: un costo incompleto nunca se presenta como total (T11).
+        ''' </summary>
+        Public Function CostoRacionU6(ingredientes As IEnumerable(Of (CantidadBrutaU6 As Long, CostoUnitarioBaseU6 As Long?)),
+                                      rendimientoRacionesU6 As Long) As Long?
+            If rendimientoRacionesU6 <= 0 Then
+                Throw New ReglaNegocioException("RENDIMIENTO_INVALIDO", "El rendimiento de la receta debe ser mayor que cero.")
+            End If
+            Dim total As Long = 0
+            For Each i In ingredientes
+                If Not i.CostoUnitarioBaseU6.HasValue Then Return Nothing
+                total += EscalaU6.Multiplicar(i.CantidadBrutaU6, i.CostoUnitarioBaseU6.Value)
+            Next
+            Return EscalaU6.MultiplicarDividir(total, EscalaU6.Factor, rendimientoRacionesU6)
+        End Function
+
+    End Module
+
     Public Structure ResultadoCompra
         Public ReadOnly Property Empaques As Long
         Public ReadOnly Property TotalBaseU6 As Long

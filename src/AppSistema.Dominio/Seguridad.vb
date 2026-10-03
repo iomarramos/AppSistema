@@ -10,10 +10,17 @@ Namespace Seguridad
         Public Const StockContabilizar As String = "STOCK_CONTABILIZAR"
         Public Const UsuariosAdministrar As String = "USUARIOS_ADMINISTRAR"
         Public Const AuditoriaVer As String = "AUDITORIA_VER"
+        Public Const MenusVer As String = "MENUS_VER"
+        Public Const MenusConfigurar As String = "MENUS_CONFIGURAR"
+        Public Const RecetasEditar As String = "RECETAS_EDITAR"
+        Public Const RecetasAprobar As String = "RECETAS_APROBAR"
+        Public Const MinutasEditar As String = "MINUTAS_EDITAR"
+        Public Const MinutasAprobar As String = "MINUTAS_APROBAR"
 
         Public ReadOnly Property Todos As IReadOnlyList(Of String) = New String() {
             CatalogoVer, CatalogoEditar, CatalogoImportar, ProveedoresEditar, PreciosEditar,
-            StockContabilizar, UsuariosAdministrar, AuditoriaVer}
+            StockContabilizar, UsuariosAdministrar, AuditoriaVer,
+            MenusVer, MenusConfigurar, RecetasEditar, RecetasAprobar, MinutasEditar, MinutasAprobar}
 
         Public Function Descripcion(codigo As String) As String
             Select Case codigo
@@ -25,6 +32,12 @@ Namespace Seguridad
                 Case StockContabilizar : Return "Confirmar documentos de stock"
                 Case UsuariosAdministrar : Return "Administrar usuarios y roles"
                 Case AuditoriaVer : Return "Consultar la auditoria"
+                Case MenusVer : Return "Consultar recetas, minutas, costos y necesidades"
+                Case MenusConfigurar : Return "Configurar servicios, regimenes y estructuras"
+                Case RecetasEditar : Return "Crear y modificar recetas en borrador"
+                Case RecetasAprobar : Return "Aprobar y retirar versiones de receta"
+                Case MinutasEditar : Return "Planificar minutas en borrador"
+                Case MinutasAprobar : Return "Aprobar minutas (fija el costo previsto)"
                 Case Else : Return codigo
             End Select
         End Function
@@ -49,8 +62,8 @@ Namespace Seguridad
         Public ReadOnly Property Todos As IReadOnlyList(Of RolBase) = New RolBase() {
             New RolBase(Administrador, "Administrador", Permisos.Todos),
             New RolBase("SUPERVISOR", "Supervisor", Permisos.Todos.Where(Function(p) p <> Permisos.UsuariosAdministrar)),
-            New RolBase("ALMACEN", "Almacen", {Permisos.CatalogoVer, Permisos.StockContabilizar}),
-            New RolBase("COCINA", "Cocina", {Permisos.CatalogoVer})}
+            New RolBase("ALMACEN", "Almacen", {Permisos.CatalogoVer, Permisos.StockContabilizar, Permisos.MenusVer}),
+            New RolBase("COCINA", "Cocina", {Permisos.CatalogoVer, Permisos.MenusVer, Permisos.RecetasEditar, Permisos.MinutasEditar})}
     End Module
 
     Public Module PoliticaClave

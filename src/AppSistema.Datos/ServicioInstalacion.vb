@@ -81,4 +81,30 @@ Public NotInheritable Class ServicioInstalacion
         End Try
     End Function
 
+    ''' <summary>
+    ''' Tras una actualización: crea en cada empresa los permisos nuevos del sistema y los asigna al rol ADMIN.
+    ''' Los demás roles no cambian (lo decide el administrador). Idempotente; devuelve cuántos permisos creó.
+    ''' </summary>
+    Public Function SincronizarPermisos() As Integer
+        Try
+            Using u As New UnidadDeTrabajo(_cadenaPropietario, Nothing, Nothing)
+                Dim creados = 0
+                For Each p In Permisos.Todos
+                    creados += u.Ejecutar(
+                        "INSERT INTO permiso(empresa_id, codigo, descripcion) SELECT e.id, @c, @d FROM empresa e " &
+                        "WHERE NOT EXISTS (SELECT 1 FROM permiso p WHERE p.empresa_id = e.id AND p.codigo = @c)",
+                        "c", p, "d", Permisos.Descripcion(p))
+                Next
+                u.Ejecutar("INSERT INTO rol_permiso(empresa_id, rol_id, permiso_id) " &
+                           "SELECT r.empresa_id, r.id, p.id FROM rol r JOIN permiso p ON p.empresa_id = r.empresa_id " &
+                           "WHERE r.codigo = @admin ON CONFLICT (empresa_id, rol_id, permiso_id) DO NOTHING",
+                           "admin", RolesBase.Administrador)
+                u.Confirmar()
+                Return creados
+            End Using
+        Catch ex As PostgresException
+            Throw ErroresBD.Traducir(ex)
+        End Try
+    End Function
+
 End Class

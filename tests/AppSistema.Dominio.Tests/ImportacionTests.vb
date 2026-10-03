@@ -81,10 +81,10 @@ Public Class ImportacionTests
     End Sub
 
     <Fact>
-    Public Sub Roles_base_admin_tiene_todo_y_cocina_solo_consulta()
+    Public Sub Roles_base_admin_tiene_todo_y_cocina_no_aprueba()
         Dim admin = RolesBase.Todos.Single(Function(r) r.Codigo = RolesBase.Administrador)
         Assert.Equal(Permisos.Todos.Count, admin.Permisos.Count)
-        Assert.Equal(Permisos.CatalogoVer, String.Join(",", RolesBase.Todos.Single(Function(r) r.Codigo = "COCINA").Permisos))
+        Assert.Equal("CATALOGO_VER,MENUS_VER,RECETAS_EDITAR,MINUTAS_EDITAR", String.Join(",", RolesBase.Todos.Single(Function(r) r.Codigo = "COCINA").Permisos))
     End Sub
 
 End Class

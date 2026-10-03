@@ -8,6 +8,7 @@ Portado del esquema SQLite v0.3 (59 tablas, 4 vistas) a PostgreSQL 16 (RNF-13).
 | `migraciones/V002__reglas_de_stock.sql` | Los 12 triggers originales en PL/pgSQL + bloqueo de saldo y signo por tipo de documento |
 | `migraciones/V003__proteccion_y_roles.sql` | Cierra las brechas H01–H03, vista de conciliación y rol `app_stock` |
 | `migraciones/V004__acceso_auditoria_aislamiento.sql` | Factor de unidades, bloqueo por intentos, funciones de acceso, auditoría automática sin secretos, presentaciones en uso protegidas, precios sin superposición y aislamiento por empresa con RLS |
+| `migraciones/V005__menus_y_recetas.sql` | Versión de receta aprobada inmutable, ingredientes solo en borrador, minuta aprobada inmutable (platos, fijos y costeo), solo recetas aprobadas y estructuras del mismo servicio, coherencia del costeo, auditoría del módulo |
 | `pruebas/01_verificacion.sql` | 67 aserciones (9 de la guía + brechas, signo, rollback, múltiplo, permisos, aislamiento, auditoría, T06, precios, acceso) |
 | `pruebas/02_concurrencia.sh` | Conexiones independientes: T24 y carrera de 10 sesiones |
 | `ejecutar_pruebas.sh` | Crea bases nuevas, migra y ejecuta todo |

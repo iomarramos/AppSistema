@@ -82,10 +82,18 @@ Public Module Ui
             .BackgroundColor = Drawing.SystemColors.Window, .StandardTab = True}
         AddHandler g.CellFormatting,
             Sub(s, e)
-                If e.ColumnIndex < 0 OrElse e.Value Is Nothing OrElse Not TypeOf e.Value Is Long Then Return
+                If e.ColumnIndex < 0 Then Return
                 Dim prop = g.Columns(e.ColumnIndex).DataPropertyName
                 If Not prop.EndsWith("U6", StringComparison.Ordinal) Then Return
-                e.Value = If(prop.StartsWith("Precio", StringComparison.Ordinal), Dinero(CLng(e.Value)), Cantidad(CLng(e.Value)))
+                Dim esMonto = prop.StartsWith("Precio", StringComparison.Ordinal) OrElse prop.StartsWith("Costo", StringComparison.Ordinal)
+                If e.Value Is Nothing OrElse TypeOf e.Value Is DBNull Then
+                    If Not esMonto Then Return
+                    e.Value = "pendiente"   ' costo sin precio de referencia: nunca se muestra como cero
+                ElseIf TypeOf e.Value Is Long Then
+                    e.Value = If(esMonto, Dinero(CLng(e.Value)), Cantidad(CLng(e.Value)))
+                Else
+                    Return
+                End If
                 e.FormattingApplied = True
             End Sub
         AddHandler g.DataBindingComplete, Sub() AplicarColumnas(g)
@@ -128,6 +136,16 @@ Public Module Ui
         p.Controls.AddRange(botones)
         Return p
     End Function
+
+    ''' <summary>Ventana de solo lectura con una lista (reportes: necesidades, costos).</summary>
+    Public Sub MostrarLista(Of T)(dueno As Form, titulo As String, encabezado As String, datos As IList(Of T), ParamArray columnas() As String)
+        Dim f As New Form With {.Text = titulo, .Width = 900, .Height = 500, .StartPosition = FormStartPosition.CenterParent}
+        Dim g = NuevaGrilla()
+        f.Controls.Add(g)
+        f.Controls.Add(New Label With {.Text = encabezado, .Dock = DockStyle.Top, .AutoSize = False, .Height = 40, .Padding = New Padding(6)})
+        AddHandler f.Load, Sub() Mostrar(g, datos, columnas)
+        f.ShowDialog(dueno)
+    End Sub
 
     ''' <summary>Objeto seleccionado en una grilla enlazada a una lista, o Nothing.</summary>
     Public Function Seleccionado(Of T As Class)(grilla As DataGridView) As T
