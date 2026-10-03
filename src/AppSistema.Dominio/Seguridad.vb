@@ -22,13 +22,15 @@ Namespace Seguridad
         Public Const ProduccionEditar As String = "PRODUCCION_EDITAR"
         Public Const InventarioContar As String = "INVENTARIO_CONTAR"
         Public Const InventarioAprobar As String = "INVENTARIO_APROBAR"
+        Public Const ReportesVer As String = "REPORTES_VER"
+        Public Const CierreEjecutar As String = "CIERRE_EJECUTAR"
 
         Public ReadOnly Property Todos As IReadOnlyList(Of String) = New String() {
             CatalogoVer, CatalogoEditar, CatalogoImportar, ProveedoresEditar, PreciosEditar,
             StockContabilizar, UsuariosAdministrar, AuditoriaVer,
             MenusVer, MenusConfigurar, RecetasEditar, RecetasAprobar, MinutasEditar, MinutasAprobar,
             ComprasVer, ComprasEditar, ComprasAprobar, ProduccionEditar,
-            InventarioContar, InventarioAprobar}
+            InventarioContar, InventarioAprobar, ReportesVer, CierreEjecutar}
 
         Public Function Descripcion(codigo As String) As String
             Select Case codigo
@@ -52,6 +54,8 @@ Namespace Seguridad
                 Case ProduccionEditar : Return "Calcular requerimientos y registrar produccion y mermas"
                 Case InventarioContar : Return "Abrir inventarios fisicos y registrar conteos"
                 Case InventarioAprobar : Return "Revisar inventarios y autorizar ajustes (independiente del conteo)"
+                Case ReportesVer : Return "Consultar pendientes, reportes diarios y mensuales y Food Cost"
+                Case CierreEjecutar : Return "Registrar ingresos y objetivos, cerrar dias y meses"
                 Case Else : Return codigo
             End Select
         End Function
