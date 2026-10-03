@@ -6,8 +6,7 @@ Imports AppSistema.Datos
 ''' La demanda sale de las minutas que arma Planificación. Arriba va el total por producto y abajo el detalle por
 ''' operación del producto elegido.
 ''' </summary>
-Public Class FormConsolidado
-    Inherits Form
+Partial Public Class FormConsolidado
 
     Private ReadOnly _servicio As ServicioConsolidadoCompras
     Private ReadOnly _desde As New DateTimePicker With {.Format = DateTimePickerFormat.Short, .Width = 110}
@@ -18,7 +17,13 @@ Public Class FormConsolidado
     Private ReadOnly _total As New Label With {.Dock = DockStyle.Bottom, .Height = 28, .Padding = New Padding(6)}
     Private _resultado As ConsolidadoComprasDto
 
+    Public Sub New()
+        InitializeComponent()
+    End Sub
+
     Public Sub New(cadena As String, sesion As SesionUsuario)
+        InitializeComponent()
+        Controls.Clear()
         _servicio = New ServicioConsolidadoCompras(cadena, sesion)
         Text = "Consolidado de compras"
         ' Por defecto, el mes siguiente completo.
