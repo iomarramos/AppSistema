@@ -21,6 +21,7 @@ Public NotInheritable Class EstadoCargaReal
     Public Property RecetasAprobadas As Long
     Public Property InsumosSinCosto As Long
     Public Property ProductosActivos As Long
+    Public Property PresentacionesConFamilia As Long
     Public Property AlmacenesConApertura As Long
     Public Property Almacenes As Long
     Public Property ServiciosAsignados As Long
@@ -45,6 +46,7 @@ Public NotInheritable Class ServicioCargaReal
     Public Shared ReadOnly ColumnasPrecios As String() = {"variante_codigo", "empaque_codigo", "precio_envase", "fecha_precio"}
     Public Shared ReadOnly ColumnasSinCosto As String() = {"producto"}
     Public Shared ReadOnly ColumnasProductosActivos As String() = {"variante_codigo", "motivo"}
+    Public Shared ReadOnly ColumnasFamilias As String() = {"variante_codigo", "familia", "subfamilia", "grupo"}
     Public Shared ReadOnly ColumnasEstructuras As String() = {"servicio", "orden", "codigo", "nombre", "factor_consumo_pct"}
     Public Shared ReadOnly ColumnasCiclo As String() = {"dia", "servicio", "estructura_codigo", "receta_codigo", "receta_nombre", "reparto_pct"}
 
@@ -140,6 +142,53 @@ Public NotInheritable Class ServicioCargaReal
                         "e", Sesion.EmpresaId, "o", op.Value, "p", v.Producto, "v", v.Id, "m", f("motivo"), "u", Sesion.UsuarioId)
                     If n = 1 Then r.Nuevos += 1 Else r.YaEstaban += 1
                 Next
+                Return r
+            End Function)
+    End Function
+
+    ''' <summary>
+    ''' Familias del SGP (familias_sgp.csv): crea la jerarquía familia › subfamilia › grupo y asigna a cada presentación su
+    ''' nivel más detallado. El ingrediente sin categoría toma la familia más frecuente de sus presentaciones. Lo que ya
+    ''' tiene categoría no se cambia.
+    ''' </summary>
+    Public Function CargarFamilias(texto As String) As ResultadoCargaReal
+        Dim filas = ServicioCargaReal.Filas(texto, ColumnasFamilias)
+        Return EnTransaccion(Permisos.CatalogoEditar,
+            Function(u)
+                Dim r As New ResultadoCargaReal()
+                Dim categorias = u.Consultar("SELECT codigo, id FROM categoria_producto", Function(rd) (rd.GetString(0), rd.GetInt64(1))) _
+                                  .ToDictionary(Function(x) x.Item1, Function(x) x.Item2, StringComparer.Ordinal)
+                Dim nodo = Function(codigo As String, nombre As String, padre As Long?) As Long
+                               Dim id As Long
+                               If categorias.TryGetValue(codigo, id) Then Return id
+                               id = u.EscalarLong("INSERT INTO categoria_producto(empresa_id, codigo, nombre, padre_id) VALUES (@e, @c, @n, @p) RETURNING id",
+                                                  "e", Sesion.EmpresaId, "c", codigo, "n", nombre, "p", If(padre.HasValue, CObj(padre.Value), Nothing))
+                               categorias(codigo) = id
+                               Return id
+                           End Function
+                For Each f In filas
+                    Dim id As Long = nodo(f("familia"), f("familia"), Nothing)
+                    Dim ruta = f("familia")
+                    For Each nivel In {f("subfamilia"), f("grupo")}.Where(Function(x) x <> "")
+                        ruta &= " / " & nivel
+                        id = nodo(ruta, nivel, id)
+                    Next
+                    Dim n = u.Ejecutar("UPDATE variante_producto SET categoria_id = @c WHERE codigo = @v AND categoria_id IS NULL", "c", id, "v", f("variante_codigo"))
+                    If n = 1 Then
+                        r.Nuevos += 1
+                    ElseIf u.Escalar("SELECT 1 FROM variante_producto WHERE codigo = @v", "v", f("variante_codigo")) Is Nothing Then
+                        r.Problemas.Add($"Presentacion {f("variante_codigo")}: no existe en el catalogo")
+                    Else
+                        r.YaEstaban += 1
+                    End If
+                Next
+                ' Ingredientes sin categoría: la familia (raíz) más frecuente entre sus presentaciones.
+                u.Ejecutar(
+                    "WITH RECURSIVE raiz AS (SELECT id, id AS raiz_id FROM categoria_producto WHERE padre_id IS NULL " &
+                    "  UNION ALL SELECT c.id, r.raiz_id FROM categoria_producto c JOIN raiz r ON c.padre_id = r.id), " &
+                    "conteo AS (SELECT v.producto_base_id, r.raiz_id, count(*) AS n, row_number() OVER (PARTITION BY v.producto_base_id ORDER BY count(*) DESC, r.raiz_id) AS k " &
+                    "  FROM variante_producto v JOIN raiz r ON r.id = v.categoria_id GROUP BY v.producto_base_id, r.raiz_id) " &
+                    "UPDATE producto_base p SET categoria_id = c.raiz_id FROM conteo c WHERE c.producto_base_id = p.id AND c.k = 1 AND p.categoria_id IS NULL")
                 Return r
             End Function)
     End Function
@@ -274,6 +323,7 @@ Public NotInheritable Class ServicioCargaReal
                 "       (SELECT count(*) FROM receta_version WHERE estado = 'aprobada'), " &
                 "       (SELECT count(*) FROM producto_base WHERE sin_costo_compra), " &
                 "       (SELECT count(*) FROM producto_operacion WHERE operacion_id = @o), " &
+                "       (SELECT count(*) FROM variante_producto WHERE categoria_id IS NOT NULL), " &
                 "       (SELECT count(DISTINCT d.almacen_id) FROM documento_stock d JOIN almacen a ON a.id = d.almacen_id WHERE d.tipo = 'apertura' AND a.operacion_id = @o), " &
                 "       (SELECT count(*) FROM almacen WHERE operacion_id = @o), " &
                 "       (SELECT count(*) FROM operacion_servicio WHERE operacion_id = @o), " &
@@ -281,8 +331,9 @@ Public NotInheritable Class ServicioCargaReal
                 "       (SELECT count(*) FROM minuta m JOIN operacion_servicio os ON os.id = m.operacion_servicio_id WHERE os.operacion_id = @o AND m.estado <> 'borrador')",
                 Function(rd) New EstadoCargaReal With {
                     .Productos = rd.GetInt64(0), .Presentaciones = rd.GetInt64(1), .PreciosSgp = rd.GetInt64(2), .RecetasAprobadas = rd.GetInt64(3),
-                    .InsumosSinCosto = rd.GetInt64(4), .ProductosActivos = rd.GetInt64(5), .AlmacenesConApertura = rd.GetInt64(6), .Almacenes = rd.GetInt64(7),
-                    .ServiciosAsignados = rd.GetInt64(8), .Minutas = rd.GetInt64(9), .MinutasAprobadas = rd.GetInt64(10)},
+                    .InsumosSinCosto = rd.GetInt64(4), .ProductosActivos = rd.GetInt64(5), .PresentacionesConFamilia = rd.GetInt64(6),
+                    .AlmacenesConApertura = rd.GetInt64(7), .Almacenes = rd.GetInt64(8),
+                    .ServiciosAsignados = rd.GetInt64(9), .Minutas = rd.GetInt64(10), .MinutasAprobadas = rd.GetInt64(11)},
                 "sgp", ProveedorPrecios, "o", op).Single())
     End Function
 

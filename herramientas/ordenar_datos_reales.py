@@ -11,6 +11,7 @@ Ordena los archivos recibidos del SGP en un juego de datos real y cargable (dato
   recetas_clasificadas.csv cada receta con su componente de menú, servicios, gramaje por ración y costo estimado
   insumos_sin_costo.csv    ingredientes que no se compran (agua para receta): se costean en S/ 0
   contenido_por_revisar.csv presentaciones cuyo contenido cargado no coincide con la medida del nombre (p. ej. 393 GR vs 0,395 KG)
+  familias_sgp.csv         familia › subfamilia › grupo del SGP por presentación
   productos_activos.csv    por ingrediente, el producto activo en la operación (con stock o compra más reciente): su precio se costea (D02)
   estructuras_menu.csv     estructura teórica de Desayuno, Almuerzo y Cena (componentes, factor, alternativas)
   ciclo_menu.csv           ciclo de 28 días: receta(s) por día, servicio y componente, con reparto
@@ -266,6 +267,21 @@ def main():
         motivo = "con stock en el inventario inicial" if f[9] == "inventario" else f"compra mas reciente en el SGP ({f[8]})"
         filas_activo.append([f[0], f[1], f[2], f[3], motivo])
     escribir("productos_activos.csv", ["variante_codigo", "descripcion_comercial", "producto_codigo", "producto_descripcion", "motivo"], filas_activo)
+
+    # ---- familias del SGP (familia › subfamilia › grupo) por presentación, tal como vienen en el listado de precios.
+    # Las compras de caja chica no traen subfamilia: quedan solo con su familia.
+    filas_familia, vistas = [], set()
+    for p in precios:
+        familia = (p["familia"] or "").strip()
+        if not familia or familia == "SIN CATEGORIA":
+            continue
+        for v in por_nombre.get(norm(p["nombre"]), []):
+            if v["variante_codigo"] in vistas:
+                continue
+            vistas.add(v["variante_codigo"])
+            filas_familia.append([v["variante_codigo"], v["descripcion_comercial"], familia, (p["subfamilia"] or "").strip(), (p["grupo"] or "").strip()])
+    filas_familia.sort(key=lambda f: (f[2], f[3], f[4], f[1]))
+    escribir("familias_sgp.csv", ["variante_codigo", "descripcion_comercial", "familia", "subfamilia", "grupo"], filas_familia)
     variante_activa = {f[2]: f[0] for f in filas_activo}
     escribir("precios_atipicos.csv", ["variante_codigo", "descripcion_comercial", "ingrediente", "unidad_base", "costo_por_unidad_base", "mediana_del_ingrediente"],
              sorted(atipicos, key=lambda a: a[2]))
@@ -497,6 +513,7 @@ def main():
         f.write("Recetas por componente: " + ", ".join(f"{k} {v}" for k, v in sorted(comp_count.items())) + "\n")
         f.write(f"Fondos por proteina: " + ", ".join(f"{k} {len(v)}" for k, v in sorted(fondos_por_proteina.items())) + "\n")
         f.write(f"Ciclo: {DIAS} dias, {len(ciclo)} lineas; con costo completo: {sum(1 for x in ciclo if x[-1] == 'SI')}.\n")
+        f.write(f"Familias SGP: {len(filas_familia)} presentaciones con familia; {len({(f[2], f[3], f[4]) for f in filas_familia})} grupos.\n")
         f.write(f"Contenido por envase: {coinciden_contenido} presentaciones coinciden con la medida del nombre; {len(revisar_contenido)} por revisar (contenido_por_revisar.csv), {sum(1 for x in revisar_contenido if x[6] == 'si')} de ellas son el producto activo.\n")
         if sin_receta_con_precio:
             f.write("Componentes fuera del ciclo por no tener ninguna receta con precio: " + ", ".join(sorted(sin_receta_con_precio)) + ".\n")

@@ -135,7 +135,7 @@ Cada reporte sale con el botón **Imprimir…** de su pantalla. Se puede imprimi
 | 9 | ⏸ Resultado consolidado de varias sedes: no hace falta mientras sea una sede (D10). La central y la sincronización ya están listas para cuando se amplíe | Cuando se agregue otra sede |
 | 10 | 🟡 Reportes imprimibles o exportables: **hecho** (minuta del día, requerimiento, kárdex, hoja de conteo, resultado de inventario y stock valorizado). Falta verlos impresos desde Windows | Programación (hecho) · PC con Windows |
 | 13 | ⬜ Revisar `datos/real/contenido_por_revisar.csv`: 60 presentaciones con un contenido distinto al de su nombre (13 son producto activo; p. ej. leche condensada 393 g cargada como 0,395 kg) | Usuario |
-| 14 | ⬜ **Bulto de pedido** (cuántas unidades trae la caja o el saco de compra): los archivos del SGP no lo traen, así que hoy cada presentación se pide de a una unidad | Usuario (archivo con el bulto por producto) |
-| 15 | ⬜ 235 productos sin categoría y las subfamilias del SGP (p. ej. ABARROTES › REPOSTERÍA), que no se cargaron | Usuario o programación, si se quieren subfamilias |
+| 14 | ✅ Bulto de pedido: los sacos son individuales. Si no hay un múltiplo, se pide de a uno (decisión del usuario, 2026-10-03). Si más adelante un producto se compra por caja, se le agrega un empaque en Catálogo | Usuario (respondido) |
+| 15 | ✅ Familias del SGP cargadas: familia › subfamilia › grupo (V019, `familias_sgp.csv`, 1 516 presentaciones en 112 grupos). El ingrediente sin categoría toma la familia de sus presentaciones | Programación (hecho) |
 | 11 | ⬜ Piloto de un mes en una sede (`docs/PILOTO_ETAPA_8.md`) | Sede real |
 | 12 | ⬜ Integraciones (SAP, ADS, SGO) | Especificación del cliente |

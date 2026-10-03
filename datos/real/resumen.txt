@@ -6,5 +6,6 @@ Recetas: 946; con todos sus ingredientes con precio (salvo agua): 643.
 Recetas por componente: BEBIDA CALIENTE 86, CEREAL 2, COMPLEMENTO 19, ENTRADA 105, FONDO 201, FRUTA 9, GUARNICION 180, HUEVO 12, JUGO 41, OTROS 10, PAN 22, POSTRE 76, REFRESCO 26, SALSA Y AJI 19, SANDWICH 51, SOPA 85, UNTABLE 2
 Fondos por proteina: CERDO 14, GALLINA 9, OTRAS CARNES 13, PAVO 13, PESCADO 22, POLLO 68, RES 31, VEGETARIANO/OTRO 16
 Ciclo: 28 dias, 700 lineas; con costo completo: 700.
+Familias SGP: 1516 presentaciones con familia; 112 grupos.
 Contenido por envase: 977 presentaciones coinciden con la medida del nombre; 60 por revisar (contenido_por_revisar.csv), 13 de ellas son el producto activo.
 Componentes fuera del ciclo por no tener ninguna receta con precio: DESAYUNO / Cereales / yogurt.

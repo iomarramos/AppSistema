@@ -140,14 +140,15 @@ Public NotInheritable Class ServicioCatalogo
             Function(u) u.Consultar(
                 "SELECT v.id, v.producto_base_id, v.marca_id, m.nombre AS marca, v.codigo, v.descripcion_comercial, v.tipo_envase, " &
                 "v.contenido_base_por_envase_u6, v.activo = 1 AS activo, v.xmin::text AS version, " &
-                "EXISTS (SELECT 1 FROM producto_operacion po WHERE po.variante_id = v.id AND po.operacion_id = @o) AS en_operacion FROM variante_producto v " &
+                "EXISTS (SELECT 1 FROM producto_operacion po WHERE po.variante_id = v.id AND po.operacion_id = @o) AS en_operacion, " &
+                "(SELECT replace(c.codigo, ' / ', ' › ') FROM categoria_producto c WHERE c.id = v.categoria_id) AS familia FROM variante_producto v " &
                 "LEFT JOIN marca m ON m.empresa_id = v.empresa_id AND m.id = v.marca_id WHERE v.producto_base_id = @p ORDER BY v.codigo",
                 Function(rd) New VarianteDto With {
                     .Id = rd.Largo("id"), .ProductoBaseId = rd.Largo("producto_base_id"), .MarcaId = rd.LongONada("marca_id"),
                     .MarcaNombre = rd.TextoONada("marca"), .Codigo = rd.Texto("codigo"), .DescripcionComercial = rd.Texto("descripcion_comercial"),
                     .TipoEnvase = rd.Texto("tipo_envase"), .ContenidoBasePorEnvaseU6 = rd.Largo("contenido_base_por_envase_u6"),
                     .Activo = rd.GetBoolean(rd.GetOrdinal("activo")), .Version = rd.Texto("version"),
-                    .ActivoEnOperacion = rd.GetBoolean(rd.GetOrdinal("en_operacion"))},
+                    .ActivoEnOperacion = rd.GetBoolean(rd.GetOrdinal("en_operacion")), .Familia = rd.TextoONada("familia")},
                 "p", productoBaseId, "o", If(Sesion.OperacionId, 0L)))
     End Function
 

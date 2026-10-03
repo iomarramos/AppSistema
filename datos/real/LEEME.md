@@ -26,6 +26,7 @@ python3 herramientas/ordenar_datos_reales.py
 | `recetas_reales.csv` | Las 946 recetas con el ingrediente del catálogo. **Es lo que se importa.** |
 | `insumos_sin_costo.csv` | AGUA PARA RECETA: no se compra y se costea en S/ 0, en vez de dejar la receta con costo "pendiente". |
 | `contenido_por_revisar.csv` | 60 presentaciones cuyo contenido cargado no coincide con la medida del nombre. Por ejemplo, LECHE CONDENSADA GLORIA 393 GR está cargada con 0,395 kg y ATÚN FLORIDA 140 GR con 0,170 kg. No se corrigen solas porque cambian el costo por kilo o litro. Primero van las 13 que son producto activo. No se incluyen la venta por peso (porciones de "120 GR" de un producto que se compra por kilo), los paquetes "6X4 LITROS" ni la caja chica. |
+| `familias_sgp.csv` | Familia › subfamilia › grupo del SGP por presentación (1 516 presentaciones, 112 grupos). La caja chica solo trae familia. |
 | `productos_activos.csv` | D02: por ingrediente, el producto activo en la operación, es decir el que tiene stock en el inventario o el de compra más reciente en el SGP. Su precio es el que se costea. Se corrige en Catálogo > Producto activo en la operación. |
 | `recetas_clasificadas.csv` | Cada receta con:<br>• su componente de menú (bebida caliente, jugo, pan, sopa, fondo, guarnición, entrada, postre, refresco, complemento, huevo…);<br>• la proteína del fondo;<br>• el **gramaje por ración** (g, ml, und);<br>• el costo estimado por ración y si todos sus ingredientes tienen precio. |
 | `estructuras_menu.csv` | Estructura teórica de Desayuno, Almuerzo y Cena: componentes, **factor de consumo** y reparto de alternativas (jugo 50/50, huevo frito 50 / a la orden 50, fondo 70/30). Es una propuesta: cada operación la ajusta en la aplicación. |
@@ -36,12 +37,13 @@ python3 herramientas/ordenar_datos_reales.py
 
 Se usan la conexión de sede y un usuario administrador. Todos los pasos se pueden repetir sin duplicar. Si un archivo no es el que espera el paso (le faltan columnas), se rechaza sin cargar nada.
 
-**Desde la aplicación:** Administración > Carga de datos reales. Muestra los 8 pasos en este orden, con lo que ya está cargado. Cada paso exige su permiso. Los de catálogo, recetas e inventario inicial abren su pantalla de siempre.
+**Desde la aplicación:** Administración > Carga de datos reales. Muestra los 9 pasos en este orden, con lo que ya está cargado. Cada paso exige su permiso. Los de catálogo, recetas e inventario inicial abren su pantalla de siempre.
 
 **Desde la consola** (Instalador):
 
 ```
 AppSistema.Instalador importar-catalogo  datos/enlace/catalogo_por_ingrediente.csv
+AppSistema.Instalador cargar-familias    datos/real/familias_sgp.csv
 AppSistema.Instalador importar-precios   datos/real/precios_sgp.csv
 AppSistema.Instalador importar-recetas   datos/real/recetas_reales.csv --aprobar
 AppSistema.Instalador marcar-sin-costo   datos/real/insumos_sin_costo.csv

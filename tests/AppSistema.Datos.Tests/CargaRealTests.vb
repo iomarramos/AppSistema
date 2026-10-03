@@ -31,6 +31,18 @@ Public Class CargaRealTests
             Assert.Single(la.Problemas)
             Assert.Equal(1, carga.LiberarProductos(activos).YaEstaban)
 
+            ' Familias del SGP: jerarquía familia › subfamilia › grupo; el ingrediente sin categoría toma la familia.
+            Dim familias = "variante_codigo;descripcion_comercial;familia;subfamilia;grupo" & vbLf &
+                           "ACE-A-4L;Aceite A 4 L;ABARROTES;ABARROTES 1ERA NECESIDAD;ACEITE" & vbLf & "NOEXISTE;x;LIMPIEZA;;" & vbLf
+            Dim fa = carga.CargarFamilias(familias)
+            Assert.Equal(1, fa.Nuevos)
+            Assert.Single(fa.Problemas)
+            Assert.Equal(1, carga.CargarFamilias(familias).YaEstaban)
+            Dim catalogo As New ServicioCatalogo(bd.CadenaAplicacion, s)
+            Assert.Equal("ABARROTES › ABARROTES 1ERA NECESIDAD › ACEITE", catalogo.ListarVariantes(bd.ProductoAceiteId).Single(Function(x) x.Id = bd.VarianteAceiteId).Familia)
+            Assert.Equal("ABARROTES", bd.Escalar($"SELECT c.codigo FROM producto_base p JOIN categoria_producto c ON c.id = p.categoria_id WHERE p.id = {bd.ProductoAceiteId}").ToString())
+            Assert.Equal("ABARROTES 1ERA NECESIDAD", bd.Escalar("SELECT p.nombre FROM categoria_producto c JOIN categoria_producto p ON p.id = c.padre_id WHERE c.nombre = 'ACEITE'").ToString())
+
             ' Receta con agua: sin marcarla, el costo queda pendiente; marcada sin costo, se costea en S/ 0.
             Dim cat As New ServicioCatalogo(bd.CadenaAplicacion, s)
             Dim agua = cat.CrearProducto("AGU", "AGUA PARA RECETA", Nothing, bd.UnidadLitroId, Nothing)

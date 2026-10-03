@@ -31,6 +31,7 @@ Imports AppSistema.Dominio.Numerico
 ''' Datos reales (datos/real/, generados por herramientas/ordenar_datos_reales.py):
 '''   importar-precios ARCHIVO            precios por presentación (proveedor SGP); conexión de sede + usuario
 '''   marcar-sin-costo ARCHIVO            insumos que no se compran (agua para receta): se costean en S/ 0
+'''   cargar-familias ARCHIVO             familia › subfamilia › grupo del SGP por presentación
 '''   liberar-productos ARCHIVO           producto activo por ingrediente en la operación (D02: su precio se costea)
 '''   cargar-estructuras ARCHIVO          servicios Desayuno/Almuerzo/Cena con componentes y factores, asignados a la operación
 '''   cargar-ciclo ARCHIVO AAAA-MM-DD DES ALM CEN [--aprobar] [--dias N]  minutas del ciclo con esos comensales por servicio
@@ -68,6 +69,9 @@ Public Module Programa
                 Case "marcar-sin-costo"
                     Requiere(args, 2, "Indique el archivo de insumos sin costo (datos/real/insumos_sin_costo.csv).")
                     Return CargaReal(Function(c, s) New ServicioCargaReal(c, s).MarcarInsumosSinCosto(File.ReadAllText(args(1))), "Insumos sin costo")
+                Case "cargar-familias"
+                    Requiere(args, 2, "Indique el archivo de familias (datos/real/familias_sgp.csv).")
+                    Return CargaReal(Function(c, s) New ServicioCargaReal(c, s).CargarFamilias(File.ReadAllText(args(1))), "Familias")
                 Case "liberar-productos"
                     Requiere(args, 2, "Indique el archivo de productos activos (datos/real/productos_activos.csv).")
                     Return CargaReal(Function(c, s) New ServicioCargaReal(c, s).LiberarProductos(File.ReadAllText(args(1))), "Productos activos")
@@ -220,7 +224,7 @@ Public Module Programa
     Private Sub Ayuda()
         Console.WriteLine("Uso: AppSistema.Instalador <migrar | crear-empresa | crear-usuario-sede NOMBRE | convertir-sgp ARCHIVO [DIR] | importar-sgp ARCHIVO | importar-catalogo ARCHIVO | importar-recetas ARCHIVO [--aprobar] | importar-inventario ARCHIVO>")
         Console.WriteLine("Continuidad: <configurar-sede EMPRESA SEDE | sincronizar EMPRESA [--ahora] | estado-sincronizacion EMPRESA | registrar-sede EMPRESA SEDE NOMBRE | desactivar-sede EMPRESA SEDE | crear-usuario-sincronizacion NOMBRE | reporte-central EMPRESA | respaldar ARCHIVO | restaurar ARCHIVO | conciliar | actualizar ARCHIVO>")
-        Console.WriteLine("Datos reales: <importar-precios ARCHIVO | marcar-sin-costo ARCHIVO | liberar-productos ARCHIVO | cargar-estructuras ARCHIVO | cargar-ciclo ARCHIVO AAAA-MM-DD DES ALM CEN [--aprobar] [--dias N]>")
+        Console.WriteLine("Datos reales: <importar-precios ARCHIVO | marcar-sin-costo ARCHIVO | cargar-familias ARCHIVO | liberar-productos ARCHIVO | cargar-estructuras ARCHIVO | cargar-ciclo ARCHIVO AAAA-MM-DD DES ALM CEN [--aprobar] [--dias N]>")
         Console.WriteLine("Extensiones: <exportar-resultados AAAA-MM ARCHIVO>")
         Console.WriteLine("La conexion del propietario se toma de APPSISTEMA_CONEXION_PROPIETARIO o se solicita.")
         Console.WriteLine("importar-sgp, importar-catalogo e importar-recetas usan la conexion de sede (APPSISTEMA_CONEXION o se solicita) y un usuario con permiso CATALOGO_IMPORTAR.")

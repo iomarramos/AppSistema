@@ -28,19 +28,21 @@ Public Class FormCargaReal
         Dim pasos As New TableLayoutPanel With {.Dock = DockStyle.Top, .AutoSize = True, .ColumnCount = 3, .Padding = New Padding(6)}
         Paso(pasos, 1, "Catalogo: productos y presentaciones (listado SGP o catalogo por ingrediente)", Permisos.CatalogoImportar,
              "Abrir importacion de catalogo", Sub() Abrir(New FormImportacion(_cadena, _sesion, ModoImportacion.Catalogo)))
-        Paso(pasos, 2, "Precios por presentacion (precios_sgp.csv). Sin precio no se inventa; un precio ya cargado no se pisa", Permisos.PreciosEditar,
+        Paso(pasos, 2, "Familias del SGP: familia, subfamilia y grupo de cada producto (familias_sgp.csv)", Permisos.CatalogoEditar,
+             "Cargar familias...", Sub() Cargar("Familias", AddressOf _carga.CargarFamilias))
+        Paso(pasos, 3, "Precios por presentacion (precios_sgp.csv). Sin precio no se inventa; un precio ya cargado no se pisa", Permisos.PreciosEditar,
              "Cargar precios...", Sub() Cargar("Precios", AddressOf _carga.ImportarPrecios))
-        Paso(pasos, 3, "Producto activo por ingrediente en esta operacion (productos_activos.csv): su precio es el que se costea", Permisos.CatalogoEditar,
+        Paso(pasos, 4, "Producto activo por ingrediente en esta operacion (productos_activos.csv): su precio es el que se costea", Permisos.CatalogoEditar,
              "Liberar productos...", Sub() Cargar("Productos activos", AddressOf _carga.LiberarProductos))
-        Paso(pasos, 4, "Recetas con gramaje (recetas_reales.csv)", Permisos.RecetasEditar,
+        Paso(pasos, 5, "Recetas con gramaje (recetas_reales.csv)", Permisos.RecetasEditar,
              "Abrir importacion de recetas", Sub() Abrir(New FormImportacion(_cadena, _sesion, ModoImportacion.Recetas)))
-        Paso(pasos, 5, "Insumos sin costo de compra, por ejemplo agua para receta (insumos_sin_costo.csv)", Permisos.CatalogoEditar,
+        Paso(pasos, 6, "Insumos sin costo de compra, por ejemplo agua para receta (insumos_sin_costo.csv)", Permisos.CatalogoEditar,
              "Marcar insumos...", Sub() Cargar("Insumos sin costo", AddressOf _carga.MarcarInsumosSinCosto))
-        Paso(pasos, 6, "Inventario inicial por almacen: en Stock, boton 'Inventario inicial...'", Permisos.StockContabilizar,
+        Paso(pasos, 7, "Inventario inicial por almacen: en Stock, boton 'Inventario inicial...'", Permisos.StockContabilizar,
              "Abrir stock", Sub() Abrir(New FormStock(_cadena, _sesion)))
-        Paso(pasos, 7, "Estructuras de menu con factores de consumo (estructuras_menu.csv)", Permisos.MenusConfigurar,
+        Paso(pasos, 8, "Estructuras de menu con factores de consumo (estructuras_menu.csv)", Permisos.MenusConfigurar,
              "Cargar estructuras...", Sub() Cargar("Estructuras", AddressOf _carga.CargarEstructuras))
-        Paso(pasos, 8, "Ciclo de minutas (ciclo_menu.csv) desde una fecha, con los comensales de cada servicio", Permisos.MinutasEditar,
+        Paso(pasos, 9, "Ciclo de minutas (ciclo_menu.csv) desde una fecha, con los comensales de cada servicio", Permisos.MinutasEditar,
              "Cargar ciclo...", AddressOf CargarCiclo)
 
         Controls.Add(_resultado)
@@ -120,7 +122,7 @@ Public Class FormCargaReal
         If Not Ui.Ejecutar(Me, Sub() e = _carga.Estado()) Then Return
         _estado.Text = $"Empresa: {e.Productos:N0} productos, {e.Presentaciones:N0} presentaciones, {e.PreciosSgp:N0} precios cargados, " &
                        $"{e.RecetasAprobadas:N0} recetas aprobadas, {e.InsumosSinCosto:N0} insumos sin costo." & vbCrLf &
-                       $"Productos activos en la operacion: {e.ProductosActivos:N0}." & vbCrLf &
+                       $"Presentaciones con familia SGP: {e.PresentacionesConFamilia:N0}. Productos activos en la operacion: {e.ProductosActivos:N0}." & vbCrLf &
                        $"Operacion: inventario inicial en {e.AlmacenesConApertura} de {e.Almacenes} almacen(es), {e.ServiciosAsignados} servicio(s) asignado(s), " &
                        $"{e.Minutas:N0} minutas ({e.MinutasAprobadas:N0} aprobadas)."
     End Sub

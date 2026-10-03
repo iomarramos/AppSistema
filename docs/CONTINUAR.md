@@ -39,7 +39,7 @@ Plataforma: VB.NET + WinForms en Windows 10+ y PostgreSQL. Unas 20 PC; falta con
 | Reportes imprimibles y exportables (minuta del día, requerimiento, kárdex, inventario, stock valorizado) | Hecho: se imprimen desde el navegador o se exportan a CSV para Excel |
 | Interfaz WinForms | **Compila, pero nunca se ejecutó en Windows.** Réplica visual de las pantallas: https://claude.ai/artifact/LqViLBPDyFwUqMktDxNqaz |
 
-Última batería de pruebas: 69 aserciones SQL, 91 de dominio, 92 de integración e instalador de punta a punta, todo verde. Migraciones V001–V018.
+Última batería de pruebas: 69 aserciones SQL, 91 de dominio, 92 de integración e instalador de punta a punta, todo verde. Migraciones V001–V019.
 
 ## Decisiones del usuario (no reabrir)
 
@@ -67,6 +67,8 @@ Plataforma: VB.NET + WinForms en Windows 10+ y PostgreSQL. Unas 20 PC; falta con
 
   Los pedidos de compra usan ese mismo producto.
 * **D03 (2026-10-03):** los precios **no incluyen IGV**; la base lo exige (V018).
+* **Bulto de pedido (2026-10-03):** los sacos son individuales; si no hay múltiplo, se pide de a uno.
+* **Familias (2026-10-03):** se usan las del SGP en tres niveles: familia › subfamilia › grupo.
 * **D10 (2026-10-03):** por ahora es **una sola sede**, pero puede ampliarse a varias. Se mantiene un servidor por sede con la central opcional, y el resultado consolidado de varias sedes queda para cuando se amplíe.
 
 ## Propuestas aplicadas que falta confirmar

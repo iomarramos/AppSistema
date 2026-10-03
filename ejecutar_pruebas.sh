@@ -47,6 +47,10 @@ printf 'DEMO\nadmin\nDemo-Clave-2026\nSI\n' \
 printf 'DEMO\nadmin\nDemo-Clave-2026\n' \
   | dotnet run --project src/AppSistema.Instalador -v q -- importar-recetas datos/real/recetas_reales.csv --aprobar | tail -1
 printf 'DEMO\nadmin\nDemo-Clave-2026\n' | dotnet run --project src/AppSistema.Instalador -v q -- marcar-sin-costo datos/real/insumos_sin_costo.csv | tail -1
+# Familias del SGP (familia, subfamilia y grupo); la segunda corrida no cambia nada.
+for vez in 1 2; do
+  printf 'DEMO\nadmin\nDemo-Clave-2026\n' | dotnet run --project src/AppSistema.Instalador -v q -- cargar-familias datos/real/familias_sgp.csv 2>&1 | tail -1
+done
 # D02: producto activo por ingrediente en la operacion (su precio es el que se costea); la segunda corrida no cambia nada.
 for vez in 1 2; do
   printf 'DEMO\nadmin\nDemo-Clave-2026\n' | dotnet run --project src/AppSistema.Instalador -v q -- liberar-productos datos/real/productos_activos.csv 2>&1 | tail -1

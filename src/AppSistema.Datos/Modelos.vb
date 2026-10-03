@@ -95,6 +95,8 @@ Public NotInheritable Class VarianteDto
     Public Property Version As String
     ''' <summary>Es el producto activo (liberado) de su ingrediente en la operación de la sesión: su precio es el que se costea (D02).</summary>
     Public Property ActivoEnOperacion As Boolean
+    ''' <summary>Familia › subfamilia › grupo del SGP (ruta de la categoría de la presentación).</summary>
+    Public Property Familia As String
 End Class
 
 Public NotInheritable Class EmpaqueDto
