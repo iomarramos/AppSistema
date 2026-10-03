@@ -125,5 +125,5 @@ H01, H02 y H03: **cerradas** (V003) y probadas también con el rol de la aplicac
 
 ## Continuidad
 
-Rama de trabajo: `claude/busy-mayer-9fxop6` (PR #1 hacia `main`). `develop` se actualiza con cada entrega verificada.
+Rama de trabajo: `claude/busy-mayer-9fxop6` (PR #1 hacia `main`). `develop` se actualiza con cada entrega verificada. Para retomar en otra conversación: `CLAUDE.md` y `docs/CONTINUAR.md`.
 No hay datos reales; nada en producción.
