@@ -43,7 +43,7 @@ Public NotInheritable Class PaginaPrincipal
     End Function
 
     Public Function MenuVisible(menuId As String) As Boolean
-        Return _app.Principal().FindFirstDescendant(Function(cf) cf.ByAutomationId(menuId)) IsNot Nothing
+        Return AplicacionE2E.OpcionesDeMenu(_app.Esperar("menuPrincipal")).Any(Function(m) AplicacionE2E.IdDeMenu(m) = menuId)
     End Function
 
     ''' <summary>Opciones (AutomationId) de un menú de trabajo; vacío si el menú no está.</summary>
@@ -52,8 +52,8 @@ Public NotInheritable Class PaginaPrincipal
         Desplegar(menuId)
         Dim ids As New List(Of String)
         For Each v In _app.Ventanas()
-            For Each e In v.FindAllDescendants(Function(cf) cf.ByControlType(ControlType.MenuItem))
-                Dim id = e.AutomationId
+            For Each e In AplicacionE2E.OpcionesDeMenu(v)
+                Dim id = AplicacionE2E.IdDeMenu(e)
                 If id IsNot Nothing AndAlso id.StartsWith("mnu", StringComparison.Ordinal) AndAlso Not MenusDeTrabajo.Contains(id) AndAlso
                    id <> "mnuSesion" AndAlso id <> "mnuVentanas" AndAlso Not ids.Contains(id) Then ids.Add(id)
             Next
