@@ -14,7 +14,7 @@ Antes de cualquier tarea, lea:
 * PostgreSQL 16 con un servidor por sede.
 * `src/AppSistema.Dominio`: cálculos puros. Cantidades y dinero son enteros ×1 000 000 (`_u6`, `EscalaU6`); nunca Double.
 * `src/AppSistema.Datos`: servicios con sesión (`ServicioConSesion.EnTransaccion(permiso, …)`), con RLS por `app.empresa_id`. Los errores de la base llegan como `CODIGO: mensaje` y se convierten en `ReglaNegocioException`.
-* `src/AppSistema.Escritorio`: formularios WinForms. Se usan `Ui.Mostrar(grid, lista, "Prop|Encabezado"…)` y `DialogoCampos`. Los botones que dependen de un permiso se crean con `Ui.BotonSi(permiso, …)`; nunca se ocultan por posición en la barra. Cada opción de menú lleva el permiso mínimo de la pantalla (`FormPrincipal.Agregar`). La apariencia (fuente, colores, grillas, botones) está solo en `Tema.vb`; los formularios no fijan colores ni fuentes (ver `docs/DISENO_PANTALLAS.md`).
+* `src/AppSistema.Escritorio`: formularios WinForms. Se usan `Ui.Mostrar(grid, lista, "Prop|Encabezado"…)` y `DialogoCampos`. Los botones que dependen de un permiso se crean con `Ui.BotonSi(permiso, …)`; nunca se ocultan por posición en la barra. Cada opción de menú lleva el permiso mínimo de la pantalla (`FormPrincipal.Agregar`). La apariencia (fuente, colores, grillas, botones) está solo en `Tema.vb`; los formularios no fijan colores ni fuentes (ver `docs/DISENO_PANTALLAS.md`). Todo control tiene un identificador estable (`Name` = AutomationId) para las pruebas E2E: los botones de `Ui.Boton` y las opciones de menú lo reciben del texto (`btnImprimirStock`, `mnuMinutasYNecesidades`) y los campos del formulario del nombre del campo (`_productos` → `gridProductos`), ver `Identificadores.vb`; las pruebas nunca buscan por posición ni coordenadas.
 * `src/AppSistema.Instalador`: comandos de consola (migrar, crear-empresa, importar-*, cargar-*, sincronizar, respaldar…).
 * `database/postgresql/migraciones/V*.sql`:
   * van embebidas y el migrador verifica su hash, así que **nunca se edita una migración aplicada**: se crea `V0NN` nueva;
@@ -26,7 +26,7 @@ Antes de cualquier tarea, lea:
 ```bash
 pg_ctlcluster 16 main start   # si PostgreSQL está detenido
 export DOTNET_ROOT=/opt/dotnet-ms/usr/share/dotnet PATH=/opt/dotnet-ms/usr/share/dotnet:$PATH
-./ejecutar_pruebas.sh         # SQL + concurrencia, dominio, integración, instalador de punta a punta, compilación WinForms
+./ejecutar_pruebas.sh         # SQL + concurrencia, dominio, integración, instalador de punta a punta, compilación WinForms y E2E
 ```
 
 ## Reglas de trabajo acordadas con el usuario

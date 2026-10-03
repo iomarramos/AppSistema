@@ -98,10 +98,12 @@ rm -rf "$(dirname "$RESPALDO")"
 dropdb "$DB"; dropdb "$CENTRAL"; dropdb "$RESTAURADA"
 
 echo
-echo "######## 5/5  Aplicacion de escritorio WinForms (compilacion)"
+echo "######## 5/5  Aplicacion de escritorio WinForms y pruebas E2E (compilacion)"
 SDK_DIR="$(dotnet --list-sdks | tail -1 | sed -E 's/^([^ ]+) \[(.*)\]$/\2\/\1/')"
 if [ -d "$SDK_DIR/Sdks/Microsoft.NET.Sdk.WindowsDesktop" ]; then
   dotnet build src/AppSistema.Escritorio --nologo -v q -warnaserror | tail -3
+  # Pruebas E2E con FlaUI: aquí solo se compilan; se ejecutan en Windows (job e2e-windows del CI).
+  dotnet build tests/AppSistema.E2E.Tests --nologo -v q -warnaserror | tail -3
 else
   echo "  OMITIDA: este SDK de .NET no incluye Microsoft.NET.Sdk.WindowsDesktop (use el SDK oficial de Microsoft)."
 fi

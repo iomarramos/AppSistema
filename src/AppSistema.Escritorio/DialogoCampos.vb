@@ -21,8 +21,8 @@ Public Class DialogoCampos
         _tabla.ColumnStyles.Add(New ColumnStyle(SizeType.AutoSize))
         _tabla.ColumnStyles.Add(New ColumnStyle(SizeType.Absolute, 320))
 
-        Dim aceptar As New Button With {.Text = "Aceptar", .AutoSize = True}
-        Dim cancelar As New Button With {.Text = "Cancelar", .AutoSize = True, .DialogResult = DialogResult.Cancel}
+        Dim aceptar As New Button With {.Text = "Aceptar", .AutoSize = True, .Name = "btnAceptar", .AccessibleName = "Aceptar"}
+        Dim cancelar As New Button With {.Text = "Cancelar", .AutoSize = True, .DialogResult = DialogResult.Cancel, .Name = "btnCancelar", .AccessibleName = "Cancelar"}
         AddHandler aceptar.Click, Sub()
                                       If _validar Is Nothing OrElse _validar(Me) Then DialogResult = DialogResult.OK
                                   End Sub
@@ -35,6 +35,9 @@ Public Class DialogoCampos
 
     Private Sub Agregar(clave As String, etiqueta As String, control As Control)
         control.Dock = DockStyle.Fill
+        ' Nombre estable por clave (txtServidor, cmbOp, fechaDesde…) y el texto de la etiqueta como nombre accesible.
+        control.Name = Identificadores.DesdeTexto(Identificadores.Prefijo(control), clave)
+        control.AccessibleName = Identificadores.NombreAccesible(etiqueta)
         _tabla.Controls.Add(New Label With {.Text = etiqueta, .AutoSize = True, .Anchor = AnchorStyles.Left, .Margin = New Padding(3, 7, 3, 3)})
         _tabla.Controls.Add(control)
         _campos(clave) = control

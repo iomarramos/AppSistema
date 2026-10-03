@@ -63,7 +63,25 @@ Para actualizar a una versión nueva: `AppSistema.Instalador actualizar D:\respa
 ```bash
 ./ejecutar_pruebas.sh
 ```
-Ejecuta: aserciones SQL y concurrencia real, pruebas de dominio, integración contra PostgreSQL, el instalador de punta a punta y la compilación de la aplicación de escritorio. Lo mismo corre en GitHub Actions (`.github/workflows/ci.yml`) en cada push y PR.
+Ejecuta: aserciones SQL y concurrencia real, pruebas de dominio, integración contra PostgreSQL, el instalador de punta a punta y la compilación de la aplicación de escritorio y de las pruebas E2E. Lo mismo corre en GitHub Actions (`.github/workflows/ci.yml`) en cada push y PR.
+
+### Pruebas E2E de la aplicación Windows (FlaUI)
+
+`tests/AppSistema.E2E.Tests` abre el **AppSistema.exe real** y lo maneja con UI Automation (FlaUI UIA3):
+* acceso (superusuario, clave incorrecta);
+* permisos por rol en pantalla (chef, almacén) y una excepción de la matriz de acceso que hace desaparecer el botón;
+* recorrido de todas las pantallas con una **captura PNG de cada una** en `artifacts/screenshots/`.
+
+Crean una base PostgreSQL temporal y la borran al terminar. Corren en el job `e2e-windows` del CI (las capturas quedan como artefacto `e2e-capturas`) o en una PC con Windows:
+
+```powershell
+$env:APPSISTEMA_E2E="1"
+$env:APPSISTEMA_E2E_PG="Host=localhost;Username=postgres;Password=SU_CLAVE"
+dotnet build tests\AppSistema.E2E.Tests -c Release
+dotnet test tests\AppSistema.E2E.Tests -c Release --no-build
+```
+
+Para no interferir, no use el mouse ni el teclado mientras corren.
 
 ## Documentación
 

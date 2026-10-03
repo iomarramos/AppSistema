@@ -134,7 +134,9 @@ Public Module Ui
     End Function
 
     Public Function Boton(texto As String, accion As Action) As Button
-        Dim b As New Button With {.Text = texto, .AutoSize = True, .Margin = New Padding(4)}
+        ' Nombre estable para la automatización de interfaz (pruebas E2E): btn + texto.
+        Dim b As New Button With {.Text = texto, .AutoSize = True, .Margin = New Padding(4),
+                                  .Name = Identificadores.DesdeTexto("btn", texto), .AccessibleName = Identificadores.NombreAccesible(texto)}
         AddHandler b.Click, Sub() accion()
         Return b
     End Function
@@ -147,8 +149,9 @@ Public Module Ui
 
     ''' <summary>Ventana de solo lectura con una lista (reportes: necesidades, costos).</summary>
     Public Sub MostrarLista(Of T)(dueno As Form, titulo As String, encabezado As String, datos As IList(Of T), ParamArray columnas() As String)
-        Dim f As New Form With {.Text = titulo, .Width = 900, .Height = 500, .StartPosition = FormStartPosition.CenterParent}
+        Dim f As New Form With {.Text = titulo, .Width = 900, .Height = 500, .StartPosition = FormStartPosition.CenterParent, .Name = "FormLista"}
         Dim g = NuevaGrilla()
+        g.Name = "gridLista"
         f.Controls.Add(g)
         f.Controls.Add(New Label With {.Text = encabezado, .Dock = DockStyle.Top, .AutoSize = False, .Height = 40, .Padding = New Padding(6)})
         AddHandler f.Load, Sub() Mostrar(g, datos, columnas)

@@ -1,6 +1,6 @@
 # Checklist de avance
 
-Actualizado: 2026-10-03, 10:40 hora de Lima. Se actualiza en cada entrega.
+Actualizado: 2026-10-03, 12:30 hora de Lima. Se actualiza en cada entrega.
 
 **Leyenda**
 
@@ -176,5 +176,6 @@ Cada reporte sale con el botón **Imprimir…** de su pantalla. Se puede imprimi
 | 19 | ✅ **Zonas:** Costa, Sierra y Selva (solo esos valores). Se elige en Operaciones y almacenes | Usuario (respondido) |
 | 21 | ⬜ **Nutrientes** (aporte por receta, % aprovechamiento y cocción): ningún archivo recibido trae valores; falta la tabla de composición por ingrediente | Usuario (tabla de nutrientes) |
 | 20 | 🟡 **Modelo objetivo del SGP** (`datos/plan_real/`): leído y verificado (11 de 11 reglas cuadran, con la cena real de octubre). Hecho además: costo piso y techo por factores, bulto en decimales en el requerimiento y registro SUNAT 13.1. Por construir, dentro de las fases: cuadrícula mensual de planificación (2), reporte de frecuencia, requisición por rango con preparación (4–5), comparativo de tres niveles (6; fórmula ya hecha), productos sin movimiento y registro permanente valorizado, servicios lonchera, rancho, venta directa y consumo fijo | Programación · Usuario (nutrientes, cena de octubre, piso y techo) |
+| 22 | 🟡 **Pruebas E2E de la aplicación Windows** (FlaUI): identificadores estables en todas las pantallas; acceso, permisos por rol y recorrido de pantallas con captura de cada una (job `e2e-windows`). Siguientes suites: planificador → liberación → chef → almacén → comparativos, cuando existan esas pantallas | Programación |
 | 11 | ⬜ Piloto de un mes en una sede (`docs/PILOTO_ETAPA_8.md`) | Sede real |
 | 12 | ⬜ Integraciones (SAP, ADS, SGO) | Especificación del cliente |

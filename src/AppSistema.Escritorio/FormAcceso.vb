@@ -20,6 +20,7 @@ Public Class FormAcceso
     Public Sub New(config As Configuracion)
         _config = config
         Text = "AppSistema - Acceso"
+        Name = "FormAcceso"
         FormBorderStyle = FormBorderStyle.FixedDialog
         StartPosition = FormStartPosition.CenterScreen
         MaximizeBox = False : MinimizeBox = False
@@ -29,14 +30,17 @@ Public Class FormAcceso
         tabla.Controls.Add(New Label With {.Text = "Sistema de menus, compras e inventarios", .AutoSize = True,
                                            .Font = New Drawing.Font(Font.FontFamily, 11, Drawing.FontStyle.Bold), .Margin = New Padding(3, 3, 3, 12)}, 0, 0)
         tabla.SetColumnSpan(tabla.GetControlFromPosition(0, 0), 2)
+        _empresa.Name = "txtEmpresa" : _empresa.AccessibleName = "Empresa"
+        _usuario.Name = "txtUsuario" : _usuario.AccessibleName = "Usuario"
+        _clave.Name = "txtClave" : _clave.AccessibleName = "Clave"
         AgregarFila(tabla, "Empresa", _empresa, 1)
         AgregarFila(tabla, "Usuario", _usuario, 2)
         AgregarFila(tabla, "Clave", _clave, 3)
         _empresa.Text = If(config?.EmpresaPredeterminada, "")
 
-        Dim entrar As New Button With {.Text = "Entrar", .AutoSize = True}
-        Dim salir As New Button With {.Text = "Salir", .AutoSize = True, .DialogResult = DialogResult.Cancel}
-        Dim conexion As New Button With {.Text = "Conexion...", .AutoSize = True}
+        Dim entrar As New Button With {.Text = "Entrar", .AutoSize = True, .Name = "btnEntrar", .AccessibleName = "Iniciar sesion"}
+        Dim salir As New Button With {.Text = "Salir", .AutoSize = True, .DialogResult = DialogResult.Cancel, .Name = "btnSalir", .AccessibleName = "Salir"}
+        Dim conexion As New Button With {.Text = "Conexion...", .AutoSize = True, .Name = "btnConexion", .AccessibleName = "Conexion con el servidor"}
         AddHandler entrar.Click, AddressOf Entrar_Click
         AddHandler conexion.Click, Sub()
                                        Dim nueva = FormPrincipal.EditarConexion(Me, _config)

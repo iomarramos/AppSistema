@@ -14,6 +14,8 @@ Public Class FormPrincipal
 
     Public Sub New()
         Text = "AppSistema"
+        Name = "FormPrincipal"
+        _menu.Name = "menuPrincipal" : _estado.Name = "barraEstado" : _etiquetaEstado.Name = "lblEstado"
         IsMdiContainer = True
         WindowState = FormWindowState.Maximized
         MainMenuStrip = _menu
@@ -119,6 +121,14 @@ Public Class FormPrincipal
         Dim ventanas As New ToolStripMenuItem("&Ventanas")
         _menu.MdiWindowListItem = ventanas
         ' Solo se muestran los menús en los que el usuario tiene alguna opción (Sesión y Ventanas siempre).
+        For Each m In {catalogo, menus, almacen, compras, cierres, admin, sesionMenu, ventanas}
+            m.Name = Identificadores.DesdeTexto("mnu", m.Text)
+            m.AccessibleName = Identificadores.NombreAccesible(m.Text)
+        Next
+        For Each item In sesionMenu.DropDownItems.OfType(Of ToolStripMenuItem)()
+            item.Name = Identificadores.DesdeTexto("mnu", item.Text)
+            item.AccessibleName = Identificadores.NombreAccesible(item.Text)
+        Next
         _menu.Items.AddRange({catalogo, menus, compras, almacen, cierres, admin}.Where(Function(m) m.DropDownItems.Count > 0).ToArray())
         _menu.Items.AddRange({sesionMenu, ventanas})
     End Sub
@@ -126,7 +136,7 @@ Public Class FormPrincipal
     ''' <summary>Opción de menú visible solo si el usuario tiene el permiso. Reutiliza la ventana si ya está abierta.</summary>
     Private Sub Agregar(menu As ToolStripMenuItem, texto As String, permiso As String, crear As Func(Of Form))
         If Not _sesion.Tiene(permiso) Then Return
-        Dim item As New ToolStripMenuItem(texto)
+        Dim item As New ToolStripMenuItem(texto) With {.Name = Identificadores.DesdeTexto("mnu", texto), .AccessibleName = Identificadores.NombreAccesible(texto)}
         Dim abierta As Form = Nothing
         AddHandler item.Click, Sub()
                                    If abierta IsNot Nothing AndAlso Not abierta.IsDisposed Then

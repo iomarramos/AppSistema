@@ -89,6 +89,7 @@ Public Module Tema
     ''' </summary>
     Public Sub AplicarVentana(f As Form, operacion As String)
         If YaAplicado(f) Then Return
+        Identificadores.NombrarCampos(f)
         Dim titulo = If(f.Text, "")
         Dim guion = titulo.LastIndexOf(" - ", StringComparison.Ordinal)
         If guion > 0 Then titulo = titulo.Substring(0, guion)
@@ -106,6 +107,7 @@ Public Module Tema
     ''' <summary>Aplica fuente, colores, escala por DPI y el estilo de cada control (una sola vez por ventana).</summary>
     Public Sub Aplicar(f As Form)
         If YaAplicado(f) Then Return
+        Identificadores.NombrarCampos(f)
         f.Tag = Marca
         f.Font = Fuente
         f.BackColor = Fondo

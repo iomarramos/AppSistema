@@ -16,8 +16,17 @@ Public NotInheritable Class Configuracion
     Public Property ClaveBDProtegida As String
     Public Property EmpresaPredeterminada As String
 
-    Public Shared ReadOnly Property RutaArchivo As String =
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "AppSistema", "conexion.json")
+    ''' <summary>
+    ''' %PROGRAMDATA%\AppSistema\conexion.json, o el archivo que indique APPSISTEMA_CONFIG (lo usan las pruebas E2E para
+    ''' apuntar a una base de prueba sin tocar la configuración del equipo).
+    ''' </summary>
+    Public Shared ReadOnly Property RutaArchivo As String
+        Get
+            Dim otra = Environment.GetEnvironmentVariable("APPSISTEMA_CONFIG")
+            Return If(String.IsNullOrWhiteSpace(otra),
+                      Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "AppSistema", "conexion.json"), otra)
+        End Get
+    End Property
 
     Public Shared Function Cargar() As Configuracion
         If Not File.Exists(RutaArchivo) Then Return Nothing

@@ -32,3 +32,32 @@ jobs:
         run: command -v psql || (sudo apt-get update && sudo apt-get install -y postgresql-client)
       - name: Ejecutar todas las pruebas
         run: ./ejecutar_pruebas.sh
+
+  # Pruebas de punta a punta de la aplicación WinForms (FlaUI / UI Automation) sobre AppSistema.exe real, con una base
+  # PostgreSQL 16 temporal. Sube las capturas de cada pantalla como artefacto.
+  e2e-windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: PostgreSQL 16
+        uses: ikalnytskyi/action-setup-postgres@v6
+        with:
+          postgres-version: '16'
+      - name: Compilar aplicacion y pruebas E2E
+        run: dotnet build tests/AppSistema.E2E.Tests -c Release --nologo
+      - name: Pruebas E2E (FlaUI)
+        env:
+          APPSISTEMA_E2E: '1'
+          APPSISTEMA_E2E_PG: 'Host=localhost;Port=5432;Username=postgres;Password=postgres'
+        run: dotnet test tests/AppSistema.E2E.Tests -c Release --no-build --nologo --logger "trx;LogFileName=e2e.trx" --logger "console;verbosity=normal" --results-directory artifacts/test-results
+      - name: Subir capturas y resultados
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-capturas
+          path: artifacts/
+          if-no-files-found: warn
