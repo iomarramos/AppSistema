@@ -134,5 +134,8 @@ Cada reporte sale con el botón **Imprimir…** de su pantalla. Se puede imprimi
 | 8 | 🟡 Pantalla de sincronización y respaldo para TI: **hecha** (Administración > Sincronización y respaldo). Pide la conexión del propietario y no la guarda. Restaurar y actualizar siguen solo en el Instalador, a propósito. Falta probarla en el piloto | Programación (hecho) · Piloto |
 | 9 | ⏸ Resultado consolidado de varias sedes: no hace falta mientras sea una sede (D10). La central y la sincronización ya están listas para cuando se amplíe | Cuando se agregue otra sede |
 | 10 | 🟡 Reportes imprimibles o exportables: **hecho** (minuta del día, requerimiento, kárdex, hoja de conteo, resultado de inventario y stock valorizado). Falta verlos impresos desde Windows | Programación (hecho) · PC con Windows |
+| 13 | ⬜ Revisar `datos/real/contenido_por_revisar.csv`: 60 presentaciones con un contenido distinto al de su nombre (13 son producto activo; p. ej. leche condensada 393 g cargada como 0,395 kg) | Usuario |
+| 14 | ⬜ **Bulto de pedido** (cuántas unidades trae la caja o el saco de compra): los archivos del SGP no lo traen, así que hoy cada presentación se pide de a una unidad | Usuario (archivo con el bulto por producto) |
+| 15 | ⬜ 235 productos sin categoría y las subfamilias del SGP (p. ej. ABARROTES › REPOSTERÍA), que no se cargaron | Usuario o programación, si se quieren subfamilias |
 | 11 | ⬜ Piloto de un mes en una sede (`docs/PILOTO_ETAPA_8.md`) | Sede real |
 | 12 | ⬜ Integraciones (SAP, ADS, SGO) | Especificación del cliente |
