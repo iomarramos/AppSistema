@@ -276,9 +276,14 @@ Se mantienen ADMIN, SUPERVISOR, COCINA, FINANZAS, PLANIFICACION y ABASTECIMIENTO
 **Respuestas:**
 1. **C2:** "el superusuario soy yo": es el dueño del sistema, por empresa (opción A).
 2. y 3. **Liberación:** la hace el área de Planificación o el superusuario directamente. No se exige un revisor distinto. Empieza en el mismo servidor (fase 3a).
-4. **Corte del requerimiento:** el usuario preguntó si es el interno o el pedido global. Es el **interno** (cocina → almacén de la sede, y sede → almacén central); la compra global a proveedores no tiene corte diario. Falta la hora.
+4. **Corte del requerimiento:** es el **interno** (cocina → almacén de la sede, y sede → almacén central); la compra global a proveedores no tiene corte diario. Respuesta: **"el sistema debe permitir retrasos"**. Diseño para las fases 4–5 y 8–9:
+   * el corte es una hora **configurable por operación**, no un bloqueo;
+   * lo que llega después del corte **se acepta** y queda marcado como **TARDÍO** con la hora, la persona y el motivo; se ve en el tablero y en los comparativos;
+   * después de la entrega, el cambio sigue siendo un **adicional** y la entrega anterior no se toca;
+   * la distribución desde el almacén central usa un **tiempo de llegada por zona** (Selva y Sierra más que Costa), editable; un despacho que llega tarde queda en tránsito con su retraso visible;
+   * una sede sin conexión trabaja local y sincroniza después, como ya hace la etapa 8.
 5. **Almacén central:** existe.
-6. **Regiones:** las sedes se agrupan por regiones o zonas. Se usa `operacion.zona`.
+6. **Regiones:** las sedes se agrupan en **Costa, Sierra y Selva** (`operacion.zona`; solo esos valores, `Seguridad.Zonas`).
 
 **Fase 1 hecha (V021):**
 * La tabla `pantalla` propuesta se reemplazó por el catálogo `Seguridad.Pantallas` del dominio: cada permiso tiene su pantalla y su acción. Los permisos también se crean desde el código, así hay una sola fuente.

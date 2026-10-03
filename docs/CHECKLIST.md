@@ -33,7 +33,7 @@ Todas las pantallas **compilan, pero ninguna se ejecutó en Windows todavía** (
 | Cierres y control > Gastos y resultado mensual | RESULTADOS_VER | Gastos: GASTOS_EDITAR | 🟡 |
 | Administración > Usuarios y roles | USUARIOS_ADMINISTRAR | Roles propios por módulo y nivel; asignar en cualquier operación propia; **Accesos por módulo**; **Asignaciones y alcance**; **Alcance…** (OPERACION, ZONA o TODAS: solo el superusuario); dar o quitar el rango de dueño (solo el dueño) | 🟡 |
 | Administración > **Matriz de acceso** | USUARIOS_ADMINISTRAR | **Nueva (fase 1).** Persona y operación → módulo, pantalla, acción, por rol, excepción y efectivo. Conceder o negar aquí o en todas, y quitar la excepción: solo el superusuario | 🟡 |
-| Administración > Operaciones y almacenes | USUARIOS_ADMINISTRAR | Nueva · **Zona o región** de cada operación (fase 1) | 🟡 |
+| Administración > Operaciones y almacenes | USUARIOS_ADMINISTRAR | Nueva · **Zona**: Costa, Sierra o Selva (fase 1) | 🟡 |
 | Administración > Auditoría | AUDITORIA_VER | **Nueva**, solo lectura | 🟡 |
 | Administración > Sincronización y respaldo (TI) | USUARIOS_ADMINISTRAR | **Nueva**. Además pide la conexión del propietario de la base (no se guarda). Sede: estado de la cola, configurar, enviar ahora, respaldar y conciliación. Central: sedes, registrar (la credencial se muestra una vez) y desactivar | 🟡 |
 | Administración > Carga de datos reales | CATALOGO_IMPORTAR | **Nueva**. Precios: PRECIOS_EDITAR · Sin costo: CATALOGO_EDITAR · Estructuras: MENUS_CONFIGURAR · Ciclo: MINUTAS_EDITAR (aprobar: MINUTAS_APROBAR). Catálogo, recetas e inventario inicial abren su pantalla propia | 🟡 |
@@ -169,7 +169,7 @@ Cada reporte sale con el botón **Imprimir…** de su pantalla. Se puede imprimi
 | 15 | ✅ Familias del SGP cargadas: familia › subfamilia › grupo (V019, `familias_sgp.csv`, 1 516 presentaciones en 112 grupos). El ingrediente sin categoría toma la familia de sus presentaciones | Programación (hecho) |
 | 16 | ⬜ **Menú del mes real** y **estructuras de servicio** que faltan (loncheras, refrigerios, coffee break), además de confirmar las de desayuno, almuerzo y cena. Estado actual en `docs/ESTADO_BASE_DATOS.md` | Usuario (los va a presentar) |
 | 17 | ⬜ **Planificación y Abastecimiento Central, fases 2–10** (`docs/ARQUITECTURA_PLANIFICACION_CENTRAL.md`): planificación teórica con versiones, liberación, plan operativo, programación del día del chef, requerimiento y adicional, ejecución real, 3 comparativos, aprendizaje de factores, compras globales con almacén central y tránsito, controles reutilizables | Programación (fase 1 hecha) |
-| 18 | ⬜ **Hora de corte del requerimiento interno** (cocina → almacén de la sede, y sede → almacén central): después del corte solo se acepta un adicional | Usuario |
-| 19 | ⬜ **Zonas o regiones** de cada operación (se cargan en Operaciones y almacenes) | Usuario |
+| 18 | 🟡 **Corte del requerimiento interno con retrasos permitidos** (respuesta del usuario): hora configurable por operación; lo tardío se acepta marcado TARDÍO; tiempo de llegada por zona desde el central. Falta la hora por defecto y los días por zona; se programa en las fases 4–5 y 8–9 | Usuario (dato) · Programación |
+| 19 | ✅ **Zonas:** Costa, Sierra y Selva (solo esos valores). Se elige en Operaciones y almacenes | Usuario (respondido) |
 | 11 | ⬜ Piloto de un mes en una sede (`docs/PILOTO_ETAPA_8.md`) | Sede real |
 | 12 | ⬜ Integraciones (SAP, ADS, SGO) | Especificación del cliente |

@@ -192,14 +192,15 @@ Public NotInheritable Class ServicioAdministracion
                                       "e", Sesion.EmpresaId, "c", Requerido(codigo, "codigo"), "n", Requerido(nombre, "nombre"), "z", ZonaNormalizada(zona)))
     End Function
 
-    ''' <summary>Zona o región de la operación (p. ej. SUR, NORTE). Agrupa sedes para el acceso por zona y las compras.</summary>
+    ''' <summary>Zona o región de la operación: COSTA, SIERRA o SELVA (vacío = sin zona). Agrupa sedes para el acceso por zona y la distribución.</summary>
     Public Sub FijarZona(operacionId As Long, zona As String)
         EnTransaccion(Permisos.UsuariosAdministrar,
             Function(u) ServicioRecetas.ExigirFila(u.Ejecutar("UPDATE operacion SET zona = @z WHERE id = @o", "z", ZonaNormalizada(zona), "o", operacionId)))
     End Sub
 
     Private Shared Function ZonaNormalizada(zona As String) As Object
-        Return If(String.IsNullOrWhiteSpace(zona), CObj(DBNull.Value), zona.Trim().ToUpperInvariant())
+        Dim z = Zonas.Normalizar(zona)
+        Return If(z Is Nothing, CObj(DBNull.Value), z)
     End Function
 
     ' ---------- Alcance y matriz de acceso (V021) ----------

@@ -44,9 +44,9 @@ Public Class FormOperaciones
 
     Private Sub NuevaOperacion()
         Using d As New DialogoCampos("Nueva operacion")
-            d.Texto("codigo", "Codigo").Texto("nombre", "Nombre").Texto("zona", "Zona o region (opcional, p. ej. SUR)")
+            d.Texto("codigo", "Codigo").Texto("nombre", "Nombre").Opciones("zona", "Zona o region", OpcionesZona())
             If d.ShowDialog(Me) <> DialogResult.OK Then Return
-            Ui.Ejecutar(Me, Sub() _servicio.CrearOperacion(d.Valor("codigo"), d.Valor("nombre"), d.Valor("zona")))
+            Ui.Ejecutar(Me, Sub() _servicio.CrearOperacion(d.Valor("codigo"), d.Valor("nombre"), d.Elegido(Of Opcion(Of String))("zona").Valor))
         End Using
         Cargar()
     End Sub
@@ -56,12 +56,18 @@ Public Class FormOperaciones
         Dim o = Operacion
         If o Is Nothing Then Ui.Informar(Me, "Seleccione una operacion.") : Return
         Using d As New DialogoCampos("Zona o region de " & o.Nombre)
-            d.Texto("zona", "Zona o region (vacio = sin zona)", If(o.Zona, ""))
+            Dim ops = OpcionesZona().ToList()
+            d.Opciones("zona", "Zona o region", ops, ops.FirstOrDefault(Function(x) DirectCast(x, Opcion(Of String)).Valor = If(o.Zona, "")))
             If d.ShowDialog(Me) <> DialogResult.OK Then Return
-            Ui.Ejecutar(Me, Sub() _servicio.FijarZona(o.Id, d.Valor("zona")))
+            Ui.Ejecutar(Me, Sub() _servicio.FijarZona(o.Id, d.Elegido(Of Opcion(Of String))("zona").Valor))
         End Using
         Cargar()
     End Sub
+
+    ''' <summary>Costa, Sierra o Selva, más "sin zona".</summary>
+    Private Shared Function OpcionesZona() As IEnumerable(Of Object)
+        Return {CObj(New Opcion(Of String)("", "(sin zona)"))}.Concat(Zonas.Todas.Select(Function(z) CObj(New Opcion(Of String)(z, z))))
+    End Function
 
     Private Sub NuevoAlmacen()
         Dim o = Operacion

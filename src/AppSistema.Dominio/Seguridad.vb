@@ -185,6 +185,26 @@ Namespace Seguridad
         Public ReadOnly Property Todos As IReadOnlyList(Of String) = New String() {Operacion, Zona, Todas}
     End Module
 
+    ''' <summary>
+    ''' Zonas o regiones de las operaciones (decisión del usuario, 2026-10-03): Costa, Sierra y Selva. Agrupan sedes para el
+    ''' acceso por zona y, más adelante, para la distribución desde el almacén central, donde la zona pesa en los tiempos
+    ''' de llegada.
+    ''' </summary>
+    Public Module Zonas
+        Public Const Costa As String = "COSTA"
+        Public Const Sierra As String = "SIERRA"
+        Public Const Selva As String = "SELVA"
+        Public ReadOnly Property Todas As IReadOnlyList(Of String) = New String() {Costa, Sierra, Selva}
+
+        ''' <summary>Normaliza la zona (mayúsculas, sin espacios); vacío = sin zona. Lanza DATO_INVALIDO si no es Costa, Sierra o Selva.</summary>
+        Public Function Normalizar(zona As String) As String
+            If String.IsNullOrWhiteSpace(zona) Then Return Nothing
+            Dim z = zona.Trim().ToUpperInvariant()
+            If Not Todas.Contains(z) Then Throw New ReglaNegocioException("DATO_INVALIDO", $"Zona desconocida: {zona.Trim()}. Use COSTA, SIERRA o SELVA.")
+            Return z
+        End Function
+    End Module
+
     Public NotInheritable Class RolBase
         Public ReadOnly Property Codigo As String
         Public ReadOnly Property Nombre As String

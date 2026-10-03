@@ -38,7 +38,7 @@ Plataforma: VB.NET + WinForms en Windows 10+ y PostgreSQL. Unas 20 PC; falta con
 | Venta por estructura (D13) y teórico vs real | Hecho |
 | Datos reales del SGP ordenados y cargables (`datos/real/`) | Hecho: 4 158 productos (`PRD`), 3 203 ingredientes (`ING`), 1 497 precios sin IGV, 975 productos activos, familias del SGP y 84 minutas de un ciclo propuesto con costo y venta. Conteo por tabla en `docs/ESTADO_BASE_DATOS.md` |
 | Planificación y Abastecimiento Central | **Fase 1 hecha** (seguridad: superusuario, módulo → pantalla → acción → alcance, matriz de acceso, roles centrales, stock y factores validados en la base). Fases 2–10 según `docs/ARQUITECTURA_PLANIFICACION_CENTRAL.md` |
-| Falta del usuario | Menú del mes real y estructuras de loncheras, refrigerios y coffee break; hora de corte del requerimiento; zonas de cada operación |
+| Falta del usuario | Menú del mes real y estructuras de loncheras, refrigerios y coffee break; hora de corte por defecto y días de llegada por zona |
 | Reportes imprimibles y exportables (minuta del día, requerimiento, kárdex, inventario, stock valorizado) | Hecho: se imprimen desde el navegador o se exportan a CSV para Excel |
 | Interfaz WinForms | **Compila, pero nunca se ejecutó en Windows.** Réplica visual de las pantallas: https://claude.ai/artifact/LqViLBPDyFwUqMktDxNqaz |
 
@@ -79,7 +79,8 @@ Plataforma: VB.NET + WinForms en Windows 10+ y PostgreSQL. Unas 20 PC; falta con
 * **Planificación y Abastecimiento Central (2026-10-03, respuestas del usuario):**
   * el **superusuario es el usuario** (el dueño del sistema de V020, por empresa);
   * la **liberación** la hace el área de Planificación o el superusuario directamente; no se exige un revisor distinto;
-  * **existe un almacén central** y las sedes se agrupan por **regiones o zonas** (`operacion.zona`; un rol puede valer en toda su zona);
+  * **existe un almacén central** y las sedes se agrupan en **Costa, Sierra y Selva** (`operacion.zona`; un rol puede valer en toda su zona);
+  * **"el sistema debe permitir retrasos"**: el corte del requerimiento interno es configurable por operación y no bloquea; lo tardío se acepta marcado como TARDÍO (hora, persona, motivo), y la distribución desde el central usa un tiempo de llegada por zona;
   * la liberación funciona primero en el mismo servidor; el canal remoto a otras sedes queda para la fase 3b.
 * **D10 (2026-10-03):** por ahora es **una sola sede**, pero puede ampliarse a varias. Se mantiene un servidor por sede con la central opcional, y el resultado consolidado de varias sedes queda para cuando se amplíe.
 
@@ -90,8 +91,7 @@ Plataforma: VB.NET + WinForms en Windows 10+ y PostgreSQL. Unas 20 PC; falta con
 
 ## Preguntas abiertas al usuario
 
-0. **Hora de corte del requerimiento interno.** Es el pedido de insumos de la cocina al almacén de su sede (y de la sede al almacén central). No es la compra global a proveedores. ¿A qué hora del día anterior se cierra? Después del corte, un cambio de comensales o factores genera un **adicional** y la entrega ya hecha no se toca.
-0. **Zonas:** ¿qué zona o región tiene cada operación?
+0. **Hora de corte por defecto del requerimiento interno** (se permiten retrasos: lo tardío se acepta marcado) y **días de llegada desde el almacén central a Costa, Sierra y Selva**.
 
 1. Revisar `datos/real/ingredientes_por_revisar.csv`: 85 ingredientes de receta sin producto seguro. Los principales:
    * AJO MOLIDO ENVASADO;

@@ -18,11 +18,11 @@ Public Class SeguridadCentralTests
         Return EscalaU6.DesdeDecimal(v)
     End Function
 
-    ''' <summary>Orcopampa (zona SUR, la del fixture), Arequipa (SUR), Lima (NORTE) y una sede sin zona; y el superusuario.</summary>
+    ''' <summary>Orcopampa y Arequipa (Sierra), Lima (Costa) y una sede sin zona; y el superusuario. Solo hay Costa, Sierra y Selva.</summary>
     Private Shared Function CrearSedes(bd As BaseDatosPrueba) As (Are As Long, Lim As Long, SinZona As Long)
         Dim admin As New ServicioAdministracion(bd.CadenaAplicacion, bd.Sesion("A"))
-        admin.FijarZona(bd.A.OperacionId, " sur ")
-        Dim r = (Are:=admin.CrearOperacion("ARE", "Arequipa", "SUR"), Lim:=admin.CrearOperacion("LIM", "Lima", "NORTE"), SinZona:=admin.CrearOperacion("ZZZ", "Sin zona"))
+        admin.FijarZona(bd.A.OperacionId, " sierra ")
+        Dim r = (Are:=admin.CrearOperacion("ARE", "Arequipa", "SIERRA"), Lim:=admin.CrearOperacion("LIM", "Lima", "COSTA"), SinZona:=admin.CrearOperacion("ZZZ", "Sin zona"))
         Call New ServicioInstalacion(bd.CadenaAdmin).CrearDueno("A", "dueno", "Superusuario", ClaveDueno)
         Return r
     End Function
@@ -147,13 +147,16 @@ Public Class SeguridadCentralTests
             Assert.Equal("DATO_INVALIDO", Assert.Throws(Of ReglaNegocioException)(
                 Sub() dueno.FijarAlcance(idOtro, sedes.SinZona, RolesBase.Operaciones, "REGION")).Codigo)
 
+            ' Zonas del usuario: solo Costa, Sierra y Selva.
+            Assert.Equal("DATO_INVALIDO", Assert.Throws(Of ReglaNegocioException)(Sub() admin.FijarZona(sedes.SinZona, "NORTE")).Codigo)
+
             Dim acceso As New ServicioAcceso(bd.CadenaAplicacion)
             Assert.Equal(4, acceso.IniciarSesion("A", "compras", Clave).Operaciones.Count)
             Assert.Equal(4, New ServicioConsolidadoCompras(bd.CadenaAplicacion, Entrar(bd, "compras")).Calcular(Date.Today, Date.Today).Operaciones.Count)
             Dim zonaSur = acceso.IniciarSesion("A", "super", Clave)
             Assert.Equal("ARE,ORC", String.Join(",", zonaSur.Operaciones.Select(Function(o) o.Codigo).OrderBy(Function(c) c)))
             Assert.True(Entrar(bd, "super", sedes.Are).Tiene(Permisos.FactoresEditar))
-            Assert.Contains(dueno.ListarAsignaciones(), Function(a) a.Login = "super" AndAlso a.Alcance = Alcances.Zona AndAlso a.Zona = "SUR")
+            Assert.Contains(dueno.ListarAsignaciones(), Function(a) a.Login = "super" AndAlso a.Alcance = Alcances.Zona AndAlso a.Zona = Zonas.Sierra)
             Assert.Contains(dueno.AccesosPorModulo(), Function(a) a.Login = "super" AndAlso a.Operacion.StartsWith("ARE") AndAlso a.Roles = "OPERACIONES (ZONA)")
 
             ' Matriz: el superusuario niega FACTORES_EDITAR al supervisor solo en Arequipa y le concede la auditoría en todas.
