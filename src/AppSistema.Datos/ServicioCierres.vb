@@ -153,8 +153,8 @@ Public NotInheritable Class ServicioCierres
     End Sub
 
     ''' <summary>
-    ''' Venta del mes de cada servicio desde la estructura (D13): suma de la venta prevista de sus minutas aprobadas
-    ''' (costo previsto / Food Cost objetivo). No reemplaza un ingreso manual ni uno de contrato. Repetible.
+    ''' Venta del mes de cada servicio desde la estructura (D13): por cada minuta aprobada, la venta real cargada o, si no
+    ''' se cargó, la venta prevista (costo previsto / Food Cost objetivo). No reemplaza un ingreso manual ni uno de contrato.
     ''' </summary>
     Public Function GenerarVentaDesdeMinutas(anio As Integer, mes As Integer) As List(Of IngresoGeneradoDto)
         Dim o = Op
@@ -165,14 +165,16 @@ Public NotInheritable Class ServicioCierres
                 Dim r As New List(Of IngresoGeneradoDto)
                 For Each s In u.Consultar(
                     "SELECT os.id, s.nombre || ' - ' || rg.nombre, i.origen, " &
-                    "  count(m.id) AS minutas, count(m.id) FILTER (WHERE m.venta_prevista_u6 IS NULL) AS sin_venta, COALESCE(sum(m.venta_prevista_u6), 0)::bigint AS venta, " &
+                    "  count(m.id) AS minutas, count(m.id) FILTER (WHERE COALESCE(vs.importe_u6, m.venta_prevista_u6) IS NULL) AS sin_venta, " &
+                    "  COALESCE(sum(COALESCE(vs.importe_u6, m.venta_prevista_u6)), 0)::bigint AS venta, count(vs.id) AS reales, " &
                     "  string_agg(DISTINCT (m.food_cost_objetivo_bp / 100.0)::numeric(6,2)::text, ', ') AS objetivos " &
                     "FROM operacion_servicio os JOIN servicio s ON s.id = os.servicio_id JOIN regimen rg ON rg.id = os.regimen_id " &
                     "LEFT JOIN ingreso_servicio i ON i.operacion_servicio_id = os.id AND i.periodo_id = @p " &
                     "LEFT JOIN minuta m ON m.operacion_servicio_id = os.id AND m.estado IN ('aprobada','cerrada') AND m.fecha BETWEEN @d AND @h " &
+                    "LEFT JOIN venta_servicio vs ON vs.minuta_id = m.id " &
                     "WHERE os.operacion_id = @o GROUP BY os.id, s.nombre, rg.nombre, i.origen ORDER BY 2",
                     Function(rd) (Id:=rd.GetInt64(0), Nombre:=rd.GetString(1), Origen:=rd.TextoONada("origen"), Minutas:=rd.GetInt64(3),
-                                  SinVenta:=rd.GetInt64(4), Venta:=rd.GetInt64(5), Objetivos:=rd.TextoONada("objetivos")),
+                                  SinVenta:=rd.GetInt64(4), Venta:=rd.GetInt64(5), Reales:=rd.GetInt64(6), Objetivos:=rd.TextoONada("objetivos")),
                     "p", periodoId, "d", desde, "h", hasta, "o", o)
                     If s.Minutas = 0 Then
                         r.Add(New IngresoGeneradoDto With {.Servicio = s.Nombre, .Estado = "sin minutas", .Detalle = "No hay minutas aprobadas en el mes"})
@@ -183,7 +185,7 @@ Public NotInheritable Class ServicioCierres
                                                            .Detalle = $"Ya hay un ingreso de origen {s.Origen}; no se reemplaza"})
                         Continue For
                     End If
-                    Dim fuente = $"Estructura: {s.Minutas} minutas, Food Cost objetivo {s.Objetivos} %" &
+                    Dim fuente = $"Estructura: {s.Minutas} minutas ({s.Reales} con venta real cargada, el resto con venta teorica), Food Cost objetivo {s.Objetivos} %" &
                                  If(s.SinVenta > 0, $"; {s.SinVenta} minutas sin venta por costo pendiente", "")
                     u.Ejecutar("INSERT INTO ingreso_servicio(empresa_id, operacion_servicio_id, periodo_id, importe_neto_u6, ajustes_u6, moneda, fuente, origen) " &
                                "VALUES (@e, @os, @p, @i, 0, (SELECT moneda FROM empresa WHERE id = @e), @f, 'estructura') " &

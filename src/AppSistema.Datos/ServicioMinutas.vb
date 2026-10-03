@@ -134,21 +134,83 @@ Public NotInheritable Class ServicioMinutas
 
     ''' <summary>
     ''' Agrega la alternativa con raciones = comensales × factor del componente × reparto (p. ej. jugo A 50 % y jugo B 50 %).
+    ''' El factor es el de la operación si lo ajustó; si no, el teórico de la estructura. Se guardan factor y reparto.
     ''' </summary>
     Public Function AgregarPlatoPorFactor(minutaId As Long, estructuraId As Long, recetaVersionId As Long, Optional repartoBp As Long = 10000) As Long
         Dim op = OperacionId
-        Dim raciones = EnTransaccion(Permisos.MinutasEditar,
+        Return EnTransaccion(Permisos.MinutasEditar,
             Function(u)
                 ExigirMinutaDeOperacion(u, minutaId, op)
-                Dim comensales = u.EscalarLong("SELECT comensales FROM minuta WHERE id = @m", "m", minutaId)
-                Dim factor = u.Escalar("SELECT es.factor_consumo_bp FROM estructura_servicio es JOIN operacion_servicio os ON os.servicio_id = es.servicio_id " &
-                                       "JOIN minuta m ON m.operacion_servicio_id = os.id WHERE m.id = @m AND es.id = @es", "m", minutaId, "es", estructuraId)
-                If factor Is Nothing Then Throw New ReglaNegocioException("ESTRUCTURA_DE_OTRO_SERVICIO", "El componente no pertenece al servicio de la minuta.")
-                Return VentaEstructura.Raciones(comensales, CLng(factor), repartoBp)
+                Dim m = u.Consultar("SELECT comensales, operacion_servicio_id FROM minuta WHERE id = @m", Function(rd) (rd.GetInt64(0), rd.GetInt64(1)), "m", minutaId).Single()
+                Dim factor = FactorVigente(u, m.Item2, estructuraId)
+                Dim raciones = VentaEstructura.Raciones(m.Item1, factor, repartoBp)
+                If raciones <= 0 Then Throw New ReglaNegocioException("CANTIDAD_INVALIDA", "Con ese factor y reparto no quedan raciones.")
+                Return u.EscalarLong("INSERT INTO minuta_detalle(empresa_id, minuta_id, estructura_id, receta_version_id, raciones, factor_consumo_bp, reparto_bp) " &
+                                     "VALUES (@e, @m, @s, @v, @r, @f, @rp) RETURNING id",
+                                     "e", Sesion.EmpresaId, "m", minutaId, "s", estructuraId, "v", recetaVersionId, "r", raciones, "f", factor, "rp", repartoBp)
             End Function)
-        If raciones <= 0 Then Throw New ReglaNegocioException("CANTIDAD_INVALIDA", "Con ese factor y reparto no quedan raciones.")
-        Return AgregarPlato(minutaId, estructuraId, recetaVersionId, raciones)
     End Function
+
+    ''' <summary>Factor de consumo vigente para el servicio de la operación: el ajustado por la operación o el teórico de la estructura.</summary>
+    Friend Shared Function FactorVigente(u As UnidadDeTrabajo, operacionServicioId As Long, estructuraId As Long) As Long
+        Dim f = u.Escalar("SELECT COALESCE(fo.factor_consumo_bp, es.factor_consumo_bp) FROM estructura_servicio es " &
+                          "JOIN operacion_servicio os ON os.servicio_id = es.servicio_id AND os.id = @os " &
+                          "LEFT JOIN factor_consumo_operacion fo ON fo.operacion_servicio_id = os.id AND fo.estructura_id = es.id WHERE es.id = @es",
+                          "os", operacionServicioId, "es", estructuraId)
+        If f Is Nothing Then Throw New ReglaNegocioException("ESTRUCTURA_DE_OTRO_SERVICIO", "El componente no pertenece al servicio de la minuta.")
+        Return CLng(f)
+    End Function
+
+    ''' <summary>
+    ''' Cambia el total de comensales de una minuta en borrador y recalcula las raciones de los platos agregados por factor
+    ''' (los platos con raciones escritas a mano no cambian).
+    ''' </summary>
+    Public Sub ActualizarComensales(minutaId As Long, comensales As Long)
+        If comensales < 0 Then Throw New ReglaNegocioException("CANTIDAD_INVALIDA", "Los comensales no pueden ser negativos.")
+        Dim op = OperacionId
+        EnTransaccion(Permisos.MinutasEditar,
+            Function(u)
+                ExigirMinutaDeOperacion(u, minutaId, op)
+                u.Ejecutar("UPDATE minuta SET comensales = @c WHERE id = @m", "c", comensales, "m", minutaId)
+                For Each p In u.Consultar("SELECT id, factor_consumo_bp, reparto_bp FROM minuta_detalle WHERE minuta_id = @m AND factor_consumo_bp IS NOT NULL",
+                                          Function(rd) (rd.GetInt64(0), rd.GetInt64(1), rd.GetInt64(2)), "m", minutaId)
+                    u.Ejecutar("UPDATE minuta_detalle SET raciones = @r WHERE id = @d", "r", Math.Max(1L, VentaEstructura.Raciones(comensales, p.Item2, p.Item3)), "d", p.Item1)
+                Next
+                Return 0
+            End Function)
+    End Sub
+
+    ''' <summary>Factores del servicio en la operación: teórico (estructura), ajustado por la operación y vigente.</summary>
+    Public Function FactoresDeOperacion(operacionServicioId As Long) As List(Of FactorOperacionDto)
+        Dim op = OperacionId
+        Return EnTransaccion(Permisos.MenusVer,
+            Function(u)
+                ExigirServicioDeOperacion(u, operacionServicioId, op)
+                Return u.Consultar(
+                    "SELECT es.id, es.nombre, es.orden, es.factor_consumo_bp, fo.factor_consumo_bp AS factor_operacion FROM estructura_servicio es " &
+                    "JOIN operacion_servicio os ON os.servicio_id = es.servicio_id AND os.id = @os " &
+                    "LEFT JOIN factor_consumo_operacion fo ON fo.operacion_servicio_id = os.id AND fo.estructura_id = es.id ORDER BY es.orden, es.id",
+                    Function(rd) New FactorOperacionDto With {.EstructuraId = rd.GetInt64(0), .Estructura = rd.GetString(1), .Orden = rd.GetInt64(2),
+                                                              .FactorTeoricoBp = rd.GetInt64(3), .FactorOperacionBp = rd.LongONada("factor_operacion")},
+                    "os", operacionServicioId)
+            End Function)
+    End Function
+
+    ''' <summary>La operación ajusta el factor de un componente (Nothing = volver al teórico). Aplica a las minutas que se planifiquen después.</summary>
+    Public Sub FijarFactorOperacion(operacionServicioId As Long, estructuraId As Long, factorConsumoBp As Long?)
+        Dim op = OperacionId
+        EnTransaccion(Permisos.MinutasAprobar,
+            Function(u)
+                ExigirServicioDeOperacion(u, operacionServicioId, op)
+                If Not factorConsumoBp.HasValue Then
+                    Return u.Ejecutar("DELETE FROM factor_consumo_operacion WHERE operacion_servicio_id = @os AND estructura_id = @es", "os", operacionServicioId, "es", estructuraId)
+                End If
+                Return u.Ejecutar("INSERT INTO factor_consumo_operacion(empresa_id, operacion_servicio_id, estructura_id, factor_consumo_bp, usuario_id) VALUES (@e, @os, @es, @f, @u) " &
+                                  "ON CONFLICT (empresa_id, operacion_servicio_id, estructura_id) DO UPDATE SET factor_consumo_bp = EXCLUDED.factor_consumo_bp, " &
+                                  "usuario_id = EXCLUDED.usuario_id, actualizado_en = now()",
+                                  "e", Sesion.EmpresaId, "os", operacionServicioId, "es", estructuraId, "f", factorConsumoBp.Value, "u", Sesion.UsuarioId)
+            End Function)
+    End Sub
 
     Public Sub QuitarPlato(platoId As Long)
         Dim op = OperacionId

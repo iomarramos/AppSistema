@@ -82,7 +82,7 @@ Public Class VentaEstructuraDatosTests
             Dim g = e.Cierres.GenerarVentaDesdeMinutas(2026, 10).Single()
             Assert.Equal("generado", g.Estado)
             Assert.Equal(U(3145.833333D), g.ImporteU6)
-            Assert.StartsWith("Estructura: 1 minutas, Food Cost objetivo 48.00 %", g.Detalle)
+            Assert.StartsWith("Estructura: 1 minutas (0 con venta real cargada, el resto con venta teorica), Food Cost objetivo 48.00 %", g.Detalle)
             e.Cierres.GenerarVentaDesdeMinutas(2026, 10)
             Assert.Equal(1L, Convert.ToInt64(bd.Escalar("SELECT count(*) FROM ingreso_servicio WHERE origen = 'estructura'")))
 

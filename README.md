@@ -47,7 +47,7 @@ Cada sede trabaja con su propio servidor: si se corta internet, las PC de la sed
 
 ### Venta y Food Cost (D13)
 
-En **Menús > Servicios y estructuras** cada componente del servicio (bebida, jugo, pan, fondo, complementos…) lleva su **factor de consumo** (100 % plato caliente; 30–70 % complementos) y cada servicio su **Food Cost objetivo** (48 % por defecto). En la minuta, cada alternativa se agrega con su **reparto** (jugo A 50 %, jugo B 50 %) y las raciones salen solas. Al aprobar, la minuta guarda su costo previsto y su **venta = costo / objetivo** (precio por comensal visible). En **Cierres**, *Generar venta (estructura)* carga la venta del mes y el Food Cost real queda como consumo real / venta.
+En **Menús > Servicios y estructuras** cada componente del servicio (bebida, jugo, pan, fondo, complementos…) lleva su **factor de consumo** (100 % plato caliente; 30–70 % complementos) y cada servicio su **Food Cost objetivo** (48 % por defecto). En la minuta, cada alternativa se agrega con su **reparto** (jugo A 50 %, jugo B 50 %) y las raciones salen solas. Al aprobar, la minuta guarda su costo previsto y su **venta = costo / objetivo** (precio por comensal visible). En **Cierres**, *Generar venta (estructura)* carga la venta del mes y el Food Cost real queda como consumo real / venta. Los factores son teóricos: cada operación los ajusta (*Factores de la operación*, con el factor real de los últimos 30 días). Después del servicio, en **Menús > Producción** se carga la *venta real* y el *consumo por componente*, y *Teórico vs real* compara raciones, venta, costo y productos (incluidos los que salieron sin estar planificados); la venta del mes usa la venta real cuando está cargada.
 
 ### Contratos, gastos y resultado (opcional)
 

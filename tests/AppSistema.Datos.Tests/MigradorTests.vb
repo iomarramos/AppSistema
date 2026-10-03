@@ -12,8 +12,8 @@ Public Class MigradorTests
             Assert.Equal(Migrador.Disponibles().Count, segunda.Count)
             Assert.True(segunda.All(Function(m) Not m.Aplicada))
             Assert.Equal(CLng(Migrador.Disponibles().Count), Convert.ToInt64(bd.Escalar("SELECT count(*) FROM esquema_migracion")))
-            Assert.Equal(67L, Convert.ToInt64(bd.Escalar(
-                "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE'")))  ' 59 del esquema + esquema_migracion + 7 de sincronizacion (V012)
+            Assert.Equal(70L, Convert.ToInt64(bd.Escalar(
+                "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE'")))  ' 59 del esquema + esquema_migracion + 7 de sincronizacion (V012) + 3 de teorico vs real (V015)
         End Using
     End Sub
 

@@ -142,9 +142,13 @@ Public NotInheritable Class ServicioAlmacen
 
     ' ---------- Salidas, bajas, devoluciones y traspasos ----------
 
-    ''' <summary>Entrega a producción (cocina). Valor = cantidad × costo vigente.</summary>
-    Public Function SalidaProduccion(almacenId As Long, fecha As Date, lineas As IEnumerable(Of LineaSalida), Optional motivo As String = Nothing) As Long
-        Return Salida(almacenId, fecha, lineas, TipoDocumentoStock.SalidaProduccion, "SP", motivo)
+    ''' <summary>
+    ''' Entrega a producción (cocina). Valor = cantidad × costo vigente. Con el servicio indicado, la salida cuenta en el
+    ''' costo real de ese servicio (y en el comparativo teórico vs real, aunque no estuviera planificada).
+    ''' </summary>
+    Public Function SalidaProduccion(almacenId As Long, fecha As Date, lineas As IEnumerable(Of LineaSalida), Optional motivo As String = Nothing,
+                                     Optional operacionServicioId As Long? = Nothing) As Long
+        Return Salida(almacenId, fecha, lineas, TipoDocumentoStock.SalidaProduccion, "SP", motivo, operacionServicioId)
     End Function
 
     ''' <summary>Baja (merma, vencido, dañado). Exige motivo.</summary>
@@ -152,11 +156,16 @@ Public NotInheritable Class ServicioAlmacen
         Return Salida(almacenId, fecha, lineas, TipoDocumentoStock.Baja, "BJ", ServicioAdministracion.Requerido(motivo, "motivo de la baja"))
     End Function
 
-    Private Function Salida(almacenId As Long, fecha As Date, lineas As IEnumerable(Of LineaSalida), tipo As TipoDocumentoStock, prefijo As String, motivo As String) As Long
+    Private Function Salida(almacenId As Long, fecha As Date, lineas As IEnumerable(Of LineaSalida), tipo As TipoDocumentoStock, prefijo As String, motivo As String,
+                            Optional operacionServicioId As Long? = Nothing) As Long
         Dim copia = lineas.ToList()
         Return EnTransaccion(Permisos.StockContabilizar,
-            Function(u) Stock().ContabilizarEn(u, New DocumentoStockNuevo(almacenId, tipo, fecha, SiguienteNumero(u, prefijo),
-                                                    copia.Select(Function(l) New LineaDocumentoStock(l.VarianteId, l.CantidadBaseU6, 0))) With {.Motivo = motivo}))
+            Function(u)
+                If operacionServicioId.HasValue Then ServicioCierres.ExigirServicio(u, operacionServicioId.Value, Sesion.Operacion.Id)
+                Return Stock().ContabilizarEn(u, New DocumentoStockNuevo(almacenId, tipo, fecha, SiguienteNumero(u, prefijo),
+                                                    copia.Select(Function(l) New LineaDocumentoStock(l.VarianteId, l.CantidadBaseU6, 0))) With {
+                                                    .Motivo = motivo, .OperacionServicioId = operacionServicioId})
+            End Function)
     End Function
 
     ''' <summary>

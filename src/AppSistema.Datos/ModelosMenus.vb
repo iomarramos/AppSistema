@@ -161,3 +161,22 @@ Public NotInheritable Class NecesidadDto
     ''' <summary>Cuántos platos o fijos aportan a esta necesidad.</summary>
     Public Property Origenes As Integer
 End Class
+
+''' <summary>Factor de consumo de un componente: teórico de la estructura y, si existe, el ajustado por la operación.</summary>
+Public NotInheritable Class FactorOperacionDto
+    Public Property EstructuraId As Long
+    Public Property Estructura As String
+    Public Property Orden As Long
+    Public Property FactorTeoricoBp As Long
+    Public Property FactorOperacionBp As Long?
+    Public ReadOnly Property FactorVigenteBp As Long
+        Get
+            Return If(FactorOperacionBp, FactorTeoricoBp)
+        End Get
+    End Property
+    Public ReadOnly Property Texto As String
+        Get
+            Return $"{FactorTeoricoBp / 100D:0.##} % teorico" & If(FactorOperacionBp.HasValue, $" / {FactorOperacionBp.Value / 100D:0.##} % operacion", "")
+        End Get
+    End Property
+End Class

@@ -17,12 +17,13 @@ Plan: `docs/guia_construccion/04_PLAN_POR_ETAPAS.md`. Decisiones de negocio: `do
 | D01 Valoración | **Cantidad × precio**: entradas a su costo; salidas a cantidad × costo vigente del saldo (promedio ponderado móvil por almacén y variante) | 03/10/2026 | Usuario |
 | Moneda | **Soles (PEN)** para precios del SGP, inventario y costos; es el valor por defecto en el sistema | 03/10/2026 | Usuario |
 | D13 Venta y Food Cost | **Food Cost = costo / venta; la venta sale de la estructura del menú**: cada componente (bebida caliente, jugo, panes, fondo o sopa, complementos, huevo, mantequilla, mermelada, yogurt, ensalada, fruta, cereales…) tiene un factor de consumo (plato caliente ≈ 100 %, complementos 30–70 %) y sus alternativas se reparten (jugo 50/50); venta = costo previsto de la estructura / Food Cost objetivo **48 %** (margen 52 %), ajustable por servicio | 03/10/2026 | Usuario |
+| Teórico vs real | **Los factores son teóricos y la operación los actualiza** según su consumo real; la minuta lleva el total de comensales y toda la estructura se calcula con los factores (cambiar comensales recalcula); se **carga la venta real** del servicio; se compara planificado vs realizado en raciones (planificadas, preparadas, consumidas, vendidas/no vendidas), venta, costo y **por producto**, incluidos los que salieron del almacén para el servicio sin estar planificados | 03/10/2026 | Usuario |
 
 ## Estado por etapa
 
 | Etapa | Estado | Qué hay / qué falta |
 |---|---|---|
-| 0 Diagnóstico y línea base | **Hecha** | Esquema portado a PostgreSQL; migraciones V001–V014 con migrador versionado; brechas H01–H03 cerradas |
+| 0 Diagnóstico y línea base | **Hecha** | Esquema portado a PostgreSQL; migraciones V001–V015 con migrador versionado; brechas H01–H03 cerradas |
 | 1 Fundamentos y catálogo | **Hecha en código y pruebas; falta validar la interfaz en Windows** | Acceso con bloqueo, permisos por operación, auditoría automática, aislamiento RLS, operaciones/almacenes/usuarios, unidades, categorías, marcas, productos, variantes, empaques, proveedores, precios con vigencia, importador CSV con vista previa, **carga del listado de productos del SGP** (4 158 productos con factor y unidad mínima de pedido; `datos/sgp/`). Pantallas WinForms compiladas **pero no ejecutadas** (no hay Windows en este entorno) |
 | 2 Menús y recetas | **Hecha en código y pruebas; falta validar la interfaz en Windows** | Servicios, regímenes y estructuras; recetas versionadas (borrador → aprobada inmutable → retirada) con rendimiento, ingredientes por producto base y variantes permitidas; minutas por día y servicio con platos y fijos; aprobación con snapshot de costo (fuente y fecha por ingrediente); costo simulado; necesidades consolidadas por producto. **Recetas del SGP cargadas**: 946 recetas (417 fichas revisadas + 529 del Recetón) con 412 ingredientes (`datos/recetas/`). Pantallas: Recetas, Minutas y necesidades, Servicios y estructuras, Importar recetas. **Regla de precio provisional** (D02 pendiente): menor costo vigente entre las variantes permitidas; sin precio → "pendiente". El precio se usa tal como se registró (D03 impuestos pendiente) |
 | 3 Previsión y compras | **Hecha en código y pruebas; falta validar la interfaz en Windows** | Previsión por almacén desde minutas aprobadas: demanda del horizonte, consumo puente (una sola vez), stock actual, reserva por producto y almacén (D08 como parámetro, 0 por defecto), pendientes de pedidos aprobados menos lo recibido, **recorrido por fechas** con fecha de quiebre (un tránsito tardío no oculta la falta). Validación y obsolescencia (recalcula y compara; los pedidos de la propia previsión no la vuelven obsoleta). Pedido generado por proveedor con el empaque de menor costo vigente y redondeo por mínimo/múltiplo (D04 propuesto); pedidos manuales; aprobación (exige previsión vigente) y anulación; inmutables tras aprobar. Pantalla Compras > Previsión y pedidos |
@@ -75,6 +76,7 @@ Plan: `docs/guia_construccion/04_PLAN_POR_ETAPAS.md`. Decisiones de negocio: `do
 | T46 migrar base con documentos históricos | `ContinuidadTests` (V011 con documentos → V012: saldos y libro iguales; historia a la cola en orden) | Pasa |
 | Etapa 9: ajuste a mitad de mes, ingreso prorrateado, mes cerrado intocable, resultado trazable, roles propios, aislamiento | Dominio (`ContratosTests`) y `ExtensionesTests` | Pasa |
 | D13 venta por estructura: desayuno de 500 con factores (100 %, 50/50, 70 %, 30 %) → costo S/ 1 510, venta S/ 3 145,83 al 48 %; consumo real S/ 1 600 → Food Cost 50,86 % | Dominio (`VentaEstructuraTests`) y `VentaEstructuraDatosTests` | Pasa |
+| Teórico vs real: comensales recalculan raciones; factor por operación; venta real 470 de 500; consumo por componente (factor real 63,83 %); costo teórico S/ 1 510 vs real S/ 1 630; producto no planificado detectado; día cerrado protege lo real | `TeoricoRealTests` | Pasa |
 | T47 importación repetida y filas inválidas | `ImportacionTests`, `ImportacionSgpTests` (listado real del SGP) | Pasa |
 
 **Todos los casos T01–T48 de la guía tienen prueba**; lo que falta es el piloto en una sede real.
@@ -84,7 +86,7 @@ Plan: `docs/guia_construccion/04_PLAN_POR_ETAPAS.md`. Decisiones de negocio: `do
 ```bash
 ./ejecutar_pruebas.sh
 ```
-Última corrida: 69 aserciones SQL + concurrencia (T24 y carrera de 10 sesiones), 91 pruebas de dominio, 83 de integración, instalador de punta a punta (migrar dos veces + crear empresa + cargar catálogo por ingrediente, las 946 recetas enlazadas y el inventario inicial dos veces + central, sincronización repetida sin duplicar, respaldo, restauración y actualización conciliadas, exportación de resultados) y compilación WinForms sin advertencias. Entorno: Ubuntu 24.04, PostgreSQL 16.14, SDK .NET 8.0.425 oficial de Microsoft. El mismo script corre en GitHub Actions.
+Última corrida: 69 aserciones SQL + concurrencia (T24 y carrera de 10 sesiones), 91 pruebas de dominio, 85 de integración, instalador de punta a punta (migrar dos veces + crear empresa + cargar catálogo por ingrediente, las 946 recetas enlazadas y el inventario inicial dos veces + central, sincronización repetida sin duplicar, respaldo, restauración y actualización conciliadas, exportación de resultados) y compilación WinForms sin advertencias. Entorno: Ubuntu 24.04, PostgreSQL 16.14, SDK .NET 8.0.425 oficial de Microsoft. El mismo script corre en GitHub Actions.
 
 Se comprobó que las pruebas detectan fallos: mutación del redondeo de empaques (6 pruebas fallan), quitar el bloqueo de saldo (concurrencia falla), desactivar el RLS (T02 falla) quitar el control de duplicados y de orden en la central (T42, T43 y T44 fallan) y quitar la protección de contratos (importe editable o mes cerrado alterado: fallan las pruebas de etapa 9).
 
@@ -114,7 +116,7 @@ H01, H02 y H03: **cerradas** (V003) y probadas también con el rol de la aplicac
 
 1. Probar la aplicación WinForms en una PC Windows 10+ con un PostgreSQL local (pasos en `README.md`) y registrar observaciones.
 2. Piloto de etapa 8 en una sede: servidor PostgreSQL de sede, central, sincronización programada, respaldo diario y una restauración de prueba; registrar incidencias un mes (plan en `docs/PILOTO_ETAPA_8.md`).
-3. Confirmar D10 (¿las ≈20 PC son una sola sede?) y los factores de consumo reales de cada estructura (desayuno, almuerzo…) por operación.
+3. Confirmar D10 (¿las ≈20 PC son una sola sede?) y cargar los factores teóricos de cada estructura (desayuno, almuerzo…); luego cada operación los ajusta con su factor real.
 4. Integraciones (SAP/ADS/SGO u otras): solo con especificación, entorno de prueba y conciliación entregados por el cliente.
 5. Decidir D02 (precio de ingrediente genérico): hoy se usa la regla provisional "menor costo vigente".
 

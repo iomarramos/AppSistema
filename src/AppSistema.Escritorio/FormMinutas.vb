@@ -27,7 +27,7 @@ Public Class FormMinutas
         Dim barraMinutas = Ui.BarraBotones(New Label With {.Text = "Desde", .AutoSize = True, .Margin = New Padding(3, 9, 3, 3)}, _desde,
                                            New Label With {.Text = "hasta", .AutoSize = True, .Margin = New Padding(3, 9, 3, 3)}, _hasta,
                                            Ui.Boton("Ver", AddressOf CargarMinutas), Ui.Boton("Nueva minuta", AddressOf NuevaMinuta),
-                                           Ui.Boton("Aprobar", AddressOf Aprobar), Ui.Boton("Necesidades del periodo...", AddressOf Necesidades))
+                                           Ui.Boton("Cambiar comensales...", AddressOf CambiarComensales), Ui.Boton("Aprobar", AddressOf Aprobar), Ui.Boton("Necesidades del periodo...", AddressOf Necesidades))
         barraMinutas.Controls(5).Visible = edita
         barraMinutas.Controls(6).Visible = sesion.Tiene(Permisos.MinutasAprobar)
         Dim barraPlatos = Ui.BarraBotones(Ui.Boton("Agregar plato", AddressOf AgregarPlato), Ui.Boton("Quitar plato", AddressOf QuitarPlato),
@@ -97,6 +97,19 @@ Public Class FormMinutas
                 End Using
             End Sub)
         CargarMinutas()
+    End Sub
+
+    ''' <summary>Cambia el total de comensales y recalcula las raciones de los platos agregados por factor.</summary>
+    Private Sub CambiarComensales()
+        Dim m = MinutaBorrador()
+        If m Is Nothing Then Return
+        Using d As New DialogoCampos("Comensales de la minuta")
+            d.Texto("comensales", "Total de comensales", m.Comensales.ToString())
+            If d.ShowDialog(Me) <> DialogResult.OK Then Return
+            Ui.Ejecutar(Me, Sub() _servicio.ActualizarComensales(m.Id, Ui.LeerEntero(d.Valor("comensales"), "comensales")))
+        End Using
+        CargarMinutas()
+        CargarDetalle()
     End Sub
 
     Private Sub AgregarPlato()

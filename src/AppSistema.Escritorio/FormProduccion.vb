@@ -10,6 +10,7 @@ Public Class FormProduccion
     Inherits Form
 
     Private ReadOnly _produccion As ServicioProduccion
+    Private ReadOnly _comparativo As ServicioComparativo
     Private ReadOnly _minutas As ServicioMinutas
     Private ReadOnly _catalogo As ServicioCatalogo
     Private ReadOnly _almacenes As New List(Of AlmacenResumen)
@@ -20,6 +21,7 @@ Public Class FormProduccion
 
     Public Sub New(cadena As String, sesion As SesionUsuario)
         _produccion = New ServicioProduccion(cadena, sesion)
+        _comparativo = New ServicioComparativo(cadena, sesion)
         _minutas = New ServicioMinutas(cadena, sesion)
         _catalogo = New ServicioCatalogo(cadena, sesion)
         Dim admin As New ServicioAdministracion(cadena, sesion)
@@ -34,6 +36,10 @@ Public Class FormProduccion
             barra.Controls(i).Visible = cocina
         Next
         barra.Controls(6).Visible = sesion.Tiene(Permisos.StockContabilizar)
+        Dim barraReal = Ui.BarraBotones(New Label With {.Text = "Real del servicio:", .AutoSize = True, .Margin = New Padding(3, 9, 3, 3)},
+                                        Ui.Boton("Venta real...", AddressOf VentaReal), Ui.Boton("Consumo por componente...", AddressOf ConsumoComponente),
+                                        Ui.Boton("Teorico vs real", Sub() Comparar(False)), Ui.Boton("Teorico vs real del mes", Sub() Comparar(True)))
+        barraReal.Controls(1).Visible = cocina : barraReal.Controls(2).Visible = cocina
 
         Dim abajo As New SplitContainer With {.Dock = DockStyle.Fill}
         abajo.Panel1.Controls.Add(_gRequerimientos)
@@ -44,6 +50,7 @@ Public Class FormProduccion
         Controls.Add(division)
         Controls.Add(New Label With {.Dock = DockStyle.Top, .Height = 34, .Padding = New Padding(4),
             .Text = "El almacen entrega presentaciones completas y lo entregado se da por consumido (D12). El costo real es del servicio: entregas menos devoluciones."})
+        Controls.Add(barraReal)
         Controls.Add(barra)
 
         AddHandler _gMinutas.SelectionChanged, Sub() CargarRequerimientos()
@@ -68,7 +75,8 @@ Public Class FormProduccion
 
     Private Sub CargarMinutas()
         Ui.Ejecutar(Me, Sub() Ui.Mostrar(_gMinutas, _minutas.ListarMinutas(_fecha.Value, _fecha.Value), "Fecha|Fecha", "ServicioNombre|Servicio",
-                                         "RegimenNombre|Regimen", "Comensales|Comensales", "Estado|Estado"))
+                                         "RegimenNombre|Regimen", "Comensales|Comensales", "Estado|Estado",
+                                         "VentaPrevistaU6|Venta teorica", "PrecioVentaComensalU6|Precio por comensal"))
     End Sub
 
     Private Sub CargarRequerimientos()
@@ -199,5 +207,41 @@ Public Class FormProduccion
                 Ui.MostrarLista(Me, "Previsto vs real", cab, r.Consumo, "ProductoDescripcion|Producto", "PrevistoU6|Previsto", "EntregadoU6|Entregado",
                                 "DevueltoU6|Devuelto", "NetoU6|Neto", "DiferenciaU6|Diferencia", "Unidad|Unidad", "CostoRealU6|Costo real")
             End Sub)
+    End Sub
+    Private Sub VentaReal()
+        Dim m = Minuta
+        If m Is Nothing Then Ui.Informar(Me, "Seleccione una minuta.") : Return
+        Using d As New DialogoCampos($"Venta real de {m.ServicioNombre} {m.Fecha:dd/MM/yyyy}")
+            d.Texto("raciones", "Raciones vendidas", m.Comensales.ToString()) _
+             .Texto("importe", "Importe vendido S/ (vacio = raciones x precio por comensal)") _
+             .Texto("fuente", "Fuente (opcional: parte de comedor, liquidacion...)")
+            If d.ShowDialog(Me) <> DialogResult.OK Then Return
+            Ui.Ejecutar(Me, Sub() _comparativo.RegistrarVenta(m.Id, Ui.LeerEntero(d.Valor("raciones"), "raciones"),
+                                                               If(d.Valor("importe") = "", CType(Nothing, Long?), Ui.LeerU6(d.Valor("importe"), "importe")), d.Valor("fuente")))
+        End Using
+    End Sub
+
+    Private Sub ConsumoComponente()
+        Dim m = Minuta
+        If m Is Nothing Then Ui.Informar(Me, "Seleccione una minuta.") : Return
+        Dim platos As List(Of PlatoDto) = Nothing
+        If Not Ui.Ejecutar(Me, Sub() platos = _minutas.ListarPlatos(m.Id)) Then Return
+        Using d As New DialogoCampos("Consumo real por componente")
+            d.Opciones("plato", "Componente", platos.Select(Function(p) CObj(New Opcion(Of PlatoDto)(p, $"{p.EstructuraNombre}: {p.RecetaNombre} ({p.Raciones} planificadas)")))) _
+             .Texto("preparadas", "Raciones preparadas").Texto("consumidas", "Raciones consumidas")
+            If d.ShowDialog(Me) <> DialogResult.OK Then Return
+            Ui.Ejecutar(Me, Sub() _comparativo.RegistrarConsumo(d.Elegido(Of Opcion(Of PlatoDto))("plato").Valor.Id,
+                                                                 Ui.LeerEntero(d.Valor("preparadas"), "preparadas"), Ui.LeerEntero(d.Valor("consumidas"), "consumidas")))
+        End Using
+    End Sub
+
+    Private Sub Comparar(delMes As Boolean)
+        Dim m = Minuta
+        If m Is Nothing Then Ui.Informar(Me, "Seleccione una minuta.") : Return
+        Dim c As ComparativoDto = Nothing
+        If Not Ui.Ejecutar(Me, Sub() c = If(delMes, _comparativo.ComparativoMes(m.OperacionServicioId, m.Fecha.Year, m.Fecha.Month), _comparativo.Comparativo(m.Id))) Then Return
+        Using f As New FormComparativo(c)
+            f.ShowDialog(Me)
+        End Using
     End Sub
 End Class
