@@ -109,8 +109,12 @@ Public NotInheritable Class PaginaPrincipal
 
     ''' <summary>Diálogo modal abierto (DialogoCampos u otra ventana de primer nivel distinta de la principal y de los mensajes).</summary>
     Public Function Dialogo() As AutomationElement
-        Return _app.Ventanas().FirstOrDefault(Function(v) v.AutomationId <> "FormPrincipal" AndAlso v.ClassName <> "#32770" AndAlso
-                                                          v.AutomationId IsNot Nothing AndAlso (v.AutomationId.StartsWith("Form", StringComparison.Ordinal) OrElse v.AutomationId = "DialogoCampos"))
+        Dim primerNivel = _app.Ventanas().FirstOrDefault(Function(v) v.AutomationId <> "FormPrincipal" AndAlso v.ClassName <> "#32770" AndAlso
+                                                                     v.AutomationId IsNot Nothing AndAlso (v.AutomationId.StartsWith("Form", StringComparison.Ordinal) OrElse v.AutomationId = "DialogoCampos"))
+        If primerNivel IsNot Nothing Then Return primerNivel
+        ' Un diálogo con dueño (ShowDialog(Me)) aparece en UIA como hijo de su dueño, p. ej. la conexión del propietario que
+        ' pide la pantalla de TI al abrirse.
+        Return _app.Buscar("DialogoCampos")
     End Function
 
     ''' <summary>Cierra la ventana de trabajo o el diálogo indicado.</summary>
