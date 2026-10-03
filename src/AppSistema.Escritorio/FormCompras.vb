@@ -6,8 +6,7 @@ Imports AppSistema.Dominio.Seguridad
 ''' Previsión de compras (desglose explicable, reserva, validación, obsolescencia) y pedidos de compra
 ''' (generados desde la previsión o manuales, aprobación y anulación).
 ''' </summary>
-Public Class FormCompras
-    Inherits Form
+Partial Public Class FormCompras
 
     Private ReadOnly _servicio As ServicioCompras
     Private ReadOnly _proveedores As ServicioProveedores
@@ -20,7 +19,13 @@ Public Class FormCompras
     Private ReadOnly _pedidos As DataGridView = Ui.NuevaGrilla()
     Private ReadOnly _lineas As DataGridView = Ui.NuevaGrilla()
 
+    Public Sub New()
+        InitializeComponent()
+    End Sub
+
     Public Sub New(cadena As String, sesion As SesionUsuario)
+        InitializeComponent()
+        Controls.Clear()
         _servicio = New ServicioCompras(cadena, sesion)
         _proveedores = New ServicioProveedores(cadena, sesion)
         Dim admin As New ServicioAdministracion(cadena, sesion)
