@@ -3,8 +3,7 @@ Imports AppSistema.Datos
 Imports AppSistema.Dominio.Seguridad
 
 ''' <summary>Calendario de minutas de la operación: platos por estructura, fijos, aprobación con costo y necesidades consolidadas.</summary>
-Public Class FormMinutas
-    Inherits Form
+Partial Public Class FormMinutas
 
     Private ReadOnly _servicio As ServicioMinutas
     Private ReadOnly _recetas As ServicioRecetas
@@ -17,7 +16,13 @@ Public Class FormMinutas
     Private ReadOnly _platos As DataGridView = Ui.NuevaGrilla()
     Private ReadOnly _fijos As DataGridView = Ui.NuevaGrilla()
 
+    Public Sub New()
+        InitializeComponent()
+    End Sub
+
     Public Sub New(cadena As String, sesion As SesionUsuario)
+        InitializeComponent()
+        Controls.Clear()
         _servicio = New ServicioMinutas(cadena, sesion)
         _recetas = New ServicioRecetas(cadena, sesion)
         _catalogo = New ServicioCatalogo(cadena, sesion)
