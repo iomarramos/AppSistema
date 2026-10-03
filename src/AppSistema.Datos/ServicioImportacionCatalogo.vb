@@ -53,8 +53,9 @@ Public NotInheritable Class ServicioImportacionCatalogo
         MyBase.New(cadenaConexion, sesion)
     End Sub
 
-    Public Function VistaPrevia(textoCsv As String) As ResultadoImportacion
-        Return EnTransaccion(Permisos.CatalogoImportar, Function(u) Procesar(u, textoCsv, aplicar:=False))
+    ''' <param name="crearUnidadesBase">Si el archivo usa KG, L o UND y no existen, se crean (si no, es error de la fila).</param>
+    Public Function VistaPrevia(textoCsv As String, Optional crearUnidadesBase As Boolean = False) As ResultadoImportacion
+        Return EnTransaccion(Permisos.CatalogoImportar, Function(u) Procesar(u, textoCsv, aplicar:=False, If(crearUnidadesBase, UnidadesSgp, Nothing)))
     End Function
 
     ''' <summary>Vista previa del listado de productos del SGP (pro_nombre, pro_coduni, pro_facing). No escribe.</summary>
@@ -96,8 +97,8 @@ Public NotInheritable Class ServicioImportacionCatalogo
     End Function
 
     ''' <summary>Aplica la importación. Si alguna fila tiene error no se escribe nada (IMPORTACION_CON_ERRORES).</summary>
-    Public Function Aplicar(textoCsv As String) As ResultadoImportacion
-        Return EnTransaccion(Permisos.CatalogoImportar, Function(u) Procesar(u, textoCsv, aplicar:=True))
+    Public Function Aplicar(textoCsv As String, Optional crearUnidadesBase As Boolean = False) As ResultadoImportacion
+        Return EnTransaccion(Permisos.CatalogoImportar, Function(u) Procesar(u, textoCsv, aplicar:=True, If(crearUnidadesBase, UnidadesSgp, Nothing)))
     End Function
 
     Private NotInheritable Class ProductoExistente
@@ -125,7 +126,8 @@ Public NotInheritable Class ServicioImportacionCatalogo
         ' Estado actual del catálogo (solo de la empresa de la sesión, por RLS).
         Dim unidades = u.Consultar("SELECT codigo, id FROM unidad_medida", Function(rd) (rd.GetString(0), rd.GetInt64(1))) _
                         .ToDictionary(Function(x) x.Item1, Function(x) x.Item2, StringComparer.Ordinal)
-        Dim nuevasUnidades = If(unidadesACrear, {}).Where(Function(x) Not unidades.ContainsKey(x.Codigo)).ToList()
+        Dim usadas = New HashSet(Of String)(lectura.Filas.Select(Function(f) f.UnidadBase), StringComparer.Ordinal)
+        Dim nuevasUnidades = If(unidadesACrear, {}).Where(Function(x) Not unidades.ContainsKey(x.Codigo) AndAlso usadas.Contains(x.Codigo)).ToList()
         For Each nu In nuevasUnidades
             unidades(nu.Codigo) = -1   ' se crea al aplicar
         Next

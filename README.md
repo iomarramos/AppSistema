@@ -15,7 +15,8 @@ VB.NET + WinForms (.NET 8) en **Windows 10 o superior**, con **PostgreSQL** como
 | `tests/` | Pruebas xUnit de dominio e integración |
 | `datos/sgp/` | Listado de productos del SGP (factor de conversión y unidad mínima de pedido) y su conversión al catálogo |
 | `datos/recetas/` | Recetas del SGP (fichas revisadas y Recetón), normalizadas para importar, con ingredientes y observaciones |
-| `herramientas/` | Conversor de recetas del SGP (Python, uso puntual) |
+| `datos/enlace/` | Enlace producto SGP → ingrediente: catálogo por ingrediente (productos SGP como variantes) y recetas enlazadas. **Flujo de carga recomendado** |
+| `herramientas/` | Conversores de recetas y del enlace (Python, uso puntual) |
 | `docs/` | Requerimientos, guía de construcción, seguimiento y flujo de ramas |
 
 ## Instalar una sede (servidor)
@@ -29,7 +30,7 @@ VB.NET + WinForms (.NET 8) en **Windows 10 o superior**, con **PostgreSQL** como
    AppSistema.Instalador crear-usuario-sede app_sede
    ```
    No existen usuarios ni claves por defecto: la clave del administrador se define en `crear-empresa`.
-3. (Opcional) Cargar los productos del SGP: `set APPSISTEMA_CONEXION=...app_sede...` y `AppSistema.Instalador importar-sgp productos_sgp_original.tsv` (detalle en [`datos/sgp/LEEME.md`](datos/sgp/LEEME.md)). También desde la aplicación: Catálogo > Importar.
+3. (Opcional) Cargar catálogo y recetas del SGP: `set APPSISTEMA_CONEXION=...app_sede...`, luego `AppSistema.Instalador importar-catalogo catalogo_por_ingrediente.csv` y `AppSistema.Instalador importar-recetas recetas_enlazadas.csv --aprobar` (detalle en [`datos/enlace/LEEME.md`](datos/enlace/LEEME.md)). También desde la aplicación: Catálogo > Importar y Menús > Importar recetas.
 4. En cada computadora, abrir **AppSistema**, indicar servidor, base, `app_sede` y su clave (se guarda cifrada con DPAPI en `%PROGRAMDATA%\AppSistema\conexion.json`) e iniciar sesión con empresa, usuario y clave.
 
 ## Pruebas

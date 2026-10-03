@@ -12,6 +12,7 @@ Imports AppSistema.Dominio.Importacion
 '''   crear-usuario-sede NOMBRE   crea el usuario de base que usan las computadoras de la sede
 '''   convertir-sgp ARCHIVO [DIR] convierte el listado de productos del SGP (sin base de datos)
 '''   importar-sgp ARCHIVO        carga ese listado en el catálogo de una empresa (conexión de sede + usuario)
+'''   importar-catalogo ARCHIVO   carga un CSV de catálogo (p. ej. datos/enlace/catalogo_por_ingrediente.csv)
 '''   importar-recetas ARCHIVO [--aprobar]  carga recetas_normalizadas.csv (ingredientes como productos base)
 ''' </summary>
 Public Module Programa
@@ -30,6 +31,9 @@ Public Module Programa
                 Case "importar-sgp"
                     If args.Length < 2 Then Throw New ReglaNegocioException("DATO_OBLIGATORIO", "Indique el archivo del SGP.")
                     Return ImportarSgp(args(1))
+                Case "importar-catalogo"
+                    If args.Length < 2 Then Throw New ReglaNegocioException("DATO_OBLIGATORIO", "Indique el archivo de catalogo.")
+                    Return ImportarSgp(args(1), esListadoSgp:=False)
                 Case "importar-recetas"
                     If args.Length < 2 Then Throw New ReglaNegocioException("DATO_OBLIGATORIO", "Indique el archivo de recetas normalizadas.")
                     Return ImportarRecetas(args(1), args.Contains("--aprobar"))
@@ -77,9 +81,9 @@ Public Module Programa
     End Function
 
     Private Sub Ayuda()
-        Console.WriteLine("Uso: AppSistema.Instalador <migrar | crear-empresa | crear-usuario-sede NOMBRE | convertir-sgp ARCHIVO [DIR] | importar-sgp ARCHIVO | importar-recetas ARCHIVO [--aprobar]>")
+        Console.WriteLine("Uso: AppSistema.Instalador <migrar | crear-empresa | crear-usuario-sede NOMBRE | convertir-sgp ARCHIVO [DIR] | importar-sgp ARCHIVO | importar-catalogo ARCHIVO | importar-recetas ARCHIVO [--aprobar]>")
         Console.WriteLine("La conexion del propietario se toma de APPSISTEMA_CONEXION_PROPIETARIO o se solicita.")
-        Console.WriteLine("importar-sgp e importar-recetas usan la conexion de sede (APPSISTEMA_CONEXION o se solicita) y un usuario con permiso CATALOGO_IMPORTAR.")
+        Console.WriteLine("importar-sgp, importar-catalogo e importar-recetas usan la conexion de sede (APPSISTEMA_CONEXION o se solicita) y un usuario con permiso CATALOGO_IMPORTAR.")
     End Sub
 
     ''' <summary>Escribe catalogo_sgp.csv (formato del importador) y observaciones_sgp.txt sin tocar la base.</summary>
@@ -146,12 +150,12 @@ Public Module Programa
         Return 0
     End Function
 
-    Private Function ImportarSgp(archivo As String) As Integer
+    Private Function ImportarSgp(archivo As String, Optional esListadoSgp As Boolean = True) As Integer
         Dim texto = File.ReadAllText(archivo)
         Dim conexion As String = Nothing
         Dim sesion = IniciarSesionSede(conexion)
         Dim servicio As New ServicioImportacionCatalogo(conexion, sesion)
-        Dim vista = servicio.VistaPreviaSgp(texto)
+        Dim vista = If(esListadoSgp, servicio.VistaPreviaSgp(texto), servicio.VistaPrevia(texto, crearUnidadesBase:=True))
         For Each f In vista.Filas.Where(Function(x) x.Estado = EstadoFilaImportacion.ConError)
             Console.Error.WriteLine($"  Linea {f.Numero}: {f.Detalle}")
         Next
@@ -168,7 +172,7 @@ Public Module Programa
             Console.WriteLine("Cancelado. No se importo nada.")
             Return 1
         End If
-        Console.WriteLine("Importado: " & servicio.AplicarSgp(texto).Resumen)
+        Console.WriteLine("Importado: " & If(esListadoSgp, servicio.AplicarSgp(texto), servicio.Aplicar(texto, crearUnidadesBase:=True)).Resumen)
         Return 0
     End Function
 

@@ -23,7 +23,7 @@ echo "######## 3/5  Capa de datos VB.NET contra PostgreSQL"
 dotnet test tests/AppSistema.Datos.Tests --nologo -v q
 
 echo
-echo "######## 4/5  Instalador de consola (migrar dos veces + crear empresa + cargar listado SGP y recetas dos veces)"
+echo "######## 4/5  Instalador de consola (migrar dos veces + crear empresa + cargar catalogo por ingrediente y recetas dos veces)"
 DB=appsistema_instalador
 dropdb --if-exists "$DB" >/dev/null 2>&1 || true
 createdb "$DB"
@@ -34,15 +34,16 @@ dotnet run --project src/AppSistema.Instalador -v q -- migrar | grep -c "ya esta
 printf 'DEMO\nEmpresa demo\nOP1\nOperacion demo\nALM\nAlmacen demo\nadmin\nAdministrador\nDemo-Clave-2026\nDemo-Clave-2026\n' \
   | dotnet run --project src/AppSistema.Instalador -v q -- crear-empresa | tail -1
 export APPSISTEMA_CONEXION="Host=$APPSISTEMA_PG_HOST;Username=$APPSISTEMA_PG_USER;Database=$DB;Options=-c role=app_stock$CLAVE"
+# Flujo recomendado: catálogo por ingrediente (productos SGP como variantes) y luego recetas enlazadas; dos veces.
+for archivo in datos/enlace/catalogo_por_ingrediente.csv; do
+  printf 'DEMO\nadmin\nDemo-Clave-2026\nSI\n' | dotnet run --project src/AppSistema.Instalador -v q -- importar-catalogo "$archivo" | tail -1
+  printf 'DEMO\nadmin\nDemo-Clave-2026\n' | dotnet run --project src/AppSistema.Instalador -v q -- importar-catalogo "$archivo" | tail -1
+done
 printf 'DEMO\nadmin\nDemo-Clave-2026\nSI\n' \
-  | dotnet run --project src/AppSistema.Instalador -v q -- importar-sgp datos/sgp/productos_sgp_original.tsv | tail -1
+  | dotnet run --project src/AppSistema.Instalador -v q -- importar-recetas datos/enlace/recetas_enlazadas.csv --aprobar | tail -1
 printf 'DEMO\nadmin\nDemo-Clave-2026\n' \
-  | dotnet run --project src/AppSistema.Instalador -v q -- importar-sgp datos/sgp/productos_sgp_original.tsv | tail -1
-psql -d "$DB" -tAc "SELECT 'productos SGP cargados: ' || count(*) FROM producto_base WHERE codigo LIKE 'SGP%'"
-printf 'DEMO\nadmin\nDemo-Clave-2026\nSI\n' \
-  | dotnet run --project src/AppSistema.Instalador -v q -- importar-recetas datos/recetas/recetas_normalizadas.csv --aprobar | tail -1
-printf 'DEMO\nadmin\nDemo-Clave-2026\n' \
-  | dotnet run --project src/AppSistema.Instalador -v q -- importar-recetas datos/recetas/recetas_normalizadas.csv --aprobar | tail -1
+  | dotnet run --project src/AppSistema.Instalador -v q -- importar-recetas datos/enlace/recetas_enlazadas.csv --aprobar | tail -1
+psql -d "$DB" -tAc "SELECT 'ingredientes: ' || count(DISTINCT p.id) || ', productos SGP como variantes: ' || count(v.id) FROM producto_base p LEFT JOIN variante_producto v ON v.producto_base_id = p.id AND v.codigo LIKE 'SGP%'"
 psql -d "$DB" -tAc "SELECT 'recetas aprobadas: ' || count(*) FROM receta_version WHERE estado = 'aprobada'"
 dropdb "$DB"
 

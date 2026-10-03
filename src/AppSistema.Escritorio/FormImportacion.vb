@@ -93,7 +93,7 @@ Public Class FormImportacion
         _vistaRecetas = Nothing
         Ui.Ejecutar(Me,
             Sub()
-                _ultimaVista = If(ConversorSgp.EsListadoSgp(_texto), _servicio.VistaPreviaSgp(_texto), _servicio.VistaPrevia(_texto))
+                _ultimaVista = If(ConversorSgp.EsListadoSgp(_texto), _servicio.VistaPreviaSgp(_texto), _servicio.VistaPrevia(_texto, crearUnidadesBase:=True))
                 Ui.Mostrar(_filas, _ultimaVista.Filas, "Numero|Fila", "Estado|Estado", "Detalle|Detalle")
                 _resumen.Text = "Vista previa: " & _ultimaVista.Resumen &
                                 If(_ultimaVista.Observaciones.Count > 0, $" {_ultimaVista.Observaciones.Count} observaciones (boton Observaciones).", "")
@@ -128,7 +128,7 @@ Public Class FormImportacion
     Private Sub Importar()
         If _vistaRecetas IsNot Nothing Then ImportarRecetas() : Return
         If _ultimaVista Is Nothing OrElse Not Ui.Confirmar(Me, "Se importara: " & _ultimaVista.Resumen & Environment.NewLine & "Desea continuar?") Then Return
-        If Ui.Ejecutar(Me, Sub() _ultimaVista = If(ConversorSgp.EsListadoSgp(_texto), _servicio.AplicarSgp(_texto), _servicio.Aplicar(_texto))) Then
+        If Ui.Ejecutar(Me, Sub() _ultimaVista = If(ConversorSgp.EsListadoSgp(_texto), _servicio.AplicarSgp(_texto), _servicio.Aplicar(_texto, crearUnidadesBase:=True))) Then
             Ui.Informar(Me, "Importacion terminada. " & _ultimaVista.Resumen)
         End If
         VistaPrevia()

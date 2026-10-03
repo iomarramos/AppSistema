@@ -52,7 +52,9 @@ Qué hace la carga:
 * Es todo o nada y repetirla no duplica nada.
 * Si una receta ya existe con otros ingredientes, es un error: para cambiarla se crea una nueva versión desde Recetas.
 
-## Pendiente: unir ingredientes con productos comprables
+## Unir ingredientes con productos comprables (resuelto con `datos/enlace/`)
+
+**Actualización:** el enlace llegó en `PRODUCTO_INGREDIENTE.csv`. Ver `datos/enlace/LEEME.md`; para cargar, use `datos/enlace/recetas_enlazadas.csv`. Lo que sigue describe el problema original.
 
 Las recetas usan **ingredientes genéricos** como ACEITE VEGETAL o SAL DE COCINA. El listado del SGP tiene **productos comerciales** como ACEITE VEGETAL CIELO 5 LT o ACEITE VEGETAL PRIMOR 5 LT. Solo 15 ingredientes coinciden exactamente con un producto.
 

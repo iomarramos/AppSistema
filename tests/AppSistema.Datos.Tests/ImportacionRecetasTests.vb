@@ -62,6 +62,45 @@ Public Class ImportacionRecetasDatosTests
         End Using
     End Sub
 
+    Private Shared Function Archivo(ParamArray partes() As String) As String
+        Dim dir = New DirectoryInfo(AppContext.BaseDirectory)
+        Do While Not Directory.Exists(Path.Combine(dir.FullName, "datos", "enlace"))
+            dir = dir.Parent
+        Loop
+        Return File.ReadAllText(Path.Combine({dir.FullName, "datos"}.Concat(partes).ToArray()))
+    End Function
+
+    <FactPostgres>
+    Public Sub Catalogo_por_ingrediente_y_recetas_enlazadas_permiten_costear_con_precios_de_productos_SGP()
+        Using bd = BaseDatosPrueba.Crear()
+            Dim s = bd.Sesion("B")   ' empresa sin unidades: se crean KG, L y UND
+            Dim cat As New ServicioImportacionCatalogo(bd.CadenaAplicacion, s)
+            Dim catalogo = Archivo("enlace", "catalogo_por_ingrediente.csv")
+            Dim prev = cat.VistaPrevia(catalogo, crearUnidadesBase:=True)
+            Assert.False(prev.HayErrores, String.Join(" | ", prev.Filas.Where(Function(f) f.Estado = EstadoFilaImportacion.ConError).Take(5).Select(Function(f) $"{f.Numero}: {f.Detalle}")))
+            Assert.Equal(3133, prev.ProductosNuevos)
+            Assert.Equal(4158, prev.VariantesNuevas)
+            cat.Aplicar(catalogo, crearUnidadesBase:=True)
+
+            Dim recetas As New ServicioImportacionRecetas(bd.CadenaAplicacion, s)
+            Dim r = recetas.Aplicar(Archivo("enlace", "recetas_enlazadas.csv"), aprobar:=True)
+            Assert.Equal(946, r.RecetasNuevas)
+            Assert.Equal(287, r.IngredientesExistentes)   ' los otros 113 no tienen un producto SGP comprable
+
+            ' ACEITE VEGETAL (L) tiene como variante el bidón CIELO de 5 L; ARROZ BLANCO usa ese ingrediente.
+            Dim empaque = Contar(bd, "SELECT e.id FROM empaque_compra e JOIN variante_producto v ON v.id = e.variante_id WHERE v.descripcion_comercial = 'ACEITE VEGETAL CIELO 5 LT'")
+            Dim prov As New ServicioProveedores(bd.CadenaAplicacion, s)
+            Dim pe = prov.VincularEmpaque(prov.CrearProveedor(New ProveedorDto With {.Codigo = "P1", .Nombre = "Mayorista"}), empaque, 1)
+            prov.RegistrarPrecio(pe, New Date(2026, 1, 1), Nothing, "PEN", EscalaU6.DesdeDecimal(50D), False)   ' S/10 por L
+            Dim version = Contar(bd, "SELECT v.id FROM receta r JOIN receta_version v ON v.receta_id = r.id WHERE r.codigo = 'F00270'")
+            Dim costo = New ServicioRecetas(bd.CadenaAplicacion, s).CostoSimulado(version, New Date(2026, 3, 1), "PEN")
+            Dim aceite = costo.Ingredientes.Single(Function(i) i.ProductoDescripcion = "ACEITE VEGETAL")
+            Assert.Equal(EscalaU6.DesdeDecimal(0.05D), aceite.CostoLineaU6)      ' 0,005 L × S/10
+            Assert.Contains("ACEITE VEGETAL CIELO", bd.Escalar($"SELECT descripcion_comercial FROM variante_producto WHERE codigo = '{aceite.Fuente.Split(","c)(2).Trim().Split(" "c)(1)}'").ToString())
+            Assert.Null(costo.CostoRacionU6)                                      ' el resto aún sin precio: pendiente
+        End Using
+    End Sub
+
     <FactPostgres>
     Public Sub Receta_existente_con_otros_ingredientes_es_error_y_no_importa_nada()
         Using bd = BaseDatosPrueba.Crear()
