@@ -41,7 +41,7 @@ Plataforma: VB.NET + WinForms en Windows 10+ y PostgreSQL. Unas 20 PC; falta con
 | Modelo objetivo del SGP (`datos/plan_real/`) | Recibido y leído: menú teórico y plan real de ago–oct 2026, comparativo de tres niveles, requisición del 1 al 7/10 y 6 capturas de ventanas. Todas sus fórmulas verificadas; comparativo de tres niveles en el dominio (`Calculos.PlanVsReal`). Ventanas que faltan y preguntas en su `LEEME.md` |
 | Falta del usuario | Menú del mes real y estructuras de loncheras, refrigerios y coffee break; hora de corte por defecto y días de llegada por zona |
 | Reportes imprimibles y exportables (minuta del día, requerimiento, kárdex, inventario, stock valorizado) | Hecho: se imprimen desde el navegador o se exportan a CSV para Excel |
-| Interfaz WinForms | **Compila, pero nunca se ejecutó en Windows.** Réplica visual de las pantallas: https://claude.ai/artifact/LqViLBPDyFwUqMktDxNqaz |
+| Interfaz WinForms | **Se ejecuta en Windows en el CI** (job `e2e-windows`, FlaUI): acceso, permisos por rol y recorrido de todas las pantallas sin errores, con una captura de cada una (artefacto `e2e-capturas`). Falta la revisión del usuario en su PC |
 
 Última batería de pruebas: 69 aserciones SQL, 98 de dominio, 98 de integración e instalador de punta a punta, todo verde. Migraciones V001–V021.
 
