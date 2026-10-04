@@ -17,15 +17,15 @@ Public Class AdministracionTests
             Assert.Equal("P2", admin.ListarAlmacenesDeOperacion(are).Single().Codigo)
 
             ' La auditoría registra quién creó la operación; no muestra datos de la empresa B ni claves.
-            Dim aud = admin.ConsultarAuditoria(Date.Today, Date.Today, "operacion", "admin")
+            Dim aud = admin.ConsultarAuditoria(Date.Today.AddDays(-1), Date.Today.AddDays(1), "operacion", "admin")
             Assert.Contains(aud, Function(a) a.Accion = "INSERT" AndAlso a.Despues.Contains("Arequipa"))
-            Assert.DoesNotContain(admin.ConsultarAuditoria(Date.Today, Date.Today, "", ""), Function(a) If(a.Despues, "").Contains("Otra operacion"))
-            Assert.DoesNotContain(admin.ConsultarAuditoria(Date.Today, Date.Today, "usuario", ""), Function(a) If(a.Despues, "").Contains("password_hash"))
+            Assert.DoesNotContain(admin.ConsultarAuditoria(Date.Today.AddDays(-1), Date.Today.AddDays(1), "", ""), Function(a) If(a.Despues, "").Contains("Otra operacion"))
+            Assert.DoesNotContain(admin.ConsultarAuditoria(Date.Today.AddDays(-1), Date.Today.AddDays(1), "usuario", ""), Function(a) If(a.Despues, "").Contains("password_hash"))
             Assert.Contains("operacion", admin.TablasAuditadas())
 
             admin.CrearUsuario("almacen", "Almacenero", "Almacen-Clave-2026", bd.A.OperacionId, "ALMACEN")
             Dim almacenero As New ServicioAdministracion(bd.CadenaAplicacion, bd.Sesion("A", "almacen", "Almacen-Clave-2026"))
-            Assert.Equal("SIN_PERMISO", Assert.Throws(Of ReglaNegocioException)(Function() almacenero.ConsultarAuditoria(Date.Today, Date.Today, "", "")).Codigo)
+            Assert.Equal("SIN_PERMISO", Assert.Throws(Of ReglaNegocioException)(Function() almacenero.ConsultarAuditoria(Date.Today.AddDays(-1), Date.Today.AddDays(1), "", "")).Codigo)
             Assert.Equal("SIN_PERMISO", Assert.Throws(Of ReglaNegocioException)(Function() almacenero.ListarOperaciones()).Codigo)
         End Using
     End Sub

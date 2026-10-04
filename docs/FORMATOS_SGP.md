@@ -77,3 +77,23 @@ Todas las vistas se pueden girar entre vertical y horizontal con el botón "Gira
 * **Menú real (chef)** (Cierres > Menú real (mes)...): las raciones preparadas que registra el chef en el cierre diario, con el mismo formato. Si el día no tiene registro, la celda queda vacía (no se rellena con el teórico).
 * Los códigos de receta (no los nombres) van en las celdas para que quepan los 31 días; el nombre completo de cada receta está en la minuta del día.
 * No se necesitó migración: los formatos se generan con los datos existentes.
+
+## Plan de producción del chef (V025)
+
+* El chef cambia **las raciones a producir** de cada plato de una minuta: cualquier día desde **3 días atrás** en adelante, mientras el día **no esté cerrado**. La regla la aplica la base (fecha de Lima, día cerrado, minuta aprobada, permiso PRODUCCION_EDITAR).
+* Cada cambio queda en `produccion_plan_cambio` (anterior, nuevo, usuario, fecha de producción), de solo lectura.
+* Si no hay cambio, las raciones a producir son las de la minuta.
+
+## Registro de inventario permanente valorizado (formato 13.1)
+
+* Cada entrada y salida lleva su número de documento: la recepción con su comprobante del proveedor (tipo, serie y número); los ajustes, traspasos, salidas y devoluciones con el número del documento de stock.
+
+## Cambios de tabla para aplicar en la base de la sede
+
+| Migración | Cambio | Tipo |
+|---|---|---|
+| V024 | `operacion.dias_stock_base` (1 a 31, por defecto 30) | columna nueva |
+| V025 | `produccion_plan` (raciones a producir por plato de minuta) | tabla nueva |
+| V025 | `produccion_plan_cambio` (historial de solo lectura) | tabla nueva |
+
+No se modifica ninguna migración ya aplicada. Para aplicar: respaldar y luego `AppSistema.Instalador.exe actualizar <respaldo>` (o `migrar`). No aplicar el SQL a mano: el migrador guarda la huella de cada archivo y un cambio manual la desincroniza.

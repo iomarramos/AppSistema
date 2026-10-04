@@ -367,4 +367,19 @@ Public NotInheritable Class ServicioProduccion
         Return If(valor.HasValue, CType(valor.Value, Object), Nothing)
     End Function
 
+    ''' <summary>
+    ''' Plan de producción del chef: fija las raciones a producir de un plato de minuta. Solo desde 3 días atrás en adelante
+    ''' y mientras el día no esté cerrado (la base lo exige y deja el historial en produccion_plan_cambio).
+    ''' </summary>
+    Public Sub FijarRacionesProducir(minutaDetalleId As Long, raciones As Long)
+        If raciones < 0 Then Throw New ReglaNegocioException("CANTIDAD_INVALIDA", "Las raciones a producir no pueden ser negativas.")
+        EnTransaccion(Permisos.ProduccionEditar,
+            Function(u)
+                Return u.Ejecutar(
+                    "INSERT INTO produccion_plan(empresa_id, minuta_detalle_id, raciones_producir, usuario_id) VALUES (@e, @d, @r, @u) " &
+                    "ON CONFLICT (empresa_id, minuta_detalle_id) DO UPDATE SET raciones_producir = EXCLUDED.raciones_producir, usuario_id = EXCLUDED.usuario_id",
+                    "e", Sesion.EmpresaId, "d", minutaDetalleId, "r", raciones, "u", Sesion.UsuarioId)
+            End Function)
+    End Sub
+
 End Class
