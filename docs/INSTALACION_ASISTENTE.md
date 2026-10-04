@@ -34,10 +34,15 @@ Los Excel de `datos\*\origen\` se convierten con las herramientas de `herramient
 
 Verificación: volver a ejecutar `convertir_inventario.py` y `convertir_recetas_sgp.py` reproduce el contenido de los CSV del repositorio (solo cambian los fines de línea).
 
-**No cargados todavía:**
+| `plan_real\origen\MENU_REAL_Y__TEORICO.xlsx`, `MENU_REAL_CENA.xlsx` (plan real y teórico por día y plato), `REQUISICION.xlsx`, `Costo_Plan…xlsx` (comparativos) | `convertir_plan_real.py` | `plan_real\*.csv` → paso 7.9, tablas `sgp_*` (V023) |
 
-* `plan_real\origen\MENU_REAL_Y__TEORICO.xlsx`, `MENU_REAL_CENA.xlsx`, `REQUISICION.xlsx` y `Costo_Plan…xlsx`. No hay un importador que los lea como datos. El ciclo de menú (`real\ciclo_menu.csv`) y las estructuras (`real\estructuras_menu.csv`) que sí se cargan son **propuestas generadas a partir de las recetas con costo**, no el menú real.
-* Cuando exista el importador del plan real (la planificación teórica y el real, con las fases 2 y 3 de Planificación central), el asistente deberá cargarlos.
+El paso 7.9 guarda el plan del SGP **completo** en el servidor, tal como llegó: 552 días-servicio, 11 046 platos (teórico y real), 2 778 líneas de requisición, 465 comparativos por día, 11 totales, piso y techo, y 254 pasos de preparación. Los códigos del SGP se enlazan a las recetas y a las variantes del sistema: 256 de 256 productos y 553 de 628 recetas.
+
+**Pendiente, con datos a la vista:**
+
+* 75 recetas del SGP no están entre las recetas recibidas. Afectan a 222 platos del plan y a 385 líneas de requisición. Quedan guardadas, sin enlace a una receta del sistema (lista en `sgp_codigo_receta` con la columna de receta vacía).
+* El plan real es referencia importada. Todavía no se convierte en minutas operativas: el plan del SGP tiene raciones distintas cada día, y eso necesita el modelo de factores por día de la fase 3 de Planificación central.
+* El ciclo de menú (`real\ciclo_menu.csv`) y las estructuras (`real\estructuras_menu.csv`) son **propuestas generadas a partir de las recetas con costo**, no el menú real; el asistente las sigue cargando como minutas de prueba.
 
 ## Usar el asistente desde otra computadora
 

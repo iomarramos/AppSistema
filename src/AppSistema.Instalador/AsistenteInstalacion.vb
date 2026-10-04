@@ -41,6 +41,12 @@ Public NotInheritable Class AsistenteInstalacion
     Private Const ArchivoEstructuras As Integer = 7
     Private Const ArchivoCiclo As Integer = 8
 
+    ''' <summary>Archivos del plan teórico y real del SGP (datos\plan_real, convertidos del Excel), cargados en la referencia del plan (V023).</summary>
+    Private Shared ReadOnly ArchivosPlan As String() = {
+        ServicioPlanSgp.ArchivoCodigosRecetas, ServicioPlanSgp.ArchivoCodigosProductos, ServicioPlanSgp.ArchivoMenuDias,
+        ServicioPlanSgp.ArchivoMenuPlanificado, ServicioPlanSgp.ArchivoRequisicion, ServicioPlanSgp.ArchivoComparativoCostos,
+        ServicioPlanSgp.ArchivoComparativoTotales, ServicioPlanSgp.ArchivoCostoPisoTecho, ServicioPlanSgp.ArchivoPreparacion}
+
     ''' <summary>Avisos que no detienen la instalación (p. ej. filas con problema) y se muestran al final.</summary>
     Private Shared ReadOnly _avisos As New List(Of String)
 
@@ -158,6 +164,7 @@ Public NotInheritable Class AsistenteInstalacion
         Paso("7. Datos de la empresa (carpeta datos\)")
         Dim carpeta = Leer("Carpeta de datos", CarpetaDatosPorDefecto())
         Dim faltan = Archivos.Where(Function(a) Not File.Exists(RutaArchivo(carpeta, a))).ToList()
+        faltan.AddRange(ArchivosPlan.Where(Function(a) Not File.Exists(Path.Combine(carpeta, "plan_real", a))).Select(Function(a) "plan_real\" & a))
         If faltan.Count > 0 Then
             Throw New ReglaNegocioException("ARCHIVO_FALTANTE", "Faltan en la carpeta de datos: " & String.Join(", ", faltan))
         End If
@@ -253,6 +260,14 @@ Public NotInheritable Class AsistenteInstalacion
             {"ALMUERZO", LeerEntero("Comensales de almuerzo", 500)},
             {"CENA", LeerEntero("Comensales de cena", 300)}}
         Mostrar("Minutas del ciclo", New ServicioCargaReal(cadena, sesion).CargarCiclo(Texto(ArchivoCiclo), desde, comensales, aprobar:=True))
+
+        Paso("7.9 Plan teorico y real del SGP (Excel de plan_real)")
+        Dim plan = New ServicioPlanSgp(cadena, sesion).Importar(Path.Combine(carpeta, "plan_real"))
+        For Each p In plan.Problemas.Take(30)
+            Console.Error.WriteLine("  " & p)
+        Next
+        If plan.Problemas.Count > 0 Then _avisos.Add($"Plan del SGP: {plan.Problemas.Count} codigos sin enlace a AppSistema (ver la lista arriba).")
+        Console.WriteLine("Plan del SGP: " & plan.ToString())
     End Sub
 
     ' ---------- Entrada y salida de consola ----------

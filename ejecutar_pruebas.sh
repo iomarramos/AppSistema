@@ -122,7 +122,12 @@ done
 [ "$(psql -d "$ASIS" -tAc 'SELECT count(*) FROM receta')" = "946" ]
 [ "$(psql -d "$ASIS" -tAc 'SELECT count(*) FROM movimiento_stock')" = "379" ]
 [ "$(psql -d "$ASIS" -tAc 'SELECT count(*) FROM minuta')" = "84" ]
-echo "Asistente: 4158 variantes, 946 recetas, 379 movimientos de apertura y 84 minutas; segunda corrida sin cambios."
+# Plan teorico y real del SGP (datos/plan_real): completo, y con los codigos enlazados a las recetas cargadas.
+[ "$(psql -d "$ASIS" -tAc 'SELECT count(*) FROM sgp_plan_plato')" = "11046" ]
+[ "$(psql -d "$ASIS" -tAc 'SELECT count(*) FROM sgp_requisicion')" = "2778" ]
+[ "$(psql -d "$ASIS" -tAc 'SELECT count(*) FROM sgp_codigo_receta WHERE receta_id IS NOT NULL')" = "553" ]
+[ "$(psql -d "$ASIS" -tAc 'SELECT count(*) FROM sgp_codigo_producto WHERE variante_id IS NOT NULL')" = "256" ]
+echo "Asistente: 4158 variantes, 946 recetas, 379 movimientos de apertura, 84 minutas y el plan del SGP (11046 platos, 2778 lineas de requisicion); segunda corrida sin cambios."
 dropdb "$ASIS"
 
 echo

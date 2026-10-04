@@ -93,6 +93,9 @@ Public Module Programa
                 Case "exportar-resultados"
                     Requiere(args, 3, "Indique el periodo (AAAA-MM) y el archivo.")
                     Return ExportarResultados(args(1), args(2))
+                Case "importar-plan-sgp"
+                    Requiere(args, 2, "Indique la carpeta del plan del SGP (datos\plan_real).")
+                    Return ImportarPlanSgp(args(1))
             End Select
 
             Dim conexion = Environment.GetEnvironmentVariable("APPSISTEMA_CONEXION_PROPIETARIO")
@@ -325,6 +328,18 @@ Public Module Programa
         Next
         If r.Problemas.Count > 30 Then Console.Error.WriteLine($"  ... y {r.Problemas.Count - 30} mas")
         Console.WriteLine($"{que}: {r}")
+        Return 0
+    End Function
+
+    ''' <summary>Importa el plan teórico y real del SGP (datos\plan_real) a la operación de la sesión (V023).</summary>
+    Private Function ImportarPlanSgp(carpeta As String) As Integer
+        Dim conexion As String = Nothing
+        Dim sesion = IniciarSesionSede(conexion)
+        Dim r = New ServicioPlanSgp(conexion, sesion).Importar(carpeta)
+        For Each p In r.Problemas.Take(30)
+            Console.Error.WriteLine("  " & p)
+        Next
+        Console.WriteLine("Plan del SGP: " & r.ToString())
         Return 0
     End Function
 
