@@ -12,6 +12,7 @@ Partial Public Class FormResultados
 
     Private ReadOnly _servicio As ServicioResultados
     Private ReadOnly _sesion As SesionUsuario
+    Private ReadOnly _cadena As String
     Private ReadOnly _mes As New DateTimePicker With {.Format = DateTimePickerFormat.Custom, .CustomFormat = "MM/yyyy", .ShowUpDown = True, .Width = 90}
     Private ReadOnly _resultado As DataGridView = Ui.NuevaGrilla()
     Private ReadOnly _gastos As DataGridView = Ui.NuevaGrilla()
@@ -25,12 +26,14 @@ Partial Public Class FormResultados
         InitializeComponent()
         Controls.Clear()
         _servicio = New ServicioResultados(cadena, sesion)
+        _cadena = cadena
         _sesion = sesion
         Text = "Gastos y resultado mensual - " & sesion.Operacion.Nombre
         Dim edita = sesion.Tiene(Permisos.GastosEditar)
         Dim barra = Ui.BarraBotones(New Label With {.Text = "Mes", .AutoSize = True, .Margin = New Padding(3, 9, 3, 3)}, _mes,
                                     Ui.Boton("Actualizar", AddressOf Cargar), Ui.BotonSi(edita, "Registrar gasto...", AddressOf RegistrarGasto),
-                                    Ui.BotonSi(edita, "Eliminar gasto", AddressOf EliminarGasto), Ui.Boton("Exportar CSV...", AddressOf Exportar))
+                                    Ui.BotonSi(edita, "Eliminar gasto", AddressOf EliminarGasto), Ui.Boton("Exportar CSV...", AddressOf Exportar),
+                                    Ui.Boton("Imprimir A13...", AddressOf ImprimirA13))
         Dim division As New SplitContainer With {.Dock = DockStyle.Fill, .Orientation = Orientation.Horizontal, .SplitterDistance = 220}
         division.Panel1.Controls.Add(_resultado)
         division.Panel1.Controls.Add(_estado)
@@ -77,6 +80,12 @@ Partial Public Class FormResultados
         If g Is Nothing OrElse Not Ui.Confirmar(Me, $"Eliminar el gasto '{g.Concepto}'?") Then Return
         Ui.Ejecutar(Me, Sub() _servicio.EliminarGasto(g.Id))
         Cargar()
+    End Sub
+
+    ''' <summary>Resultado operacional mensual en el formato A13 del SGP (imprimir o exportar).</summary>
+    Private Sub ImprimirA13()
+        Dim anio = _mes.Value.Year, mes = _mes.Value.Month
+        SalidaReporte.Emitir(Me, Function() New ServicioReportes(_cadena, _sesion).ResultadoA13(anio, mes))
     End Sub
 
     Private Sub Exportar()

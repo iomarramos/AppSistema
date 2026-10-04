@@ -31,6 +31,12 @@ Public NotInheritable Class ServicioReportes
         Return New ColumnaReporte(nombre, formato)
     End Function
 
+    ''' <summary>Cantidad × costo a valor. Sin cantidad (sin contar) = vacío, no cero.</summary>
+    Private Shared Function ValorDe(cantidadU6 As Long?, costoU6 As Long?) As Object
+        If Not cantidadU6.HasValue OrElse Not costoU6.HasValue Then Return Nothing
+        Return EscalaU6.Multiplicar(cantidadU6.Value, costoU6.Value)
+    End Function
+
     ' ---------- Minuta del día ----------
 
     ''' <summary>Minuta con sus platos por componente, fijos y la necesidad consolidada de insumos para cocina.</summary>
@@ -196,13 +202,16 @@ Public NotInheritable Class ServicioReportes
             r.Notas.Add("Contar envases cerrados y, aparte, el parcial en la unidad indicada. Celda vacia = sin contar (no es cero).")
             r.Firmas.AddRange({"Contado por", "Verificado por"})
         Else
-            Dim s = r.Seccion("", C("Codigo"), C("Descripcion"), C("Unidad"), C("Sistema", FormatoColumna.Cantidad), C("Fisico", FormatoColumna.Cantidad),
-                              C("Diferencia", FormatoColumna.Cantidad), C("Valor diferencia", FormatoColumna.Dinero), C("Resultado"))
+            ' Formato "Diferencias fisico vs sistema - valorizado" del SGP: P.M.P., stock y total fisico, stock y total del sistema, diferencia y total de la diferencia.
+            Dim s = r.Seccion("Diferencias fisico vs sistema", C("Codigo"), C("Descripcion"), C("Unidad"), C("P.M.P.", FormatoColumna.Dinero),
+                              C("Stock fisico", FormatoColumna.Cantidad), C("Total fisico", FormatoColumna.Dinero), C("Stock sist.", FormatoColumna.Cantidad),
+                              C("Total sist.", FormatoColumna.Dinero), C("Diferencia", FormatoColumna.Cantidad), C("Total dif.", FormatoColumna.Dinero))
             For Each l In servicio.Hoja(inventarioId)
-                s.Agregar(l.VarianteCodigo, l.Descripcion, l.Unidad, l.SistemaU6, l.FisicoU6, l.DiferenciaU6, l.ValorDiferenciaU6, l.Resultado)
+                s.Agregar(l.VarianteCodigo, l.Descripcion, l.Unidad, l.CostoU6, l.FisicoU6, ValorDe(l.FisicoU6, l.CostoU6),
+                          l.SistemaU6, ValorDe(l.SistemaU6, l.CostoU6), l.DiferenciaU6, l.ValorDiferenciaU6)
             Next
             Dim res = servicio.Resumen(inventarioId)
-            s.Totales = {"TOTAL", $"{res.Lineas} lineas", Nothing, Nothing, Nothing, Nothing, res.SobranteValorU6 - res.FaltanteValorU6, Nothing}
+            s.Totales = {"TOTAL", $"{res.Lineas} lineas", Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, res.SobranteValorU6 - res.FaltanteValorU6}
             r.Dato("Lineas sin contar", res.SinContar.ToString())
             r.Dato("Lineas con diferencia", res.ConDiferencia.ToString())
             r.Dato("Faltante (S/)", Soles(res.FaltanteValorU6))
@@ -214,19 +223,171 @@ Public NotInheritable Class ServicioReportes
 
     ' ---------- Stock valorizado ----------
 
-    ''' <summary>Stock con saldo de un almacén, valorizado al costo promedio.</summary>
+    ''' <summary>
+    ''' Inventario físico valorizado con el formato del SGP (Informes > Stock): cabecera de bodega y toma, y una tabla por
+    ''' familia con código, descripción, unidad, cantidad, precio (costo promedio) y total, con el subtotal de cada familia.
+    ''' </summary>
     Public Function StockValorizado(almacenId As Long) As Reporte
         Dim nombres = NombresAlmacenVariante(almacenId, Nothing, Permisos.CatalogoVer)
         Dim saldos = New ServicioStock(CadenaConexion, Sesion).ConsultarSaldos(almacenId, "")
-        Dim r = Nuevo($"Stock valorizado {nombres.Almacen}")
-        r.Dato("Almacen", nombres.Almacen)
-        r.Dato("Fecha", Date.Today.ToString("dd/MM/yyyy"))
-        Dim s = r.Seccion("", C("Codigo"), C("Producto"), C("Presentacion"), C("Unidad"), C("Cantidad", FormatoColumna.Cantidad),
-                          C("Costo promedio", FormatoColumna.Dinero), C("Valor", FormatoColumna.Dinero))
-        For Each x In saldos
-            s.Agregar(x.VarianteCodigo, x.ProductoDescripcion, x.VarianteDescripcion, x.Unidad, x.CantidadBaseU6, x.CostoPromedioU6, x.ValorU6)
+        Dim r = Nuevo($"Inventario fisico valorizado {nombres.Almacen}")
+        r.Dato("Bodega", nombres.Almacen)
+        r.Dato("Toma de inventario", Date.Today.ToString("dd/MM/yyyy"))
+        r.Dato("Familia de producto", "Todas")
+        For Each familia In saldos.GroupBy(Function(x) x.Familia).OrderBy(Function(g) g.Key, StringComparer.CurrentCultureIgnoreCase)
+            Dim s = r.Seccion(familia.Key, C("Codigo"), C("Descripcion"), C("Unidad"), C("Cantidad", FormatoColumna.Cantidad),
+                              C("Precio", FormatoColumna.Dinero), C("Total", FormatoColumna.Dinero))
+            For Each x In familia
+                s.Agregar(x.VarianteCodigo, x.VarianteDescripcion, x.Unidad, x.CantidadBaseU6, x.CostoPromedioU6, x.ValorU6)
+            Next
+            s.Totales = {"Total " & familia.Key, Nothing, Nothing, Nothing, Nothing, familia.Sum(Function(x) x.ValorU6)}
         Next
-        s.Totales = {"TOTAL", $"{saldos.Count} presentaciones", Nothing, Nothing, Nothing, Nothing, saldos.Sum(Function(x) x.ValorU6)}
+        r.Dato("Total general (S/)", Soles(saldos.Sum(Function(x) x.ValorU6)))
+        Return r
+    End Function
+
+    ''' <summary>
+    ''' Movimiento de stock sintético (formato del SGP, Informes > Stock): por familia, el saldo anterior al periodo, las
+    ''' entradas (recepciones y traspasos recibidos), la implantación (apertura), las retiradas (salidas a producción y bajas),
+    ''' los ajustes, las salidas por traspaso, las devoluciones de producción y el saldo actual, todo en valor.
+    ''' AppSistema valoriza cada salida al promedio móvil del momento (D01): no hay una reexpresión de costo aparte, por eso
+    ''' el reporte no tiene la columna "Dif. evol. costo" del SGP.
+    ''' </summary>
+    Public Function MovimientoStockSintetico(almacenId As Long, desde As Date, hasta As Date) As Reporte
+        If hasta < desde Then Throw New ReglaNegocioException("DATO_INVALIDO", "El periodo termina antes de empezar.")
+        Dim nombres = NombresAlmacenVariante(almacenId, Nothing, Permisos.CatalogoVer)
+        Dim op = Sesion.OperacionId
+        Dim filas = EnTransaccion(Permisos.CatalogoVer,
+            Function(u)
+                Return u.Consultar(
+                    "SELECT COALESCE(cp.nombre, 'SIN FAMILIA'), CASE WHEN m.fecha < @d THEN 'ANTERIOR' ELSE d.tipo END, sum(m.signo * m.valor_u6)::bigint " &
+                    "FROM movimiento_stock m JOIN documento_stock_detalle l ON l.id = m.documento_detalle_id JOIN documento_stock d ON d.id = l.documento_id " &
+                    "JOIN variante_producto v ON v.id = m.variante_id LEFT JOIN categoria_producto cp ON cp.id = v.categoria_id " &
+                    "JOIN almacen a ON a.id = m.almacen_id " &
+                    "WHERE m.almacen_id = @a AND a.operacion_id = @o AND m.fecha <= @h GROUP BY 1, 2",
+                    Function(rd) (Familia:=rd.GetString(0), Tipo:=rd.GetString(1), Valor:=rd.GetInt64(2)),
+                    "a", almacenId, "o", op, "d", desde.Date, "h", hasta.Date).ToList()
+            End Function)
+
+        Dim r = Nuevo($"Movimiento de stock sintetico {nombres.Almacen}")
+        r.Dato("Bodega", nombres.Almacen)
+        r.Dato("Periodo", $"{desde:dd/MM/yyyy} - {hasta:dd/MM/yyyy}")
+        Dim s = r.Seccion("", C("Familia"), C("Saldo anterior", FormatoColumna.Dinero), C("Entradas", FormatoColumna.Dinero),
+                          C("Implantacion", FormatoColumna.Dinero), C("Retiradas", FormatoColumna.Dinero), C("Ajuste", FormatoColumna.Dinero),
+                          C("Salida", FormatoColumna.Dinero), C("Devolucion", FormatoColumna.Dinero), C("Saldo actual", FormatoColumna.Dinero))
+        Dim totales(8) As Object
+        For Each familia In filas.GroupBy(Function(x) x.Familia).OrderBy(Function(g) g.Key, StringComparer.CurrentCultureIgnoreCase)
+            Dim Suma = Function(tipos As String()) familia.Where(Function(x) tipos.Contains(x.Tipo)).Sum(Function(x) x.Valor)
+            Dim anterior = Suma({"ANTERIOR"})
+            Dim entradas = Suma({"recepcion", "traspaso_entrada"})
+            Dim implantacion = Suma({"apertura"})
+            Dim retiradas = -Suma({"salida_produccion", "baja"})
+            Dim ajuste = Suma({"ajuste_positivo", "ajuste_negativo", "reversion"})
+            Dim salida = -Suma({"traspaso_salida"})
+            Dim devolucion = Suma({"devolucion_produccion"})
+            ' Retiradas y salidas se muestran en positivo: se restan para el saldo.
+            Dim actual = anterior + entradas + implantacion - retiradas + ajuste - salida + devolucion
+            s.Agregar(familia.Key, anterior, entradas, implantacion, retiradas, ajuste, salida, devolucion, actual)
+            For i = 1 To 8
+                totales(i) = CLng(If(totales(i), 0L)) + CLng(s.Filas.Last()(i))
+            Next
+        Next
+        totales(0) = "TOTAL"
+        s.Totales = totales
+        r.Notas.Add("Retiradas = salidas a produccion y bajas. Ajuste = ajustes y reversiones. Cada salida se valoriza al promedio del momento.")
+        Return r
+    End Function
+
+    ''' <summary>
+    ''' Resumen consolidado de salidas a producción (o de devoluciones a bodega) del periodo, por producto, con la cantidad y
+    ''' el total valorizado, como el "Resumen de salidas para producción consolidado" del SGP.
+    ''' </summary>
+    Public Function SalidasConsolidadas(almacenId As Long, desde As Date, hasta As Date, devoluciones As Boolean) As Reporte
+        If hasta < desde Then Throw New ReglaNegocioException("DATO_INVALIDO", "El periodo termina antes de empezar.")
+        Dim nombres = NombresAlmacenVariante(almacenId, Nothing, Permisos.CatalogoVer)
+        Dim op = Sesion.OperacionId
+        Dim tipo = If(devoluciones, "devolucion_produccion", "salida_produccion")
+        ' Las salidas van con signo negativo en el movimiento: se invierte para mostrar cantidades positivas.
+        Dim signo = If(devoluciones, 1L, -1L)
+        Dim filas = EnTransaccion(Permisos.CatalogoVer,
+            Function(u)
+                Return u.Consultar(
+                    "SELECT v.codigo, v.descripcion_comercial, um.codigo, sum(m.signo * m.cantidad_base_u6)::bigint, sum(m.signo * m.valor_u6)::bigint " &
+                    "FROM movimiento_stock m JOIN documento_stock_detalle l ON l.id = m.documento_detalle_id JOIN documento_stock d ON d.id = l.documento_id " &
+                    "JOIN variante_producto v ON v.id = m.variante_id JOIN producto_base p ON p.id = v.producto_base_id " &
+                    "JOIN unidad_medida um ON um.id = p.unidad_base_id JOIN almacen a ON a.id = m.almacen_id " &
+                    "WHERE m.almacen_id = @a AND a.operacion_id = @o AND d.tipo = @t AND m.fecha BETWEEN @d AND @h " &
+                    "GROUP BY v.codigo, v.descripcion_comercial, um.codigo ORDER BY v.descripcion_comercial",
+                    Function(rd) (Codigo:=rd.GetString(0), Descripcion:=rd.GetString(1), Unidad:=rd.GetString(2), Cant:=rd.GetInt64(3), Valor:=rd.GetInt64(4)),
+                    "a", almacenId, "o", op, "t", tipo, "d", desde.Date, "h", hasta.Date).ToList()
+            End Function)
+        Dim r = Nuevo(If(devoluciones, "Resumen de devolucion de produccion a bodega consolidado", "Resumen de salidas para produccion consolidado"))
+        r.Dato("Bodega", nombres.Almacen)
+        r.Dato("Periodo", $"{desde:dd/MM/yyyy} - {hasta:dd/MM/yyyy}")
+        Dim s = r.Seccion("", C("Codigo"), C("Descripcion"), C("Cantidad", FormatoColumna.Cantidad), C("Unidad"), C("Total", FormatoColumna.Dinero))
+        For Each x In filas
+            s.Agregar(x.Codigo, x.Descripcion, signo * x.Cant, x.Unidad, signo * x.Valor)
+        Next
+        s.Totales = {"TOTAL", $"{filas.Count} productos", Nothing, Nothing, signo * filas.Sum(Function(x) x.Valor)}
+        Return r
+    End Function
+
+    ''' <summary>
+    ''' Resultado operacional mensual con el formato A13 del SGP. El consumo realizado sale del inventario como en el SGP:
+    ''' inventario inicial + recepciones + traspasos recibidos − traspasos enviados − inventario final. La diferencia contra el
+    ''' costo diario de los servicios (a − b) debe dar cero. Las ventas y el costo de alimentos vienen del resultado mensual.
+    ''' </summary>
+    Public Function ResultadoA13(anio As Integer, mes As Integer) As Reporte
+        Dim desde = New Date(anio, mes, 1)
+        Dim hasta = desde.AddMonths(1).AddDays(-1)
+        Dim op = Sesion.OperacionId
+        Dim saldos = EnTransaccion(Permisos.CatalogoVer,
+            Function(u)
+                Return u.Consultar(
+                    "SELECT CASE WHEN m.fecha < @d THEN 'INICIAL' ELSE d.tipo END, sum(m.signo * m.valor_u6)::bigint " &
+                    "FROM movimiento_stock m JOIN documento_stock_detalle l ON l.id = m.documento_detalle_id JOIN documento_stock d ON d.id = l.documento_id " &
+                    "JOIN almacen a ON a.id = m.almacen_id WHERE a.operacion_id = @o AND m.fecha <= @h GROUP BY 1",
+                    Function(rd) (Tipo:=rd.GetString(0), Valor:=rd.GetInt64(1)), "o", op, "d", desde.Date, "h", hasta.Date).ToList()
+            End Function)
+        Dim Del = Function(tipos As String()) saldos.Where(Function(x) tipos.Contains(x.Tipo)).Sum(Function(x) x.Valor)
+        Dim inicial = Del({"INICIAL"})
+        Dim recepciones = Del({"recepcion"})
+        Dim trasladosRecibidos = Del({"traspaso_entrada"})
+        Dim implantacion = Del({"apertura"})
+        Dim trasladosEnviados = -Del({"traspaso_salida"})
+        Dim final = saldos.Sum(Function(x) x.Valor)
+        Dim consumo = inicial + recepciones + implantacion + trasladosRecibidos - trasladosEnviados - final
+
+        Dim resultado = New ServicioResultados(CadenaConexion, Sesion).ResultadoMensual(anio, mes)
+        Dim ventas = resultado.Total.IngresoU6
+        Dim costoServicios = resultado.Total.CostoAlimentosU6
+        Dim diasMes = hasta.Day
+        Dim consumoDiario = consumo \ diasMes
+
+        Dim r = Nuevo($"Resultados operacionales mensual A13 {desde:MMMM yyyy}")
+        r.Dato("Periodo", $"{desde:dd/MM/yyyy} al {hasta:dd/MM/yyyy}")
+        Dim ventasSec = r.Seccion("Ventas del periodo", C("Concepto"), C("Total", FormatoColumna.Dinero))
+        ventasSec.Agregar("Ventas servicios", ventas)
+        Dim consumoSec = r.Seccion("Consumo realizado", C("Concepto"), C("Total", FormatoColumna.Dinero))
+        consumoSec.Agregar("Inventario inicial", inicial)
+        consumoSec.Agregar("Recepcion proveedor", recepciones)
+        consumoSec.Agregar("Implantacion (apertura)", implantacion)
+        consumoSec.Agregar("Traspasos recibidos", trasladosRecibidos)
+        consumoSec.Agregar("Traspasos enviados (salida)", trasladosEnviados)
+        consumoSec.Agregar("Inventario final", final)
+        consumoSec.Totales = {"Consumo segun A13 (a)", consumo}
+        Dim pie = r.Seccion("Resultado", C("Concepto"), C("Valor"))
+        pie.Agregar("Consumo segun A13 (a)", Soles(consumo))
+        pie.Agregar("Porcentaje de consumo sobre ventas", If(ventas > 0, Math.Round(consumo * 100D / ventas, 2).ToString("0.00", Globalization.CultureInfo.InvariantCulture), Nothing))
+        pie.Agregar("Consumo diario", Soles(consumoDiario))
+        pie.Agregar("Dias de stock (inventario final / consumo diario)", If(consumoDiario > 0, Math.Round(CDec(final) / CDec(consumoDiario), 0).ToString("0", Globalization.CultureInfo.InvariantCulture), Nothing))
+        pie.Agregar("Costo diario de los servicios (b)", Soles(costoServicios))
+        pie.Agregar("Diferencia (a - b)", Soles(consumo - costoServicios))
+        pie.Agregar("Total de gastos (alimentos)", Soles(consumo))
+        pie.Agregar("Utilidad operacional", Soles(ventas - consumo))
+        r.Notas.Add("Solo alimentos. Los gastos de personal, operacion y otros estan en el resultado mensual, no en este formato.")
+        r.Notas.Add("Dias de stock calculado con el mes completo (dias del calendario del periodo).")
+        r.Firmas.AddRange({"Elaborado por", "Revisado por"})
         Return r
     End Function
 

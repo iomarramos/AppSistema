@@ -48,6 +48,9 @@ Partial Public Class FormStock
                                      New Label With {.Text = "Buscar", .AutoSize = True, .Margin = New Padding(3, 9, 3, 3)}, _buscar,
                                      Ui.Boton("Ver", AddressOf Cargar), Ui.Boton("Kardex...", AddressOf Kardex), Ui.Boton("Documentos...", AddressOf Documentos),
                                      Ui.Boton("Imprimir stock...", AddressOf ImprimirStock),
+                                     Ui.Boton("Movimiento de stock...", AddressOf MovimientoSintetico),
+                                     Ui.Boton("Salidas a produccion...", Sub() Consolidado(False)),
+                                     Ui.Boton("Devoluciones a bodega...", Sub() Consolidado(True)),
                                      Ui.Boton("Registro SUNAT 13.1...", AddressOf RegistroSunat)))
         AddHandler _almacen.SelectedIndexChanged, Sub() Cargar()
         AddHandler _buscar.KeyDown, Sub(s, e) If e.KeyCode = Keys.Enter Then Cargar()
@@ -199,6 +202,28 @@ Partial Public Class FormStock
         If Almacen Is Nothing Then Return
         Dim almacenId = Almacen.Id
         SalidaReporte.Emitir(Me, Function() _reportes.StockValorizado(almacenId))
+    End Sub
+
+    Private Sub MovimientoSintetico()
+        If Almacen Is Nothing Then Return
+        Dim almacenId = Almacen.Id
+        Using d As New DialogoCampos("Movimiento de stock sintetico (formato SGP)")
+            d.Fecha("desde", "Desde", Date.Today.AddDays(-Date.Today.Day + 1)).Fecha("hasta", "Hasta", Date.Today)
+            If d.ShowDialog(Me) <> DialogResult.OK Then Return
+            Dim desde = d.FechaElegida("desde").Value, hasta = d.FechaElegida("hasta").Value
+            SalidaReporte.Emitir(Me, Function() _reportes.MovimientoStockSintetico(almacenId, desde, hasta))
+        End Using
+    End Sub
+
+    Private Sub Consolidado(devoluciones As Boolean)
+        If Almacen Is Nothing Then Return
+        Dim almacenId = Almacen.Id
+        Using d As New DialogoCampos(If(devoluciones, "Devoluciones de produccion a bodega consolidado", "Salidas para produccion consolidado"))
+            d.Fecha("desde", "Desde", Date.Today.AddDays(-Date.Today.Day + 1)).Fecha("hasta", "Hasta", Date.Today)
+            If d.ShowDialog(Me) <> DialogResult.OK Then Return
+            Dim desde = d.FechaElegida("desde").Value, hasta = d.FechaElegida("hasta").Value
+            SalidaReporte.Emitir(Me, Function() _reportes.SalidasConsolidadas(almacenId, desde, hasta, devoluciones))
+        End Using
     End Sub
 
     Private Sub RegistroSunat()

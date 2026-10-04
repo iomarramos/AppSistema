@@ -100,15 +100,35 @@ Public Class ReportesTests
             Assert.All(hoja.Secciones(0).Filas, Sub(f) Assert.Null(f(5)))
             inventarios.RegistrarConteo(inventarios.Hoja(inv).Single(Function(l) l.VarianteId = botella).Id, U(4D), Nothing)    ' 4 L contra 5 L
             Dim resultado = reportes.Inventario(inv, hojaDeConteo:=False)
+            ' Formato SGP: P.M.P. (costo) S/8, stock fisico 4 L y total 32; sistema 5 L y total 40; diferencia -1 L y total -8.
             Dim filaBotella = resultado.Secciones(0).Filas.Single(Function(f) CStr(f(0)) = "ACE-1L")
-            Assert.Equal({U(5D), U(4D), U(-1D), U(-8D)}, {filaBotella(3), filaBotella(4), filaBotella(5), filaBotella(6)}.Select(Function(v) CLng(v)))
-            Assert.Equal("faltante", filaBotella(7))
+            Assert.Equal({U(8D), U(4D), U(32D), U(5D), U(40D), U(-1D), U(-8D)},
+                         {filaBotella(3), filaBotella(4), filaBotella(5), filaBotella(6), filaBotella(7), filaBotella(8), filaBotella(9)}.Select(Function(v) CLng(v)))
             Assert.Equal("8.00", Dato(resultado, "Faltante (S/)"))
             Assert.Equal("1", Dato(resultado, "Lineas sin contar"))
 
-            ' Stock valorizado: bidón 8 L + botella 5 L = 13 L a S/8.
+            ' Inventario fisico valorizado (formato SGP): bidón 8 L + botella 5 L = 13 L a S/8, en una sola familia sin categoria.
             Dim st = reportes.StockValorizado(bd.A.AlmacenId)
-            Assert.Equal(U(104D), CLng(st.Secciones(0).Totales(6)))
+            Assert.Equal("SIN FAMILIA", st.Secciones(0).Titulo)
+            Assert.Equal(U(104D), CLng(st.Secciones(0).Totales(5)))
+            Assert.Equal("104.00", Dato(st, "Total general (S/)"))
+
+            ' Movimiento de stock sintetico (formato SGP): la apertura es la implantacion (S/144), la produccion la retirada (S/40)
+            ' y el saldo actual es el valorizado (S/104). Sin movimientos antes del periodo, saldo anterior cero.
+            Dim mov = reportes.MovimientoStockSintetico(bd.A.AlmacenId, Fecha, Fecha).Secciones(0).Filas.Single()
+            Assert.Equal({U(0D), U(0D), U(144D), U(40D), U(0D), U(0D), U(0D), U(104D)}, {mov(1), mov(2), mov(3), mov(4), mov(5), mov(6), mov(7), mov(8)}.Select(Function(v) CLng(v)))
+
+            ' Resumen de salidas para produccion: 5 L por S/40 en el dia; sin devoluciones.
+            Dim salidas = reportes.SalidasConsolidadas(bd.A.AlmacenId, Fecha, Fecha, devoluciones:=False)
+            Dim salida = salidas.Secciones(0).Filas.Single()
+            Assert.Equal(U(5D), CLng(salida(2)))
+            Assert.Equal(U(40D), CLng(salida(4)))
+            Assert.Equal(U(40D), CLng(salidas.Secciones(0).Totales(4)))
+            Assert.Empty(reportes.SalidasConsolidadas(bd.A.AlmacenId, Fecha, Fecha, devoluciones:=True).Secciones(0).Filas)
+
+            ' A13 (formato SGP): consumo = inicial + entradas (apertura S/144) - traspasos enviados - final (S/104) = S/40, lo producido.
+            Dim a13 = reportes.ResultadoA13(Fecha.Year, Fecha.Month)
+            Assert.Equal(U(40D), CLng(a13.Secciones(1).Totales(1)))
 
             ' Otra empresa no ve la minuta; cocina no tiene permiso de inventario.
             Dim otra As New ServicioReportes(bd.CadenaAplicacion, bd.Sesion("B"))
