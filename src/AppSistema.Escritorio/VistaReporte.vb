@@ -17,7 +17,7 @@ Public NotInheritable Class VistaReporte
     Inherits Form
 
     Private ReadOnly _reporte As Reporte
-    Private ReadOnly _paginador As PaginadorReporte
+    Private _paginador As PaginadorReporte
     Private _paginaImpresa As Integer
     Private ReadOnly _documento As New PrintDocument()
     Private ReadOnly _vista As New PrintPreviewControl With {.Dock = DockStyle.Fill, .UseAntiAlias = True, .BackColor = Color.FromArgb(120, 120, 120)}
@@ -31,11 +31,7 @@ Public NotInheritable Class VistaReporte
         StartPosition = FormStartPosition.CenterParent
         ShowInTaskbar = False
 
-        Dim pagina = _documento.DefaultPageSettings
-        Dim bounds = pagina.Bounds
-        Dim margenes = pagina.Margins
-        Dim area = New Rectangle(margenes.Left, margenes.Top, bounds.Width - margenes.Left - margenes.Right, bounds.Height - margenes.Top - margenes.Bottom)
-        _paginador = New PaginadorReporte(r, area)
+        Orientar(r.Horizontal)
 
         _documento.DocumentName = r.NombreArchivo("pdf")
         AddHandler _documento.BeginPrint, Sub(s, e) _paginaImpresa = 0
@@ -55,6 +51,7 @@ Public NotInheritable Class VistaReporte
         barra.Items.Add(_etiquetaPagina)
         barra.Items.Add(New ToolStripButton("Pagina siguiente", Nothing, Sub(s, e) IrAPagina(1)))
         barra.Items.Add(New ToolStripSeparator())
+        barra.Items.Add(New ToolStripButton("Girar hoja (vertical / horizontal)", Nothing, Sub(s, e) Orientar(Not _documento.DefaultPageSettings.Landscape)))
         barra.Items.Add(New ToolStripButton("Ajustar a la ventana", Nothing, Sub() _vista.AutoZoom = True))
         barra.Items.Add(New ToolStripButton("Acercar", Nothing, Sub() Zoom(1.25)))
         barra.Items.Add(New ToolStripButton("Alejar", Nothing, Sub() Zoom(0.8)))
@@ -73,6 +70,20 @@ Public NotInheritable Class VistaReporte
         Using v As New VistaReporte(r)
             v.ShowDialog(dueno)
         End Using
+    End Sub
+
+    ''' <summary>Pone la hoja vertical u horizontal (la impresión usa la misma) y vuelve a paginar el reporte.</summary>
+    Private Sub Orientar(horizontal As Boolean)
+        _documento.DefaultPageSettings.Landscape = horizontal
+        Dim pagina = _documento.DefaultPageSettings
+        Dim bounds = pagina.Bounds
+        Dim margenes = pagina.Margins
+        Dim area = New Rectangle(margenes.Left, margenes.Top, bounds.Width - margenes.Left - margenes.Right, bounds.Height - margenes.Top - margenes.Bottom)
+        If _paginador IsNot Nothing Then _paginador.Liberar()
+        _paginador = New PaginadorReporte(_reporte, area)
+        _vista.StartPage = 0
+        _vista.InvalidatePreview()
+        ActualizarPagina()
     End Sub
 
     Private Sub ActualizarPagina()

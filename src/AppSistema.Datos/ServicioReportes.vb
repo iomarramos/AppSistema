@@ -55,6 +55,7 @@ Public NotInheritable Class ServicioReportes
         Dim minutas As New ServicioMinutas(CadenaConexion, Sesion)
 
         Dim r = Nuevo($"Minuta {m.ServicioNombre} {m.Fecha:yyyy-MM-dd}")
+        r.Horizontal = True
         r.Dato("Servicio", $"{m.ServicioNombre} ({m.RegimenNombre})")
         r.Dato("Fecha", m.Fecha.ToString("dd/MM/yyyy"))
         r.Dato("Comensales", m.Comensales.ToString())
@@ -188,16 +189,16 @@ Public NotInheritable Class ServicioReportes
         If cab.Count = 0 Then Throw New ReglaNegocioException("OPERACION_AJENA", "El inventario no pertenece a la operacion seleccionada.")
         Dim i = cab(0)
         Dim servicio As New ServicioInventarios(CadenaConexion, Sesion)
-        Dim r = Nuevo(If(hojaDeConteo, $"Hoja de conteo {i.Numero}", $"Inventario {i.Numero}"))
+        Dim r = Nuevo(If(hojaDeConteo, $"Listado para toma de inventario {i.Numero}", $"Inventario {i.Numero}"))
         r.Dato("Numero", i.Numero)
         r.Dato("Almacen", i.Almacen)
         r.Dato("Tipo", i.Tipo)
         r.Dato("Fecha de corte", i.Corte.ToString("dd/MM/yyyy"))
         r.Dato("Estado", i.Estado)
         If hojaDeConteo Then
-            Dim s = r.Seccion("", C("Codigo"), C("Descripcion"), C("Presentacion"), C("Contenido", FormatoColumna.Cantidad), C("Unidad"), C("Envases"), C("Parcial"))
+            Dim s = r.Seccion("", C("Codigo"), C("Descripcion"), C("Presentacion"), C("Contenido", FormatoColumna.Cantidad), C("Unidad"), C("Envases"), C("Parcial"), C("Observacion"))
             For Each l In servicio.Hoja(inventarioId, ciego:=True)
-                s.Agregar(l.VarianteCodigo, l.Descripcion, l.Presentacion, l.ContenidoEnvaseU6, l.Unidad, Nothing, Nothing)
+                s.Agregar(l.VarianteCodigo, l.Descripcion, l.Presentacion, l.ContenidoEnvaseU6, l.Unidad, Nothing, Nothing, Nothing)
             Next
             r.Notas.Add("Contar envases cerrados y, aparte, el parcial en la unidad indicada. Celda vacia = sin contar (no es cero).")
             r.Firmas.AddRange({"Contado por", "Verificado por"})
@@ -389,6 +390,127 @@ Public NotInheritable Class ServicioReportes
         r.Notas.Add("Solo alimentos. Los gastos de personal, operacion y otros estan en el resultado mensual, no en este formato.")
         r.Notas.Add($"Dias de stock = inventario final / (consumo del periodo / {diasBase} dias base del contrato).")
         r.Firmas.AddRange({"Elaborado por", "Revisado por"})
+        Return r
+    End Function
+
+    ' ---------- Food cost y comparativo de tres niveles por minuta (formato del SGP) ----------
+
+    ''' <summary>Minutas aprobadas o cerradas de la operación en el mes: fecha, régimen, servicio.</summary>
+    Private Function MinutasDelMes(anio As Integer, mes As Integer) As List(Of (Id As Long, Fecha As Date, Regimen As String, Servicio As String))
+        Dim desde As New Date(anio, mes, 1)
+        Dim hasta = desde.AddMonths(1).AddDays(-1)
+        Dim op = Sesion.OperacionId
+        Return EnTransaccion(Permisos.MenusVer,
+            Function(u)
+                Return u.Consultar(
+                    "SELECT m.id, m.fecha, reg.nombre, s.nombre FROM minuta m JOIN operacion_servicio os ON os.id = m.operacion_servicio_id " &
+                    "JOIN servicio s ON s.id = os.servicio_id JOIN regimen reg ON reg.id = os.regimen_id " &
+                    "WHERE os.operacion_id = @o AND m.estado IN ('aprobada','cerrada') AND m.fecha BETWEEN @d AND @h ORDER BY m.fecha, reg.nombre, s.nombre",
+                    Function(rd) (Id:=rd.GetInt64(0), Fecha:=rd.GetDateTime(1).Date, Regimen:=rd.GetString(2), Servicio:=rd.GetString(3)),
+                    "o", op, "d", desde.Date, "h", hasta.Date).ToList()
+            End Function)
+    End Function
+
+    ''' <summary>Costo u6 de una bandeja: total ÷ raciones (raciones sin cifra o en cero = vacío).</summary>
+    Private Shared Function PorBandeja(totalU6 As Long?, racionesCount As Long?) As Object
+        If Not totalU6.HasValue OrElse Not racionesCount.HasValue OrElse racionesCount.Value <= 0 Then Return Nothing
+        Return totalU6.Value \ racionesCount.Value
+    End Function
+
+    Private Shared Function Porcentaje(parte As Long?, total As Long?) As Object
+        If Not parte.HasValue OrElse Not total.HasValue OrElse total.Value <= 0 Then Return Nothing
+        Return (CDbl(parte.Value) * 100D / total.Value).ToString("0.00", Globalization.CultureInfo.InvariantCulture) & " %"
+    End Function
+
+    ''' <summary>
+    ''' Food cost por minuta (formato "Food Cost (Alimento)" del SGP): por día y servicio, raciones preparadas y vendidas,
+    ''' venta del día, valor de la bandeja (venta ÷ raciones vendidas), costo del día, costo de la bandeja (costo ÷ raciones
+    ''' preparadas) y food cost (costo ÷ venta). Hoja horizontal.
+    ''' </summary>
+    Public Function FoodCost(anio As Integer, mes As Integer) As Reporte
+        Dim comparativo As New ServicioComparativo(CadenaConexion, Sesion)
+        Dim r = Nuevo($"Food cost alimento {mes:00}/{anio}")
+        r.Horizontal = True
+        r.Dato("Periodo", $"{mes:00}/{anio}")
+        Dim s = r.Seccion("", C("Fecha"), C("Regimen"), C("Servicio"), C("Rac. preparadas", FormatoColumna.Entero), C("Rac. vendidas", FormatoColumna.Entero),
+                          C("Venta dia", FormatoColumna.Dinero), C("Valor bandeja", FormatoColumna.Dinero), C("Costo dia", FormatoColumna.Dinero),
+                          C("Costo bandeja", FormatoColumna.Dinero), C("Food cost"))
+        Dim ventaT As Long = 0, costoT As Long = 0, racPrepT As Long = 0, racVendT As Long = 0
+        For Each m In MinutasDelMes(anio, mes)
+            Dim c = comparativo.Comparativo(m.Id)
+            Dim venta = c.VentaRealU6
+            Dim costo = CType(c.CostoRealU6, Long?)
+            Dim racPrep = c.RacionesPreparadas
+            Dim racVend = c.RacionesVendidas
+            s.Agregar(m.Fecha.ToString("dd/MM/yyyy"), m.Regimen, m.Servicio, racPrep, racVend, venta, PorBandeja(venta, racVend), costo,
+                      PorBandeja(costo, racPrep), Porcentaje(costo, venta))
+            ventaT += If(venta, 0L) : costoT += If(costo, 0L) : racPrepT += If(racPrep, 0L) : racVendT += If(racVend, 0L)
+        Next
+        s.Totales = {"TOTAL", Nothing, Nothing, racPrepT, racVendT, ventaT, PorBandeja(ventaT, racVendT), costoT,
+                     PorBandeja(costoT, racPrepT), Porcentaje(costoT, ventaT)}
+        r.Notas.Add("Venta y costo reales de cada minuta. Valor bandeja = venta ÷ raciones vendidas; costo bandeja = costo ÷ raciones preparadas.")
+        Return r
+    End Function
+
+    ''' <summary>
+    ''' Comparativo de tres niveles por minuta (formato del SGP): teórico (lo planificado), realizado (lo producido y
+    ''' consumido) y la desviación. Hoja horizontal. El plan real por día no se separa aquí: viene del plan del SGP importado (V023).
+    ''' </summary>
+    Public Function ComparativoTresNiveles(anio As Integer, mes As Integer) As Reporte
+        Dim comparativo As New ServicioComparativo(CadenaConexion, Sesion)
+        Dim r = Nuevo($"Comparativo de tres niveles {mes:00}/{anio}")
+        r.Horizontal = True
+        r.Dato("Periodo", $"{mes:00}/{anio}")
+        Dim s = r.Seccion("", C("Fecha"), C("Servicio"), C("Teorico raciones", FormatoColumna.Entero), C("Teorico costo total", FormatoColumna.Dinero),
+                          C("Teorico costo bandeja", FormatoColumna.Dinero), C("Realizado raciones", FormatoColumna.Entero),
+                          C("Realizado costo total", FormatoColumna.Dinero), C("Realizado costo bandeja", FormatoColumna.Dinero),
+                          C("Desviacion costo total", FormatoColumna.Dinero), C("Desviacion costo bandeja", FormatoColumna.Dinero))
+        Dim teoRac As Long = 0, teoCosto As Long = 0, realRac As Long = 0, realCosto As Long = 0
+        For Each m In MinutasDelMes(anio, mes)
+            Dim c = comparativo.Comparativo(m.Id)
+            Dim teoricoCosto = c.CostoTeoricoU6
+            Dim teoricoBandeja = PorBandeja(teoricoCosto, c.ComensalesPlan)
+            Dim realCosto_ = CType(c.CostoRealU6, Long?)
+            Dim realBandeja = PorBandeja(realCosto_, c.RacionesPreparadas)
+            Dim desvBandeja = If(teoricoBandeja Is Nothing OrElse realBandeja Is Nothing, Nothing, CObj(CLng(realBandeja) - CLng(teoricoBandeja)))
+            s.Agregar(m.Fecha.ToString("dd/MM/yyyy"), m.Servicio, c.ComensalesPlan, teoricoCosto, teoricoBandeja, c.RacionesPreparadas,
+                      realCosto_, realBandeja, c.DiferenciaCostoU6, desvBandeja)
+            teoRac += c.ComensalesPlan : teoCosto += If(teoricoCosto, 0L) : realRac += If(c.RacionesPreparadas, 0L) : realCosto += c.CostoRealU6
+        Next
+        s.Totales = {"TOTAL", Nothing, teoRac, teoCosto, PorBandeja(teoCosto, teoRac), realRac, realCosto, PorBandeja(realCosto, realRac),
+                     realCosto - teoCosto, Nothing}
+        r.Notas.Add("Teorico = lo planificado de la minuta. Realizado = lo producido y consumido (salidas netas de devoluciones).")
+        Return r
+    End Function
+
+    ''' <summary>
+    ''' Traspasos del periodo (entrada y salida) de las bodegas de la operación, con número de documento, fecha, bodega y
+    ''' total valorizado, como el "Resumen de traspasos" del SGP. Solo documentos confirmados.
+    ''' </summary>
+    Public Function Traspasos(desde As Date, hasta As Date) As Reporte
+        If hasta < desde Then Throw New ReglaNegocioException("DATO_INVALIDO", "El periodo termina antes de empezar.")
+        Dim op = Sesion.OperacionId
+        Dim filas = EnTransaccion(Permisos.CatalogoVer,
+            Function(u)
+                Return u.Consultar(
+                    "SELECT d.tipo, d.numero, d.fecha, a.nombre, sum(l.valor_u6)::bigint FROM documento_stock d " &
+                    "JOIN almacen a ON a.id = d.almacen_id JOIN documento_stock_detalle l ON l.documento_id = d.id " &
+                    "WHERE a.operacion_id = @o AND d.tipo IN ('traspaso_entrada','traspaso_salida') AND d.estado = 'confirmado' AND d.fecha BETWEEN @d AND @h " &
+                    "GROUP BY d.tipo, d.numero, d.fecha, a.nombre ORDER BY d.tipo, d.fecha, d.numero",
+                    Function(rd) (Tipo:=rd.GetString(0), Numero:=rd.GetString(1), Fecha:=rd.GetDateTime(2).Date, Bodega:=rd.GetString(3), Total:=rd.GetInt64(4)),
+                    "o", op, "d", desde.Date, "h", hasta.Date).ToList()
+            End Function)
+        Dim r = Nuevo("Resumen de traspasos")
+        r.Dato("Periodo", $"{desde:dd/MM/yyyy} al {hasta:dd/MM/yyyy}")
+        For Each grupo In {"traspaso_entrada", "traspaso_salida"}
+            Dim lineas = filas.Where(Function(x) x.Tipo = grupo).ToList()
+            Dim s = r.Seccion(If(grupo = "traspaso_entrada", "Traspasos de entrada", "Traspasos de salida"),
+                              C("N. documento"), C("Fecha"), C("Bodega"), C("Total", FormatoColumna.Dinero))
+            For Each x In lineas
+                s.Agregar(x.Numero, x.Fecha.ToString("dd/MM/yyyy"), x.Bodega, x.Total)
+            Next
+            s.Totales = {"Total " & If(grupo = "traspaso_entrada", "entradas", "salidas"), $"{lineas.Count} documentos", Nothing, lineas.Sum(Function(x) x.Total)}
+        Next
         Return r
     End Function
 

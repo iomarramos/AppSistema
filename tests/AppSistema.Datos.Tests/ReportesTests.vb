@@ -134,6 +134,18 @@ Public Class ReportesTests
             Call New ServicioAdministracion(bd.CadenaAplicacion, s).FijarDiasStock(bd.A.OperacionId, 21)
             Assert.Equal("55", CStr(reportes.ResultadoA13(Fecha.Year, Fecha.Month).Secciones(2).Filas(3)(1)))
 
+            ' Menu y venta en hoja horizontal. Food cost y comparativo: una minuta aprobada del mes, con su teorico y sus raciones.
+            Assert.True(reportes.MinutaDelDia(minuta).Horizontal)
+            Dim food = reportes.FoodCost(Fecha.Year, Fecha.Month)
+            Assert.True(food.Horizontal)
+            Assert.Single(food.Secciones(0).Filas)
+            Dim comparativo = reportes.ComparativoTresNiveles(Fecha.Year, Fecha.Month)
+            Assert.True(comparativo.Horizontal)
+            Assert.Equal(50L, CLng(comparativo.Secciones(0).Filas.Single()(2)))
+
+            ' Traspasos: ninguno en el periodo de la prueba, pero las dos tablas (entrada y salida) salen.
+            Assert.Equal(2, reportes.Traspasos(Fecha, Fecha).Secciones.Count)
+
             ' Otra empresa no ve la minuta; cocina no tiene permiso de inventario.
             Dim otra As New ServicioReportes(bd.CadenaAplicacion, bd.Sesion("B"))
             Assert.Equal("OPERACION_AJENA", Assert.Throws(Of ReglaNegocioException)(Function() otra.MinutaDelDia(minuta)).Codigo)

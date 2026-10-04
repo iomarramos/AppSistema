@@ -51,6 +51,7 @@ Partial Public Class FormStock
                                      Ui.Boton("Movimiento de stock...", AddressOf MovimientoSintetico),
                                      Ui.Boton("Salidas a produccion...", Sub() Consolidado(False)),
                                      Ui.Boton("Devoluciones a bodega...", Sub() Consolidado(True)),
+                                     Ui.Boton("Resumen de traspasos...", AddressOf ImprimirTraspasos),
                                      Ui.Boton("Registro SUNAT 13.1...", AddressOf RegistroSunat)))
         AddHandler _almacen.SelectedIndexChanged, Sub() Cargar()
         AddHandler _buscar.KeyDown, Sub(s, e) If e.KeyCode = Keys.Enter Then Cargar()
@@ -223,6 +224,16 @@ Partial Public Class FormStock
             If d.ShowDialog(Me) <> DialogResult.OK Then Return
             Dim desde = d.FechaElegida("desde").Value, hasta = d.FechaElegida("hasta").Value
             SalidaReporte.Emitir(Me, Function() _reportes.SalidasConsolidadas(almacenId, desde, hasta, devoluciones))
+        End Using
+    End Sub
+
+    ''' <summary>Traspasos de entrada y salida del periodo, de todas las bodegas de la operación (formato del SGP).</summary>
+    Private Sub ImprimirTraspasos()
+        Using d As New DialogoCampos("Resumen de traspasos")
+            d.Fecha("desde", "Desde", Date.Today.AddDays(-Date.Today.Day + 1)).Fecha("hasta", "Hasta", Date.Today)
+            If d.ShowDialog(Me) <> DialogResult.OK Then Return
+            Dim desde = d.FechaElegida("desde").Value, hasta = d.FechaElegida("hasta").Value
+            SalidaReporte.Emitir(Me, Function() _reportes.Traspasos(desde, hasta))
         End Using
     End Sub
 

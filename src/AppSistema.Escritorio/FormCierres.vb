@@ -9,6 +9,8 @@ Imports AppSistema.Dominio.Seguridad
 Partial Public Class FormCierres
 
     Private ReadOnly _servicio As ServicioCierres
+    Private ReadOnly _cadena As String
+    Private ReadOnly _sesion As SesionUsuario
     Private ReadOnly _fecha As New DateTimePicker With {.Format = DateTimePickerFormat.Short, .Width = 110}
     Private ReadOnly _mes As New DateTimePicker With {.Format = DateTimePickerFormat.Custom, .CustomFormat = "MM/yyyy", .ShowUpDown = True, .Width = 90}
     Private ReadOnly _pendientes As DataGridView = Ui.NuevaGrilla()
@@ -21,17 +23,32 @@ Partial Public Class FormCierres
         InitializeComponent()
     End Sub
 
+    ''' <summary>Food cost del mes por minuta, en formato horizontal, para imprimir o exportar.</summary>
+    Private Sub ImprimirFoodCost()
+        Dim anio = _mes.Value.Year, mes = _mes.Value.Month
+        SalidaReporte.Emitir(Me, Function() New ServicioReportes(_cadena, _sesion).FoodCost(anio, mes))
+    End Sub
+
+    ''' <summary>Comparativo de tres niveles del mes (teórico, realizado y desviación), en formato horizontal.</summary>
+    Private Sub ImprimirTresNiveles()
+        Dim anio = _mes.Value.Year, mes = _mes.Value.Month
+        SalidaReporte.Emitir(Me, Function() New ServicioReportes(_cadena, _sesion).ComparativoTresNiveles(anio, mes))
+    End Sub
+
     Public Sub New(cadena As String, sesion As SesionUsuario)
         InitializeComponent()
         Controls.Clear()
         _servicio = New ServicioCierres(cadena, sesion)
+        _cadena = cadena
+        _sesion = sesion
         Text = "Cierres y Food Cost - " & sesion.Operacion.Nombre
         Dim cierra = sesion.Tiene(Permisos.CierreEjecutar)
 
         Dim barraDia = Ui.BarraBotones(New Label With {.Text = "Dia", .AutoSize = True, .Margin = New Padding(3, 9, 3, 3)}, _fecha,
                                        Ui.Boton("Actualizar", AddressOf CargarDia), Ui.BotonSi(cierra, "Cerrar dia", AddressOf CerrarDia))
         Dim barraMes = Ui.BarraBotones(New Label With {.Text = "Mes", .AutoSize = True, .Margin = New Padding(3, 9, 3, 3)}, _mes,
-                                       Ui.Boton("Reporte", AddressOf CargarMes), Ui.BotonSi(cierra, "Generar venta (estructura)", AddressOf GenerarVenta),
+                                       Ui.Boton("Reporte", AddressOf CargarMes), Ui.Boton("Imprimir food cost...", AddressOf ImprimirFoodCost),
+                                       Ui.Boton("Imprimir tres niveles...", AddressOf ImprimirTresNiveles), Ui.BotonSi(cierra, "Generar venta (estructura)", AddressOf GenerarVenta),
                                        Ui.BotonSi(cierra, "Registrar ingreso...", AddressOf RegistrarIngreso),
                                        Ui.BotonSi(cierra, "Objetivo Food Cost...", AddressOf FijarObjetivo), Ui.BotonSi(cierra, "Cerrar mes", AddressOf CerrarMes))
 

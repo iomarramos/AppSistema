@@ -51,3 +51,20 @@ Referencia: `Pantalla\Reportes Cierre` y `Pantalla\Reportes Cierre Pre Cierre` (
 1. Respaldar: `AppSistema.Instalador.exe respaldar D:\respaldos\antes_V024.dump`.
 2. Aplicar la migración V024: `AppSistema.Instalador.exe actualizar D:\respaldos\antes_V024.dump` (migra y comprueba que saldos e historia no cambian). Alternativa sin comprobación: `AppSistema.Instalador.exe migrar`.
 3. Fijar los días base de cada contrato en Administración > Operaciones y almacenes.
+
+## Adaptados en la última entrega (orientación y reportes pendientes)
+
+| Reporte | Cómo quedó | Dónde |
+|---|---|---|
+| Minuta del día (menú) | Hoja horizontal | Menús > Minutas > Imprimir |
+| Food cost (alimento) | Nuevo, horizontal: por minuta con raciones preparadas y vendidas, venta del día, valor bandeja, costo del día, costo bandeja y food cost | Cierres > Imprimir food cost... |
+| Comparativo de tres niveles | Nuevo, horizontal: teórico (raciones, costo total, bandeja), realizado y desviación | Cierres > Imprimir tres niveles... |
+| Resumen de traspasos | Nuevo: entradas y salidas del periodo, con número de documento, fecha, bodega y total | Stock > Resumen de traspasos... |
+| Listado para toma de inventario | Título del formato del SGP y columna de observación en blanco | Inventarios > Imprimir hoja |
+
+Todas las vistas se pueden girar entre vertical y horizontal con el botón "Girar hoja" de la vista previa.
+
+## Pendiente
+
+* **Boleta de ajustes R-AL-15-2 y formato de explicación R-AI-15-2.** Necesitan un campo de explicación por cada ajuste de inventario (motivo, justificación y responsable). AppSistema no lo guarda todavía: se agrega primero en la base y después se imprimen los dos formatos.
+* **Comparativo de tres niveles contra el plan real del SGP.** El plan real importado está en `sgp_plan_*` (V023), pero el comparativo de AppSistema todavía no lo cruza por día.

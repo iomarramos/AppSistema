@@ -58,6 +58,8 @@ Public NotInheritable Class Reporte
     Public ReadOnly Property Firmas As New List(Of String)
     Public Property GeneradoEn As DateTime = DateTime.Now
     Public Property GeneradoPor As String
+    ''' <summary>Hoja horizontal (apaisada). Los reportes de tablas anchas (menú, venta, comparativo, food cost) la usan.</summary>
+    Public Property Horizontal As Boolean
 
     Public Sub New(titulo As String)
         Me.Titulo = titulo
