@@ -52,6 +52,7 @@ Partial Public Class FormStock
                                      Ui.Boton("Salidas a produccion...", Sub() Consolidado(False)),
                                      Ui.Boton("Devoluciones a bodega...", Sub() Consolidado(True)),
                                      Ui.Boton("Resumen de traspasos...", AddressOf ImprimirTraspasos),
+                                     Ui.Boton("Boleta de ajuste R-AL...", AddressOf ImprimirBoletaAjuste),
                                      Ui.Boton("Registro SUNAT 13.1...", AddressOf RegistroSunat)))
         AddHandler _almacen.SelectedIndexChanged, Sub() Cargar()
         AddHandler _buscar.KeyDown, Sub(s, e) If e.KeyCode = Keys.Enter Then Cargar()
@@ -224,6 +225,16 @@ Partial Public Class FormStock
             If d.ShowDialog(Me) <> DialogResult.OK Then Return
             Dim desde = d.FechaElegida("desde").Value, hasta = d.FechaElegida("hasta").Value
             SalidaReporte.Emitir(Me, Function() _reportes.SalidasConsolidadas(almacenId, desde, hasta, devoluciones))
+        End Using
+    End Sub
+
+    ''' <summary>Boleta de ajuste (R-AL): los ajustes del periodo para imprimir y llenar a mano la explicación de cada uno.</summary>
+    Private Sub ImprimirBoletaAjuste()
+        Using d As New DialogoCampos("Boleta de ajuste de inventario (R-AL)")
+            d.Fecha("desde", "Desde", Date.Today.AddDays(-Date.Today.Day + 1)).Fecha("hasta", "Hasta", Date.Today)
+            If d.ShowDialog(Me) <> DialogResult.OK Then Return
+            Dim desde = d.FechaElegida("desde").Value, hasta = d.FechaElegida("hasta").Value
+            SalidaReporte.Emitir(Me, Function() _reportes.BoletaAjuste(desde, hasta))
         End Using
     End Sub
 

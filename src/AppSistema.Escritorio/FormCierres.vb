@@ -30,6 +30,12 @@ Partial Public Class FormCierres
     End Sub
 
     ''' <summary>Comparativo de tres niveles del mes (teórico, realizado y desviación), en formato horizontal.</summary>
+    ''' <summary>Menú del mes por servicio, horizontal: teórico (planificación) o real (chef, cierre diario).</summary>
+    Private Sub ImprimirMenu(real As Boolean)
+        Dim anio = _mes.Value.Year, mes = _mes.Value.Month
+        SalidaReporte.Emitir(Me, Function() New ServicioReportes(_cadena, _sesion).MenuMes(anio, mes, real))
+    End Sub
+
     Private Sub ImprimirTresNiveles()
         Dim anio = _mes.Value.Year, mes = _mes.Value.Month
         SalidaReporte.Emitir(Me, Function() New ServicioReportes(_cadena, _sesion).ComparativoTresNiveles(anio, mes))
@@ -48,7 +54,9 @@ Partial Public Class FormCierres
                                        Ui.Boton("Actualizar", AddressOf CargarDia), Ui.BotonSi(cierra, "Cerrar dia", AddressOf CerrarDia))
         Dim barraMes = Ui.BarraBotones(New Label With {.Text = "Mes", .AutoSize = True, .Margin = New Padding(3, 9, 3, 3)}, _mes,
                                        Ui.Boton("Reporte", AddressOf CargarMes), Ui.Boton("Imprimir food cost...", AddressOf ImprimirFoodCost),
-                                       Ui.Boton("Imprimir tres niveles...", AddressOf ImprimirTresNiveles), Ui.BotonSi(cierra, "Generar venta (estructura)", AddressOf GenerarVenta),
+                                       Ui.Boton("Imprimir tres niveles...", AddressOf ImprimirTresNiveles),
+                                       Ui.Boton("Menu teorico (mes)...", Sub() ImprimirMenu(False)), Ui.Boton("Menu real (mes)...", Sub() ImprimirMenu(True)),
+                                       Ui.BotonSi(cierra, "Generar venta (estructura)", AddressOf GenerarVenta),
                                        Ui.BotonSi(cierra, "Registrar ingreso...", AddressOf RegistrarIngreso),
                                        Ui.BotonSi(cierra, "Objetivo Food Cost...", AddressOf FijarObjetivo), Ui.BotonSi(cierra, "Cerrar mes", AddressOf CerrarMes))
 

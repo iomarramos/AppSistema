@@ -29,6 +29,8 @@ Public NotInheritable Class SeccionReporte
     Public ReadOnly Property Filas As New List(Of Object())
     ''' <summary>Fila de totales (opcional), con el mismo número de celdas que las columnas.</summary>
     Public Property Totales As Object()
+    ''' <summary>Alto mínimo de cada fila en la hoja, en centésimas de pulgada (0 = normal). Para los formatos que se llenan a mano.</summary>
+    Public Property AlturaFila As Integer
 
     Public Sub New(titulo As String, ParamArray columnas As ColumnaReporte())
         Me.Titulo = titulo

@@ -146,6 +146,20 @@ Public Class ReportesTests
             ' Traspasos: ninguno en el periodo de la prueba, pero las dos tablas (entrada y salida) salen.
             Assert.Equal(2, reportes.Traspasos(Fecha, Fecha).Secciones.Count)
 
+            ' Menu del mes (teorico y real): horizontal, con una columna por dia y el servicio en su seccion.
+            Dim menuTeorico = reportes.MenuMes(Fecha.Year, Fecha.Month, real:=False)
+            Assert.True(menuTeorico.Horizontal)
+            Assert.Equal(1 + 31, menuTeorico.Secciones(0).Columnas.Count)
+            Assert.Equal("Almuerzo - General", menuTeorico.Secciones(0).Titulo)
+            Assert.True(reportes.MenuMes(Fecha.Year, Fecha.Month, real:=True).Horizontal)
+
+            ' Boleta R-AL: dos tablas (entrada y salida). Explicacion R-AI: la diferencia del inventario, horizontal, con su motivo.
+            Dim boleta = reportes.BoletaAjuste(Fecha, Fecha)
+            Assert.Equal(2, boleta.Secciones.Count)
+            Dim explica = reportes.ExplicacionAjustes(inv)
+            Assert.True(explica.Horizontal)
+            Assert.Equal("ACE-1L", CStr(explica.Secciones(0).Filas.Single()(0)))
+
             ' Otra empresa no ve la minuta; cocina no tiene permiso de inventario.
             Dim otra As New ServicioReportes(bd.CadenaAplicacion, bd.Sesion("B"))
             Assert.Equal("OPERACION_AJENA", Assert.Throws(Of ReglaNegocioException)(Function() otra.MinutaDelDia(minuta)).Codigo)

@@ -75,6 +75,8 @@ Public NotInheritable Class VistaReporte
     ''' <summary>Pone la hoja vertical u horizontal (la impresión usa la misma) y vuelve a paginar el reporte.</summary>
     Private Sub Orientar(horizontal As Boolean)
         _documento.DefaultPageSettings.Landscape = horizontal
+        ' Las hojas horizontales usan márgenes angostos (0,4 pulgadas) para que quepan los días del mes.
+        If horizontal Then _documento.DefaultPageSettings.Margins = New Margins(40, 40, 40, 40)
         Dim pagina = _documento.DefaultPageSettings
         Dim bounds = pagina.Bounds
         Dim margenes = pagina.Margins
@@ -167,8 +169,8 @@ Friend NotInheritable Class PaginadorReporte
     Private ReadOnly _paginas As New List(Of DefinicionPagina)()
     Private ReadOnly _fTitulo As New Font("Arial", 13, FontStyle.Bold, GraphicsUnit.Point)
     Private ReadOnly _fSeccion As New Font("Arial", 9.5F, FontStyle.Bold, GraphicsUnit.Point)
-    Private ReadOnly _fNormal As New Font("Arial", 8.5F, FontStyle.Regular, GraphicsUnit.Point)
-    Private ReadOnly _fNegrita As New Font("Arial", 8.5F, FontStyle.Bold, GraphicsUnit.Point)
+    Private ReadOnly _fNormal As New Font("Arial", 7.5F, FontStyle.Regular, GraphicsUnit.Point)
+    Private ReadOnly _fNegrita As New Font("Arial", 7.5F, FontStyle.Bold, GraphicsUnit.Point)
     Private ReadOnly _fPie As New Font("Arial", 7.5F, FontStyle.Regular, GraphicsUnit.Point)
     Private ReadOnly _amarillo As Brush = New SolidBrush(Color.FromArgb(255, 255, 153))
     Private ReadOnly _tinta As Brush = Brushes.Black
@@ -216,7 +218,7 @@ Friend NotInheritable Class PaginadorReporte
             If Not String.IsNullOrWhiteSpace(s.Titulo) Then _bloques.Add(New Bloque With {.Tipo = TipoBloque.Seccion, .Textos = {s.Titulo}, .Alto = altoSeccion})
             Dim anchos = CalcularAnchos(g, s)
             Dim derecha = s.Columnas.Select(Function(c) c.Formato <> FormatoColumna.Texto AndAlso c.Formato <> FormatoColumna.Fecha).ToArray()
-            Dim altoFila = altoLinea
+            Dim altoFila = Math.Max(altoLinea, CSng(s.AlturaFila))
             _bloques.Add(New Bloque With {.Tipo = TipoBloque.Cabecera, .Textos = s.Columnas.Select(Function(c) c.Nombre).ToArray(),
                                           .Anchos = anchos, .AlineaDerecha = derecha, .Alto = altoFila})
             For Each fila In s.Filas
@@ -250,8 +252,12 @@ Friend NotInheritable Class PaginadorReporte
         Next
         Dim total = anchos.Sum()
         If total > _area.Width Then
-            Dim factor = _area.Width / total
-            For i = 0 To anchos.Length - 1 : anchos(i) = anchos(i) * factor : Next
+            ' La primera columna (nombres) conserva su ancho, hasta un tercio de la hoja; las demás se reducen para caber.
+            Dim primera = Math.Min(anchos(0), _area.Width / 3.0F)
+            Dim resto = anchos.Skip(1).Sum()
+            Dim factor = (_area.Width - primera) / resto
+            anchos(0) = primera
+            For i = 1 To anchos.Length - 1 : anchos(i) = anchos(i) * factor : Next
         End If
         Return anchos
     End Function

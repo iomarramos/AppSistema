@@ -68,3 +68,12 @@ Todas las vistas se pueden girar entre vertical y horizontal con el botón "Gira
 
 * **Boleta de ajustes R-AL-15-2 y formato de explicación R-AI-15-2.** Necesitan un campo de explicación por cada ajuste de inventario (motivo, justificación y responsable). AppSistema no lo guarda todavía: se agrega primero en la base y después se imprimen los dos formatos.
 * **Comparativo de tres niveles contra el plan real del SGP.** El plan real importado está en `sgp_plan_*` (V023), pero el comparativo de AppSistema todavía no lo cruza por día.
+
+## Formatos de ajuste y menú (última entrega)
+
+* **Boleta de ajuste R-AL-15-2** (Stock > Boleta de ajuste R-AL...): los ajustes de entrada y de salida del periodo, con código, descripción, unidad, cantidad, costo y valor. La columna **Explicación del ajuste** queda en blanco con espacio para escribir a mano. No se guarda en el sistema: es un formato que se imprime y se llena.
+* **Explicación de ajustes R-AI-15-2** (Inventarios > Explicación de ajustes R-AI...): las diferencias físico vs sistema del inventario, de mayor a menor valor, con ajuste (+ o −), porcentaje y acumulado, y la columna **Motivo del ajuste** para llenar a mano. Hoja horizontal.
+* **Menú teórico (planificación)** (Cierres > Menú teórico (mes)...): lo que carga planificación en el sistema, por servicio. Una columna por día; por estructura, código de la receta, raciones y costo por ración; al pie, el costo de la minuta del día y el costo total del servicio en el mes. Hoja horizontal.
+* **Menú real (chef)** (Cierres > Menú real (mes)...): las raciones preparadas que registra el chef en el cierre diario, con el mismo formato. Si el día no tiene registro, la celda queda vacía (no se rellena con el teórico).
+* Los códigos de receta (no los nombres) van en las celdas para que quepan los 31 días; el nombre completo de cada receta está en la minuta del día.
+* No se necesitó migración: los formatos se generan con los datos existentes.

@@ -37,7 +37,8 @@ Partial Public Class FormInventarios
                                     Ui.Boton("Contar linea...", AddressOf ContarLinea), Ui.Boton("Importar conteo...", AddressOf Importar),
                                     Ui.Boton("Cerrar conteo", Sub() Accion(Sub(i) _servicio.CerrarConteo(i))), Ui.Boton("Recontar", Sub() Accion(Sub(i) _servicio.Recontar(i))),
                                     Ui.BotonSi(aprueba, "Revisar", Sub() Accion(Sub(i) _servicio.Revisar(i))), Ui.BotonSi(aprueba, "Autorizar ajuste...", AddressOf Autorizar),
-                                    Ui.Boton("Imprimir hoja de conteo...", Sub() Imprimir(True)), Ui.Boton("Imprimir resultado...", Sub() Imprimir(False)))
+                                    Ui.Boton("Imprimir hoja de conteo...", Sub() Imprimir(True)), Ui.Boton("Imprimir resultado...", Sub() Imprimir(False)),
+                                    Ui.Boton("Explicacion de ajustes R-AI...", Sub() ImprimirExplicacion()))
         Dim division As New SplitContainer With {.Dock = DockStyle.Fill, .Orientation = Orientation.Horizontal, .SplitterDistance = 140}
         division.Panel1.Controls.Add(_inventarios)
         division.Panel2.Controls.Add(_hoja)
@@ -160,6 +161,13 @@ Partial Public Class FormInventarios
         Dim i = Inventario
         If i Is Nothing Then Ui.Informar(Me, "Seleccione un inventario.") : Return
         SalidaReporte.Emitir(Me, Function() _reportes.Inventario(i.Id, hojaDeConteo))
+    End Sub
+
+    ''' <summary>Explicación de ajustes (R-AI): las diferencias del inventario seleccionado, con su columna de motivo para llenar a mano.</summary>
+    Private Sub ImprimirExplicacion()
+        Dim i = Inventario
+        If i Is Nothing Then Ui.Informar(Me, "Seleccione un inventario.") : Return
+        SalidaReporte.Emitir(Me, Function() _reportes.ExplicacionAjustes(i.Id))
     End Sub
 
 End Class

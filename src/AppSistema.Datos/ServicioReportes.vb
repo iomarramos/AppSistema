@@ -514,6 +514,189 @@ Public NotInheritable Class ServicioReportes
         Return r
     End Function
 
+    ''' <summary>
+    ''' Boleta de ajuste de inventario (formato R-AL-15-2 del SGP): los ajustes de entrada y de salida del periodo, con el
+    ''' código, la descripción, la unidad, la cantidad, el costo y el valor. La columna de explicación queda en blanco con
+    ''' espacio para escribir a mano: el formato se llena en papel y no se guarda en el sistema.
+    ''' </summary>
+    Public Function BoletaAjuste(desde As Date, hasta As Date) As Reporte
+        If hasta < desde Then Throw New ReglaNegocioException("DATO_INVALIDO", "El periodo termina antes de empezar.")
+        Dim op = Sesion.OperacionId
+        Dim filas = EnTransaccion(Permisos.CatalogoVer,
+            Function(u)
+                Return u.Consultar(
+                    "SELECT d.tipo, v.codigo, v.descripcion_comercial, um.codigo, sum(abs(l.cantidad_base_u6))::bigint, sum(abs(l.valor_u6))::bigint " &
+                    "FROM documento_stock d JOIN almacen a ON a.id = d.almacen_id JOIN documento_stock_detalle l ON l.documento_id = d.id " &
+                    "JOIN variante_producto v ON v.id = l.variante_id JOIN producto_base p ON p.id = v.producto_base_id " &
+                    "JOIN unidad_medida um ON um.id = p.unidad_base_id " &
+                    "WHERE a.operacion_id = @o AND d.tipo IN ('ajuste_positivo','ajuste_negativo') AND d.estado = 'confirmado' AND d.fecha BETWEEN @d AND @h " &
+                    "GROUP BY d.tipo, v.codigo, v.descripcion_comercial, um.codigo ORDER BY d.tipo, v.descripcion_comercial",
+                    Function(rd) (Tipo:=rd.GetString(0), Codigo:=rd.GetString(1), Descripcion:=rd.GetString(2), Unidad:=rd.GetString(3),
+                                  Cantidad:=rd.GetInt64(4), Valor:=rd.GetInt64(5)),
+                    "o", op, "d", desde.Date, "h", hasta.Date).ToList()
+            End Function)
+        Dim r = Nuevo("Boleta de ajuste de inventario")
+        r.Dato("Contrato", Sesion.Operacion?.ToString())
+        r.Dato("Boleta No.", "")
+        r.Dato("Periodo", $"{desde:dd/MM/yyyy} al {hasta:dd/MM/yyyy}")
+        For Each tipo In {"ajuste_positivo", "ajuste_negativo"}
+            Dim lineas = filas.Where(Function(x) x.Tipo = tipo).ToList()
+            Dim s = r.Seccion(If(tipo = "ajuste_positivo", "Tipo de ajuste: ENTRADA", "Tipo de ajuste: SALIDA"),
+                              C("Codigo"), C("Descripcion"), C("Explicacion del ajuste"), C("Unidad"), C("Cantidad", FormatoColumna.Cantidad),
+                              C("Costo", FormatoColumna.Dinero), C("Valor S/", FormatoColumna.Dinero))
+            s.AlturaFila = 46
+            Dim valorTotal As Long = 0
+            For Each x In lineas
+                Dim costo = If(x.Cantidad > 0, CLng(Math.Round(CDec(x.Valor) * 1000000D / x.Cantidad, 0, MidpointRounding.AwayFromZero)), CType(Nothing, Long?))
+                s.Agregar(x.Codigo, x.Descripcion, Nothing, x.Unidad, x.Cantidad, costo, x.Valor)
+                valorTotal += x.Valor
+            Next
+            s.Totales = {"TOTAL", $"{lineas.Count} productos", Nothing, Nothing, Nothing, Nothing, valorTotal}
+        Next
+        r.Firmas.AddRange({"Elaborado por", "Autorizado por"})
+        Return r
+    End Function
+
+    ''' <summary>
+    ''' Explicación de ajustes (formato R-AI-15-2 del SGP): las diferencias físico vs sistema de un inventario, ordenadas de
+    ''' mayor a menor valor, con el ajuste (+ o −), el porcentaje que representa y el acumulado, y una columna de motivo
+    ''' para llenar a mano. Hoja horizontal.
+    ''' </summary>
+    Public Function ExplicacionAjustes(inventarioId As Long) As Reporte
+        Dim servicio As New ServicioInventarios(CadenaConexion, Sesion)
+        Dim cab = EnTransaccion(Permisos.InventarioContar,
+            Function(u) u.Consultar(
+                "SELECT i.numero, i.fecha_corte, a.codigo || ' - ' || a.nombre FROM inventario i JOIN almacen a ON a.id = i.almacen_id " &
+                "WHERE i.id = @i AND a.operacion_id = @o",
+                Function(rd) (Numero:=rd.GetString(0), Corte:=rd.GetDateTime(1), Almacen:=rd.GetString(2)),
+                "i", inventarioId, "o", Sesion.OperacionId).ToList())
+        If cab.Count = 0 Then Throw New ReglaNegocioException("OPERACION_AJENA", "El inventario no pertenece a la operacion seleccionada.")
+        Dim lineas = servicio.Hoja(inventarioId).Where(Function(l) l.FisicoU6.HasValue AndAlso l.DiferenciaU6.HasValue AndAlso l.DiferenciaU6.Value <> 0).
+                     OrderByDescending(Function(l) Math.Abs(l.ValorDiferenciaU6.GetValueOrDefault())).ToList()
+        Dim total = lineas.Sum(Function(l) Math.Abs(l.ValorDiferenciaU6.GetValueOrDefault()))
+
+        Dim r = Nuevo($"Explicacion de ajustes {cab(0).Numero}")
+        r.Horizontal = True
+        r.Dato("Bodega", cab(0).Almacen)
+        r.Dato("Fecha de toma de inventario", cab(0).Corte.ToString("dd/MM/yyyy"))
+        r.Dato("Familia de producto", "Todas")
+        Dim s = r.Seccion("", C("Codigo"), C("Descripcion"), C("Unidad"), C("P.M.P.", FormatoColumna.Dinero), C("Stock fisico", FormatoColumna.Cantidad),
+                          C("Total fisico", FormatoColumna.Dinero), C("Stock sist.", FormatoColumna.Cantidad), C("Total sist.", FormatoColumna.Dinero),
+                          C("Diferencia", FormatoColumna.Cantidad), C("Total dif.", FormatoColumna.Dinero), C("Ajuste +", FormatoColumna.Dinero),
+                          C("Ajuste -", FormatoColumna.Dinero), C("Ajuste total", FormatoColumna.Dinero), C("% acumulado"), C("Motivo del ajuste"))
+        s.AlturaFila = 30
+        Dim acumulado As Long = 0, mas As Long = 0, menos As Long = 0
+        For Each l In lineas
+            Dim valor = l.ValorDiferenciaU6.GetValueOrDefault()
+            acumulado += Math.Abs(valor)
+            mas += Math.Max(valor, 0L) : menos += Math.Min(valor, 0L)
+            Dim pct = If(total > 0, (CDbl(acumulado) * 100D / total).ToString("0.00", Globalization.CultureInfo.InvariantCulture) & " %", Nothing)
+            s.Agregar(l.VarianteCodigo, l.Descripcion, l.Unidad, l.CostoU6, l.FisicoU6, ValorDe(l.FisicoU6, l.CostoU6), l.SistemaU6,
+                      ValorDe(l.SistemaU6, l.CostoU6), l.DiferenciaU6, valor, If(valor > 0, CObj(valor), Nothing), If(valor < 0, CObj(valor), Nothing),
+                      Math.Abs(valor), pct, Nothing)
+        Next
+        s.Totales = {"TOTAL", $"{lineas.Count} productos", Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, mas + menos, mas, menos, total, Nothing, Nothing}
+        r.Firmas.AddRange({"Elaborado por", "Revisado por", "Autorizado por"})
+        Return r
+    End Function
+
+    ''' <summary>
+    ''' Menú del mes por servicio, en hoja horizontal, como la planificación del SGP: una columna por día, con el costo del
+    ''' día y el costo total del servicio. El teórico es lo que planifica el área de planificación (la minuta aprobada, con
+    ''' sus raciones y su costo previsto por ración). El real son las raciones preparadas que registra el chef en el cierre
+    ''' diario (consumo por plato); si el día no tiene registro, la celda queda vacía.
+    ''' </summary>
+    ''' <param name="real">False = teórico (planificación); True = real (chef).</param>
+    Public Function MenuMes(anio As Integer, mes As Integer, real As Boolean) As Reporte
+        Dim desde As New Date(anio, mes, 1)
+        Dim hasta = desde.AddMonths(1).AddDays(-1)
+        Dim op = Sesion.OperacionId
+        Dim platos = EnTransaccion(Permisos.MenusVer,
+            Function(u)
+                Return u.Consultar(
+                    "SELECT s.nombre, reg.nombre, m.fecha, e.orden, e.nombre, r.codigo, md.raciones, md.costo_previsto_racion_u6, cp.raciones_preparadas " &
+                    "FROM minuta m JOIN operacion_servicio os ON os.id = m.operacion_servicio_id " &
+                    "JOIN servicio s ON s.id = os.servicio_id JOIN regimen reg ON reg.id = os.regimen_id " &
+                    "JOIN minuta_detalle md ON md.minuta_id = m.id JOIN estructura_servicio e ON e.id = md.estructura_id " &
+                    "JOIN receta_version rv ON rv.id = md.receta_version_id JOIN receta r ON r.id = rv.receta_id " &
+                    "LEFT JOIN consumo_plato cp ON cp.minuta_detalle_id = md.id " &
+                    "WHERE os.operacion_id = @o AND m.estado IN ('aprobada','cerrada') AND m.fecha BETWEEN @d AND @h " &
+                    "ORDER BY s.nombre, reg.nombre, m.fecha, e.orden",
+                    Function(rd) (Servicio:=rd.GetString(0) & " - " & rd.GetString(1), Fecha:=rd.GetDateTime(2).Date, Orden:=rd.GetInt64(3),
+                                  Estructura:=rd.GetString(4), Receta:=rd.GetString(5), Raciones:=rd.GetInt64(6),
+                                  CostoU6:=If(rd.IsDBNull(7), CType(Nothing, Long?), rd.GetInt64(7)),
+                                  RacionesReales:=If(rd.IsDBNull(8), CType(Nothing, Long?), rd.GetInt64(8))),
+                    "o", op, "d", desde.Date, "h", hasta.Date).ToList()
+            End Function)
+
+        Dim r = Nuevo($"{If(real, "Menu real", "Menu teorico (planificacion)")} {mes:00}/{anio}")
+        r.Horizontal = True
+        r.Dato("Periodo", $"{mes:00}/{anio}")
+        r.Dato("Nivel", If(real, "REAL (chef, cierre diario)", "TEORICO (planificacion)"))
+        Dim dias = hasta.Day
+        Dim cultura = Globalization.CultureInfo.InvariantCulture
+
+        For Each grupo In platos.GroupBy(Function(x) x.Servicio).OrderBy(Function(g) g.Key, StringComparer.CurrentCultureIgnoreCase)
+            Dim columnas As New List(Of ColumnaReporte) From {C("Estructura")}
+            For d = 1 To dias
+                columnas.Add(C(d.ToString("00"), FormatoColumna.Entero))
+            Next
+            Dim s = r.Seccion(grupo.Key, columnas.ToArray())
+
+            ' Una estructura ocupa tres filas: receta (código), raciones y costo del plato por ración (S/).
+            Dim ordenes = grupo.Select(Function(x) x.Orden).Distinct().OrderBy(Function(x) x).ToList()
+            Dim costoTotalU6 As Long = 0
+            Dim costoDiaU6(dias) As Long
+            Dim hayDia(dias) As Boolean
+            For Each orden In ordenes
+                Dim estructura = grupo.First(Function(x) x.Orden = orden).Estructura
+                Dim fila1 As New List(Of Object) From {estructura}
+                Dim fila2 As New List(Of Object) From {"  Rac."}
+                Dim fila3 As New List(Of Object) From {"  Cto."}
+                For d = 1 To dias
+                    Dim dia = d
+                    Dim plato = grupo.Where(Function(x) x.Orden = orden AndAlso x.Fecha.Day = dia).ToList()
+                    If plato.Count = 0 Then
+                        fila1.Add(Nothing) : fila2.Add(Nothing) : fila3.Add(Nothing)
+                        Continue For
+                    End If
+                    Dim p = plato(0)
+                    Dim raciones = If(real, p.RacionesReales, CType(p.Raciones, Long?))
+                    fila1.Add(p.Receta)
+                    fila2.Add(raciones)
+                    If p.CostoU6.HasValue Then
+                        fila3.Add((p.CostoU6.Value / 1000000D).ToString("0.00", cultura))
+                        If raciones.HasValue Then
+                            costoDiaU6(d) += p.CostoU6.Value * raciones.Value
+                            hayDia(d) = True
+                        End If
+                    Else
+                        fila3.Add(Nothing)
+                    End If
+                Next
+                s.Agregar(fila1.ToArray()) : s.Agregar(fila2.ToArray()) : s.Agregar(fila3.ToArray())
+            Next
+
+            ' Costo del día (raciones × costo por ración de cada plato) y costo total del servicio en el mes.
+            Dim filaCosto As New List(Of Object) From {"Costo minuta dia"}
+            For d = 1 To dias
+                If hayDia(d) Then
+                    filaCosto.Add((costoDiaU6(d) / 1000000D).ToString("0", cultura))
+                    costoTotalU6 += costoDiaU6(d)
+                Else
+                    filaCosto.Add(Nothing)
+                End If
+            Next
+            filaCosto(0) = "Costo minuta dia (S/)"
+            s.Totales = filaCosto.ToArray()
+            r.Notas.Add($"{grupo.Key}: costo total del servicio en el mes = S/ {(costoTotalU6 / 1000000D).ToString("N2", cultura)}")
+        Next
+
+        r.Notas.Add("Codigo = codigo de la receta en AppSistema. Cto. = costo del plato por racion (S/). Costo minuta dia = raciones x costo por racion de cada plato.")
+        r.Firmas.AddRange({"Elaborado por", "Revisado por"})
+        Return r
+    End Function
+
     ' ---------- Registro de inventario permanente valorizado (SUNAT, formato 13.1) ----------
 
     ''' <summary>
