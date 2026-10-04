@@ -194,7 +194,7 @@ Public NotInheritable Class Reporte
     End Sub
 
     ''' <summary>Texto de una celda. Nothing queda vacío; un texto en columna numérica (por ejemplo "TOTAL") se respeta.</summary>
-    Friend Shared Function Valor(v As Object, formato As FormatoColumna, cultura As CultureInfo, miles As Boolean) As String
+    Public Shared Function Valor(v As Object, formato As FormatoColumna, cultura As CultureInfo, miles As Boolean) As String
         If v Is Nothing OrElse TypeOf v Is DBNull Then Return ""
         If TypeOf v Is String Then Return DirectCast(v, String)
         Select Case formato

@@ -361,8 +361,9 @@ Public NotInheritable Class ServicioReportes
         Dim resultado = New ServicioResultados(CadenaConexion, Sesion).ResultadoMensual(anio, mes)
         Dim ventas = resultado.Total.IngresoU6
         Dim costoServicios = resultado.Total.CostoAlimentosU6
-        Dim diasMes = hasta.Day
-        Dim consumoDiario = consumo \ diasMes
+        ' Criterio del contrato: el consumo diario es el consumo del periodo entre los días base de la operación (20, 21, 31…).
+        Dim diasBase = EnTransaccion(Permisos.CatalogoVer, Function(u) u.EscalarLong("SELECT dias_stock_base FROM operacion WHERE id = @o", "o", op))
+        Dim consumoDiario = consumo \ diasBase
 
         Dim r = Nuevo($"Resultados operacionales mensual A13 {desde:MMMM yyyy}")
         r.Dato("Periodo", $"{desde:dd/MM/yyyy} al {hasta:dd/MM/yyyy}")
@@ -386,7 +387,7 @@ Public NotInheritable Class ServicioReportes
         pie.Agregar("Total de gastos (alimentos)", Soles(consumo))
         pie.Agregar("Utilidad operacional", Soles(ventas - consumo))
         r.Notas.Add("Solo alimentos. Los gastos de personal, operacion y otros estan en el resultado mensual, no en este formato.")
-        r.Notas.Add("Dias de stock calculado con el mes completo (dias del calendario del periodo).")
+        r.Notas.Add($"Dias de stock = inventario final / (consumo del periodo / {diasBase} dias base del contrato).")
         r.Firmas.AddRange({"Elaborado por", "Revisado por"})
         Return r
     End Function

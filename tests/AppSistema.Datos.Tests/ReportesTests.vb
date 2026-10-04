@@ -129,6 +129,10 @@ Public Class ReportesTests
             ' A13 (formato SGP): consumo = inicial + entradas (apertura S/144) - traspasos enviados - final (S/104) = S/40, lo producido.
             Dim a13 = reportes.ResultadoA13(Fecha.Year, Fecha.Month)
             Assert.Equal(U(40D), CLng(a13.Secciones(1).Totales(1)))
+            ' Dias de stock con el criterio del contrato: 104 de stock entre 40 de consumo: 78 dias con 30 dias base; 55 con 21.
+            Assert.Equal("78", CStr(a13.Secciones(2).Filas(3)(1)))
+            Call New ServicioAdministracion(bd.CadenaAplicacion, s).FijarDiasStock(bd.A.OperacionId, 21)
+            Assert.Equal("55", CStr(reportes.ResultadoA13(Fecha.Year, Fecha.Month).Secciones(2).Filas(3)(1)))
 
             ' Otra empresa no ve la minuta; cocina no tiene permiso de inventario.
             Dim otra As New ServicioReportes(bd.CadenaAplicacion, bd.Sesion("B"))

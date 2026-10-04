@@ -33,3 +33,21 @@ Referencia: `Pantalla\Reportes Cierre` y `Pantalla\Reportes Cierre Pre Cierre` (
 ## Diferencias conocidas
 
 * Días de stock del A13: el SGP muestra 21 para el inventario final de 205 645 y consumo de 304 651. Con el mes de 30 días sale 20; con 31 días sale 21. Falta confirmar con el usuario qué base usa el SGP.
+
+## Días de stock por contrato (V024)
+
+* Cada operación (contrato) tiene sus **días base** para medir el stock: 20, 21, 31… (por defecto 30). Se fija en Administración > Operaciones y almacenes > **Días base de stock...**.
+* Días de stock = inventario final ÷ (consumo del periodo ÷ días base). El A13 los muestra con el criterio del contrato y la nota indica el valor usado.
+* Con 31 días el A13 del SGP da 21 (205 645 ÷ (304 651 ÷ 31) = 20,9 → 21), así que el SGP de Orcopampa parece usar 31. Se confirma en el contrato, no en el código.
+
+## Vista previa de los reportes (estilo SGP)
+
+* Cada reporte abre una **vista previa** con barra de impresión, exportar a Excel (CSV), páginas (anterior/siguiente, "Pagina n de N") y zoom (ajustar, acercar, alejar).
+* Hoja: título, datos de cabecera en pares etiqueta-valor, tablas con encabezado amarillo, cantidades con tres decimales y dinero con dos, totales en negrita con línea superior, notas y firmas. Pie con número de página y fecha de generación.
+* Las tablas que continúan en otra hoja repiten su encabezado.
+
+## Para aplicar en la base de la sede
+
+1. Respaldar: `AppSistema.Instalador.exe respaldar D:\respaldos\antes_V024.dump`.
+2. Aplicar la migración V024: `AppSistema.Instalador.exe actualizar D:\respaldos\antes_V024.dump` (migra y comprueba que saldos e historia no cambian). Alternativa sin comprobación: `AppSistema.Instalador.exe migrar`.
+3. Fijar los días base de cada contrato en Administración > Operaciones y almacenes.

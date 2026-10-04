@@ -20,7 +20,8 @@ Partial Public Class FormOperaciones
         Text = "Operaciones y almacenes"
         Dim division As New SplitContainer With {.Dock = DockStyle.Fill}
         division.Panel1.Controls.Add(_operaciones)
-        division.Panel1.Controls.Add(Ui.BarraBotones(Ui.Boton("Nueva operacion...", AddressOf NuevaOperacion), Ui.Boton("Zona o region...", AddressOf CambiarZona)))
+        division.Panel1.Controls.Add(Ui.BarraBotones(Ui.Boton("Nueva operacion...", AddressOf NuevaOperacion), Ui.Boton("Zona o region...", AddressOf CambiarZona),
+                                                     Ui.Boton("Dias base de stock...", AddressOf CambiarDiasStock)))
         division.Panel2.Controls.Add(_almacenes)
         division.Panel2.Controls.Add(Ui.BarraBotones(Ui.Boton("Nuevo almacen...", AddressOf NuevoAlmacen)))
         Controls.Add(division)
@@ -38,7 +39,7 @@ Partial Public Class FormOperaciones
 
     Private Sub Cargar()
         Ui.Ejecutar(Me, Sub() Ui.Mostrar(_operaciones, _servicio.ListarOperaciones(), "Codigo|Codigo", "Nombre|Operacion", "Zona|Zona o region", "Ubicacion|Ubicacion",
-                                         "Almacenes|Almacenes", "Usuarios|Usuarios"))
+                                         "Almacenes|Almacenes", "Usuarios|Usuarios", "DiasStockBase|Dias base de stock"))
     End Sub
 
     Private Sub CargarAlmacenes()
@@ -65,6 +66,19 @@ Partial Public Class FormOperaciones
             d.Opciones("zona", "Zona o region", ops, ops.FirstOrDefault(Function(x) DirectCast(x, Opcion(Of String)).Valor = If(o.Zona, "")))
             If d.ShowDialog(Me) <> DialogResult.OK Then Return
             Ui.Ejecutar(Me, Sub() _servicio.FijarZona(o.Id, d.Elegido(Of Opcion(Of String))("zona").Valor))
+        End Using
+        Cargar()
+    End Sub
+
+    ''' <summary>Días base con que se miden los días de stock: el criterio lo fija el contrato (20, 21 o 31; por defecto 30).</summary>
+    Private Sub CambiarDiasStock()
+        Dim o = Operacion
+        If o Is Nothing Then Ui.Informar(Me, "Seleccione una operacion.") : Return
+        Using d As New DialogoCampos("Dias base de stock de " & o.Nombre)
+            Dim ops = {20L, 21L, 30L, 31L}.Select(Function(n) CObj(New Opcion(Of Long)(n, n & " dias"))).ToList()
+            d.Opciones("dias", "Dias base del stock (criterio del contrato)", ops, ops.FirstOrDefault(Function(x) DirectCast(x, Opcion(Of Long)).Valor = o.DiasStockBase))
+            If d.ShowDialog(Me) <> DialogResult.OK Then Return
+            Ui.Ejecutar(Me, Sub() _servicio.FijarDiasStock(o.Id, d.Elegido(Of Opcion(Of Long))("dias").Valor))
         End Using
         Cargar()
     End Sub
