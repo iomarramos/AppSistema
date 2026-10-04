@@ -7,7 +7,7 @@ Actualizado: 2026-10-03, 10:40 hora de Lima (15:40 UTC).
 | Rama | `claude/busy-mayer-9fxop6` |
 | PR | #1 (borrador, CI verde, sin conflictos) |
 | `develop` | en el mismo commit probado |
-| Último corte | 2026-10-03, 08:40 (Lima): **fase 1 de Planificación y Abastecimiento Central** (seguridad de cuatro niveles, V021). Antes: análisis y diseño en `docs/ARQUITECTURA_PLANIFICACION_CENTRAL.md` (commit `18c21a8`, CI verde, `develop` al día) |
+| Último corte | 2026-10-04: **fase 2 de Planificación y Abastecimiento Central** (planificación con versiones inmutables, V022; solo base y pruebas, sin pantallas). Antes: fase 1 (seguridad de cuatro niveles, V021, 2026-10-03) y análisis y diseño en `docs/ARQUITECTURA_PLANIFICACION_CENTRAL.md` |
 
 El detalle de cada etapa está en `docs/SEGUIMIENTO.md`; el checklist de avance (pantallas, accesos por rol y pendientes) en `docs/CHECKLIST.md`.
 

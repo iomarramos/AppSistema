@@ -152,6 +152,7 @@ Cada reporte sale con el botón **Imprimir…** de su pantalla. Se puede imprimi
 | Registro de inventario permanente valorizado, formato 13.1 de SUNAT (tablas 5, 6, 10 y 12) | ✅ |
 | Requerimiento con bulto en decimales (presentación activa) | ✅ |
 | **Planificación y Abastecimiento Central, fase 1 (seguridad):** superusuario, módulo → pantalla → acción → alcance (operación, zona o todas), matriz de acceso, roles centrales, stock y factores validados en la base (T53, T54, T61, T62, T63) | ✅ |
+| **Planificación y Abastecimiento Central, fase 2 (versiones, V022):** planificación por operación y periodo; versiones BORRADOR → APROBADO → REEMPLAZADO con una sola borrador y una sola aprobada; versión aprobada inmutable en la base (T49); historial de estados escrito por la base; nueva versión que no toca la aprobada y la retira en la misma transacción (T56). **Solo base y pruebas: sin pantallas todavía** | ✅ base · ⬜ pantallas |
 
 ## 4. Pendiente por crear o confirmar
 
@@ -171,7 +172,7 @@ Cada reporte sale con el botón **Imprimir…** de su pantalla. Se puede imprimi
 | 14 | ✅ Bulto de pedido: los sacos son individuales. Si no hay un múltiplo, se pide de a uno (decisión del usuario, 2026-10-03). Si más adelante un producto se compra por caja, se le agrega un empaque en Catálogo | Usuario (respondido) |
 | 15 | ✅ Familias del SGP cargadas: familia › subfamilia › grupo (V019, `familias_sgp.csv`, 1 516 presentaciones en 112 grupos). El ingrediente sin categoría toma la familia de sus presentaciones | Programación (hecho) |
 | 16 | ⬜ **Menú del mes real** y **estructuras de servicio** que faltan (loncheras, refrigerios, coffee break), además de confirmar las de desayuno, almuerzo y cena. Estado actual en `docs/ESTADO_BASE_DATOS.md` | Usuario (los va a presentar) |
-| 17 | ⬜ **Planificación y Abastecimiento Central, fases 2–10** (`docs/ARQUITECTURA_PLANIFICACION_CENTRAL.md`): planificación teórica con versiones, liberación, plan operativo, programación del día del chef, requerimiento y adicional, ejecución real, 3 comparativos, aprendizaje de factores, compras globales con almacén central y tránsito, controles reutilizables | Programación (fase 1 hecha) |
+| 17 | ⬜ **Planificación y Abastecimiento Central, fases 3–10** (`docs/ARQUITECTURA_PLANIFICACION_CENTRAL.md`): liberación, plan operativo, programación del día del chef, requerimiento y adicional, ejecución real, 3 comparativos, aprendizaje de factores, compras globales con almacén central y tránsito, controles reutilizables. Pantallas de la planificación central (fase 2) también pendientes | Programación (fases 1–2 hechas en base y pruebas) |
 | 18 | 🟡 **Corte del requerimiento interno con retrasos permitidos** (respuesta del usuario): hora configurable por operación; lo tardío se acepta marcado TARDÍO; tiempo de llegada por zona desde el central. Falta la hora por defecto y los días por zona; se programa en las fases 4–5 y 8–9 | Usuario (dato) · Programación |
 | 19 | ✅ **Zonas:** Costa, Sierra y Selva (solo esos valores). Se elige en Operaciones y almacenes | Usuario (respondido) |
 | 21 | ⬜ **Nutrientes** (aporte por receta, % aprovechamiento y cocción): ningún archivo recibido trae valores; falta la tabla de composición por ingrediente | Usuario (tabla de nutrientes) |
