@@ -24,7 +24,22 @@ Partial Public Class FormAcceso
     Public Sub New(config As Configuracion)
         InitializeComponent()
         _config = config
-        lblTitulo.Font = Tema.FuenteTitulo
+        Text = "AppSistema · Acceso seguro"
+        BackColor = Tema.Fondo
+        tabla.BackColor = Tema.Superficie
+        tabla.Padding = New Padding(28, 24, 28, 18)
+        botones.BackColor = Tema.Superficie
+        botones.Padding = New Padding(18, 12, 18, 18)
+        lblTitulo.Text = "Bienvenido a AppSistema"
+        lblTitulo.Font = Tema.FuenteHero
+        lblTitulo.ForeColor = Tema.Navegacion
+        lblTitulo.Margin = New Padding(3, 3, 3, 18)
+        _empresa.Width = 280
+        _usuario.Width = 280
+        _clave.Width = 280
+        btnEntrar.MinimumSize = New Drawing.Size(100, 36)
+        btnConexion.MinimumSize = New Drawing.Size(110, 36)
+        btnSalir.MinimumSize = New Drawing.Size(90, 36)
         _empresa.Text = If(config?.EmpresaPredeterminada, "")
         AddHandler Shown, Sub() If _empresa.Text = "" Then _empresa.Focus() Else _usuario.Focus()
     End Sub
