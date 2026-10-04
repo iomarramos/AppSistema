@@ -169,6 +169,7 @@ Partial Public Class FormPrincipal
         Opcion(mnuServiciosYEstructuras, Permisos.MenusConfigurar, Function() New FormServicios(cadena, _sesion))
         Opcion(mnuImportarRecetas, Permisos.RecetasEditar, Function() New FormImportacion(cadena, _sesion, ModoImportacion.Recetas))
         Opcion(mnuProduccion, Permisos.MenusVer, Function() New FormProduccion(cadena, _sesion))
+        Opcion(mnuPlanProduccionChef, Permisos.ProduccionEditar, Function() New FormProduccionChef(cadena, _sesion))
 
         Opcion(mnuStockEInventarioInicial, Permisos.CatalogoVer, Function() New FormStock(cadena, _sesion))
         Opcion(mnuInventarioFisico, Permisos.InventarioContar, Function() New FormInventarios(cadena, _sesion))
@@ -177,6 +178,7 @@ Partial Public Class FormPrincipal
         Opcion(mnuConsolidadoDeComprasTodasLasOperaciones, Permisos.ComprasConsolidar, Function() New FormConsolidado(cadena, _sesion))
 
         Opcion(mnuPendientesCierresYFoodCost, Permisos.ReportesVer, Function() New FormCierres(cadena, _sesion))
+        Opcion(mnuReportesDelSgp, Permisos.ReportesVer, Function() New FormReportes(cadena, _sesion))
         Opcion(mnuContratosYClientes, Permisos.ContratosVer, Function() New FormContratos(cadena, _sesion))
         Opcion(mnuGastosYResultadoMensual, Permisos.ResultadosVer, Function() New FormResultados(cadena, _sesion))
 

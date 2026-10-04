@@ -43,6 +43,8 @@ Partial Class FormPrincipal
         Me.mnuInventarioFisico = New System.Windows.Forms.ToolStripMenuItem()
         Me.mnuCierresYControl = New System.Windows.Forms.ToolStripMenuItem()
         Me.mnuPendientesCierresYFoodCost = New System.Windows.Forms.ToolStripMenuItem()
+        Me.mnuReportesDelSgp = New System.Windows.Forms.ToolStripMenuItem()
+        Me.mnuPlanProduccionChef = New System.Windows.Forms.ToolStripMenuItem()
         Me.mnuContratosYClientes = New System.Windows.Forms.ToolStripMenuItem()
         Me.mnuGastosYResultadoMensual = New System.Windows.Forms.ToolStripMenuItem()
         Me.mnuAdministracion = New System.Windows.Forms.ToolStripMenuItem()
@@ -95,7 +97,7 @@ Partial Class FormPrincipal
         '
         'mnuMenus
         '
-        Me.mnuMenus.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.mnuRecetas, Me.mnuMinutasYNecesidades, Me.mnuServiciosYEstructuras, Me.mnuImportarRecetas, Me.mnuProduccion})
+        Me.mnuMenus.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.mnuRecetas, Me.mnuMinutasYNecesidades, Me.mnuServiciosYEstructuras, Me.mnuImportarRecetas, Me.mnuProduccion, Me.mnuPlanProduccionChef})
         Me.mnuMenus.Name = "mnuMenus"
         Me.mnuMenus.Text = "&Menus"
         '
@@ -158,7 +160,7 @@ Partial Class FormPrincipal
         '
         'mnuCierresYControl
         '
-        Me.mnuCierresYControl.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.mnuPendientesCierresYFoodCost, Me.mnuContratosYClientes, Me.mnuGastosYResultadoMensual})
+        Me.mnuCierresYControl.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.mnuPendientesCierresYFoodCost, Me.mnuContratosYClientes, Me.mnuGastosYResultadoMensual, Me.mnuReportesDelSgp})
         Me.mnuCierresYControl.Name = "mnuCierresYControl"
         Me.mnuCierresYControl.Text = "Cie&rres y control"
         '
@@ -166,6 +168,12 @@ Partial Class FormPrincipal
         '
         Me.mnuPendientesCierresYFoodCost.Name = "mnuPendientesCierresYFoodCost"
         Me.mnuPendientesCierresYFoodCost.Text = "&Pendientes, cierres y Food Cost"
+        'mnuReportesDelSgp
+        Me.mnuReportesDelSgp.Name = "mnuReportesDelSgp"
+        Me.mnuReportesDelSgp.Text = "&Reportes (SGP y plan)..."
+        'mnuPlanProduccionChef
+        Me.mnuPlanProduccionChef.Name = "mnuPlanProduccionChef"
+        Me.mnuPlanProduccionChef.Text = "Produccion del &chef (raciones a producir)..."
         '
         'mnuContratosYClientes
         '
@@ -291,6 +299,8 @@ Partial Class FormPrincipal
     Friend WithEvents mnuProveedoresYPrecios As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents mnuImportarCatalogo As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents mnuMenus As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents mnuReportesDelSgp As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents mnuPlanProduccionChef As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents mnuRecetas As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents mnuMinutasYNecesidades As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents mnuServiciosYEstructuras As System.Windows.Forms.ToolStripMenuItem

@@ -785,6 +785,146 @@ Public NotInheritable Class ServicioReportes
         Return r
     End Function
 
+    ' ---------- Reportes del menú de reportes: requisición por rango, salidas por servicio, frecuencia, piso y techo ----------
+
+    ''' <summary>
+    ''' Requisición detallada por rango (formato del SGP): por servicio y día, cada receta con sus productos, las raciones,
+    ''' la cantidad bruta por ración, el bulto y el despacho. Viene del plan del SGP importado (V023). Hoja horizontal.
+    ''' </summary>
+    Public Function RequisicionRango(desde As Date, hasta As Date) As Reporte
+        If hasta < desde Then Throw New ReglaNegocioException("DATO_INVALIDO", "El periodo termina antes de empezar.")
+        Dim op = Sesion.OperacionId
+        Dim filas = EnTransaccion(Permisos.MenusVer,
+            Function(u)
+                Return u.Consultar(
+                    "SELECT q.regimen, q.servicio, q.fecha, cr.nombre_sgp, cp.descripcion_sgp, q.raciones_u6, q.cantidad_bruta_racion_u6, " &
+                    "       q.cantidad_bulto_u6, q.unidad_bulto, q.cantidad_despacho_u6, q.unidad_despacho " &
+                    "FROM sgp_requisicion q JOIN sgp_codigo_receta cr ON cr.empresa_id = q.empresa_id AND cr.codigo_sgp = q.receta_codigo_sgp " &
+                    "JOIN sgp_codigo_producto cp ON cp.empresa_id = q.empresa_id AND cp.codigo_sgp = q.producto_codigo_sgp " &
+                    "WHERE q.operacion_id = @o AND q.fecha BETWEEN @d AND @h ORDER BY q.regimen, q.servicio, q.fecha, cr.nombre_sgp, cp.descripcion_sgp",
+                    Function(rd) (Regimen:=rd.GetString(0), Servicio:=rd.GetString(1), Fecha:=rd.GetDateTime(2).Date, Receta:=rd.GetString(3),
+                                  Producto:=rd.GetString(4), Raciones:=rd.GetInt64(5), Bruta:=rd.GetInt64(6), Bulto:=rd.GetInt64(7),
+                                  UnidadBulto:=rd.TextoONada("unidad_bulto"), Despacho:=rd.GetInt64(9), UnidadDespacho:=rd.TextoONada("unidad_despacho")),
+                    "o", op, "d", desde.Date, "h", hasta.Date).ToList()
+            End Function)
+        Dim r = Nuevo($"Requisicion detallada {desde:dd/MM/yyyy} al {hasta:dd/MM/yyyy}")
+        r.Horizontal = True
+        r.Dato("Periodo", $"{desde:dd/MM/yyyy} al {hasta:dd/MM/yyyy}")
+        For Each grupo In filas.GroupBy(Function(x) x.Servicio & " - " & x.Regimen & " - " & x.Fecha.ToString("dd/MM/yyyy")).ToList()
+            Dim s = r.Seccion(grupo.Key, C("Receta"), C("Producto"), C("Raciones", FormatoColumna.Entero), C("Bruta por racion", FormatoColumna.Cantidad),
+                              C("Bulto", FormatoColumna.Cantidad), C("Unidad bulto"), C("Despacho", FormatoColumna.Cantidad), C("Unidad despacho"))
+            For Each x In grupo
+                s.Agregar(x.Receta, x.Producto, x.Raciones / 1000000L, x.Bruta, x.Bulto, x.UnidadBulto, x.Despacho, x.UnidadDespacho)
+            Next
+        Next
+        r.Notas.Add("Bruta por racion = cantidad del producto por racion. Bulto = presentacion de compra; despacho = cantidad a entregar.")
+        Return r
+    End Function
+
+    ''' <summary>
+    ''' Salidas (o devoluciones) a producción por servicio y producto del periodo: una tabla por servicio y régimen, con la
+    ''' cantidad y el total valorizado. Hoja horizontal.
+    ''' </summary>
+    Public Function SalidasPorServicio(desde As Date, hasta As Date, devoluciones As Boolean) As Reporte
+        If hasta < desde Then Throw New ReglaNegocioException("DATO_INVALIDO", "El periodo termina antes de empezar.")
+        Dim op = Sesion.OperacionId
+        Dim tipo = If(devoluciones, "devolucion_produccion", "salida_produccion")
+        Dim signo = If(devoluciones, 1L, -1L)
+        Dim filas = EnTransaccion(Permisos.CatalogoVer,
+            Function(u)
+                Return u.Consultar(
+                    "SELECT s.nombre || ' - ' || reg.nombre, v.codigo, v.descripcion_comercial, um.codigo, sum(m.signo * m.cantidad_base_u6)::bigint, sum(m.signo * m.valor_u6)::bigint " &
+                    "FROM movimiento_stock m JOIN documento_stock_detalle l ON l.id = m.documento_detalle_id JOIN documento_stock d ON d.id = l.documento_id " &
+                    "JOIN variante_producto v ON v.id = m.variante_id JOIN producto_base p ON p.id = v.producto_base_id " &
+                    "JOIN unidad_medida um ON um.id = p.unidad_base_id " &
+                    "JOIN operacion_servicio os ON os.id = d.operacion_servicio_id JOIN servicio s ON s.id = os.servicio_id " &
+                    "JOIN regimen reg ON reg.id = os.regimen_id " &
+                    "WHERE os.operacion_id = @o AND d.tipo = @t AND m.fecha BETWEEN @d AND @h " &
+                    "GROUP BY 1, 2, 3, 4 ORDER BY 1, 3",
+                    Function(rd) (Servicio:=rd.GetString(0), Codigo:=rd.GetString(1), Descripcion:=rd.GetString(2), Unidad:=rd.GetString(3),
+                                  Cant:=rd.GetInt64(4), Valor:=rd.GetInt64(5)),
+                    "o", op, "t", tipo, "d", desde.Date, "h", hasta.Date).ToList()
+            End Function)
+        Dim r = Nuevo(If(devoluciones, "Devoluciones de produccion por servicio", "Salidas a produccion por servicio"))
+        r.Horizontal = True
+        r.Dato("Periodo", $"{desde:dd/MM/yyyy} al {hasta:dd/MM/yyyy}")
+        For Each grupo In filas.GroupBy(Function(x) x.Servicio).ToList()
+            Dim s = r.Seccion(grupo.Key, C("Codigo"), C("Descripcion"), C("Cantidad", FormatoColumna.Cantidad), C("Unidad"), C("Total", FormatoColumna.Dinero))
+            For Each x In grupo
+                s.Agregar(x.Codigo, x.Descripcion, signo * x.Cant, x.Unidad, signo * x.Valor)
+            Next
+            s.Totales = {"TOTAL", $"{grupo.Count()} productos", Nothing, Nothing, signo * grupo.Sum(Function(x) x.Valor)}
+        Next
+        Return r
+    End Function
+
+    ''' <summary>
+    ''' Frecuencia de la planificación teórica del mes (formato del SGP): cuántas veces sale cada receta, en qué días, las
+    ''' raciones y el costo por ración promedio. Hoja horizontal.
+    ''' </summary>
+    Public Function FrecuenciaTeorica(anio As Integer, mes As Integer) As Reporte
+        Dim desde As New Date(anio, mes, 1)
+        Dim hasta = desde.AddMonths(1).AddDays(-1)
+        Dim op = Sesion.OperacionId
+        Dim filas = EnTransaccion(Permisos.MenusVer,
+            Function(u)
+                Return u.Consultar(
+                    "SELECT r.codigo, r.nombre, m.fecha, md.raciones, md.costo_previsto_racion_u6 " &
+                    "FROM minuta m JOIN operacion_servicio os ON os.id = m.operacion_servicio_id " &
+                    "JOIN minuta_detalle md ON md.minuta_id = m.id JOIN receta_version rv ON rv.id = md.receta_version_id JOIN receta r ON r.id = rv.receta_id " &
+                    "WHERE os.operacion_id = @o AND m.estado IN ('aprobada','cerrada') AND m.fecha BETWEEN @d AND @h ORDER BY r.nombre, m.fecha",
+                    Function(rd) (Codigo:=rd.GetString(0), Receta:=rd.GetString(1), Fecha:=rd.GetDateTime(2).Date, Raciones:=rd.GetInt64(3),
+                                  Costo:=If(rd.IsDBNull(4), CType(Nothing, Long?), rd.GetInt64(4))),
+                    "o", op, "d", desde.Date, "h", hasta.Date).ToList()
+            End Function)
+        Dim r = Nuevo($"Frecuencia de la planificacion teorica {mes:00}/{anio}")
+        r.Horizontal = True
+        r.Dato("Periodo", $"{mes:00}/{anio}")
+        Dim s = r.Seccion("", C("Codigo"), C("Receta"), C("Veces", FormatoColumna.Entero), C("Dias del mes"), C("Raciones", FormatoColumna.Entero),
+                          C("Costo por racion (prom.)", FormatoColumna.Dinero), C("Costo total", FormatoColumna.Dinero))
+        Dim totalCosto As Long = 0
+        For Each grupo In filas.GroupBy(Function(x) x.Codigo).OrderBy(Function(g) g.First().Receta, StringComparer.CurrentCultureIgnoreCase)
+            Dim fechas = grupo.Select(Function(x) x.Fecha).Distinct().OrderBy(Function(x) x).ToList()
+            Dim raciones = grupo.Sum(Function(x) x.Raciones)
+            Dim costoU6 = grupo.Where(Function(x) x.Costo.HasValue).Sum(Function(x) x.Costo.Value * x.Raciones)
+            totalCosto += costoU6
+            s.Agregar(grupo.Key, grupo.First().Receta, fechas.Count, String.Join(", ", fechas.Select(Function(f) f.Day.ToString("00"))), raciones,
+                      PorBandeja(costoU6, raciones), costoU6 \ 1000000L)
+        Next
+        s.Totales = {"TOTAL", $"{filas.Select(Function(x) x.Codigo).Distinct().Count()} recetas", Nothing, Nothing, Nothing, Nothing, totalCosto \ 1000000L}
+        r.Notas.Add("Costo por racion (prom.) = costo total de la receta / raciones. Costo total en soles.")
+        Return r
+    End Function
+
+    ''' <summary>
+    ''' Costo piso y techo por factores del mes (formato del SGP): por nivel, servicio y mes, el piso, el costo medio y el
+    ''' techo de la banda, con el día más barato y el más caro. Viene del plan del SGP importado (V023). Hoja horizontal.
+    ''' </summary>
+    Public Function CostoPisoTecho(anio As Integer, mes As Integer) As Reporte
+        Dim mesTexto = $"{anio}-{mes:00}"
+        Dim op = Sesion.OperacionId
+        Dim filas = EnTransaccion(Permisos.MenusVer,
+            Function(u)
+                Return u.Consultar(
+                    "SELECT nivel, servicio, componentes, costo_piso_u6, costo_medio_u6, costo_techo_u6, dia_mas_barato_u6, dia_mas_caro_u6, dias_dentro " &
+                    "FROM sgp_costo_piso_techo WHERE operacion_id = @o AND mes = @m ORDER BY nivel, servicio",
+                    Function(rd) (Nivel:=rd.GetString(0), Servicio:=rd.GetString(1), Componentes:=rd.GetInt64(2), Piso:=rd.GetInt64(3),
+                                  Medio:=rd.GetInt64(4), Techo:=rd.GetInt64(5), Barato:=rd.GetInt64(6), Caro:=rd.GetInt64(7), Dentro:=rd.GetString(8)),
+                    "o", op, "m", mesTexto).ToList()
+            End Function)
+        Dim r = Nuevo($"Costo piso y techo {mes:00}/{anio}")
+        r.Horizontal = True
+        r.Dato("Periodo", $"{mes:00}/{anio}")
+        Dim s = r.Seccion("", C("Nivel"), C("Servicio"), C("Componentes", FormatoColumna.Entero), C("Costo piso", FormatoColumna.Dinero),
+                          C("Costo medio", FormatoColumna.Dinero), C("Costo techo", FormatoColumna.Dinero), C("Dia mas barato", FormatoColumna.Dinero),
+                          C("Dia mas caro", FormatoColumna.Dinero), C("Dias dentro de la banda"))
+        For Each x In filas
+            s.Agregar(x.Nivel, x.Servicio, x.Componentes, x.Piso, x.Medio, x.Techo, x.Barato, x.Caro, x.Dentro)
+        Next
+        r.Notas.Add("Piso = suma de factor x la racion mas barata de cada componente; techo = suma de factor x la mas cara.")
+        Return r
+    End Function
+
     Private Function NombresAlmacenVariante(almacenId As Long, varianteId As Long?, permiso As String) As (Almacen As String, Variante As String, Unidad As String)
         Dim op = Sesion.OperacionId
         Return EnTransaccion(permiso,

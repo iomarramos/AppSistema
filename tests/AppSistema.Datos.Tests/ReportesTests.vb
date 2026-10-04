@@ -134,6 +134,12 @@ Public Class ReportesTests
             Call New ServicioAdministracion(bd.CadenaAplicacion, s).FijarDiasStock(bd.A.OperacionId, 21)
             Assert.Equal("55", CStr(reportes.ResultadoA13(Fecha.Year, Fecha.Month).Secciones(2).Filas(3)(1)))
 
+            ' Menu de reportes: frecuencia de la teorica (una receta, una vez), requisicion y piso y techo en horizontal (sin datos SGP en el fixture).
+            Assert.Single(reportes.FrecuenciaTeorica(Fecha.Year, Fecha.Month).Secciones(0).Filas)
+            Assert.True(reportes.RequisicionRango(Fecha, Fecha).Horizontal)
+            Assert.True(reportes.CostoPisoTecho(Fecha.Year, Fecha.Month).Horizontal)
+            Assert.True(reportes.SalidasPorServicio(Fecha, Fecha, False).Horizontal)
+
             ' Menu y venta en hoja horizontal. Food cost y comparativo: una minuta aprobada del mes, con su teorico y sus raciones.
             Assert.True(reportes.MinutaDelDia(minuta).Horizontal)
             Dim food = reportes.FoodCost(Fecha.Year, Fecha.Month)

@@ -382,4 +382,43 @@ Public NotInheritable Class ServicioProduccion
             End Function)
     End Sub
 
+    ''' <summary>
+    ''' Platos que el chef puede cambiar: desde 3 días atrás en adelante (fecha de Lima), de las minutas aprobadas de la
+    ''' operación. Trae las raciones de la minuta y las que ya fijó como plan de producción (o las de la minuta si no hay).
+    ''' </summary>
+    Public Function PlatosProducibles() As List(Of PlatoProduccionDto)
+        Return EnTransaccion(Permisos.MenusVer,
+            Function(u)
+                Return u.Consultar(
+                    "SELECT md.id, m.fecha, s.nombre, e.orden, e.nombre, r.codigo, r.nombre, md.raciones, COALESCE(pp.raciones_producir, md.raciones), " &
+                    "       EXISTS (SELECT 1 FROM cierre_diario c WHERE c.operacion_id = os.operacion_id AND c.fecha = m.fecha AND c.estado = 'cerrado') " &
+                    "FROM minuta m JOIN operacion_servicio os ON os.id = m.operacion_servicio_id JOIN servicio s ON s.id = os.servicio_id " &
+                    "JOIN minuta_detalle md ON md.minuta_id = m.id JOIN estructura_servicio e ON e.id = md.estructura_id " &
+                    "JOIN receta_version rv ON rv.id = md.receta_version_id JOIN receta r ON r.id = rv.receta_id " &
+                    "LEFT JOIN produccion_plan pp ON pp.minuta_detalle_id = md.id " &
+                    "WHERE os.operacion_id = @o AND m.estado IN ('aprobada','cerrada') " &
+                    "  AND m.fecha >= (now() AT TIME ZONE 'America/Lima')::date - 3 " &
+                    "ORDER BY m.fecha, s.nombre, e.orden",
+                    Function(rd) New PlatoProduccionDto With {.MinutaDetalleId = rd.GetInt64(0), .Fecha = rd.GetDateTime(1).Date,
+                                                              .Servicio = rd.GetString(2), .Estructura = rd.GetString(4),
+                                                              .RecetaCodigo = rd.GetString(5), .Receta = rd.GetString(6),
+                                                              .RacionesMinuta = rd.GetInt64(7), .RacionesProducir = rd.GetInt64(8),
+                                                              .DiaCerrado = rd.GetBoolean(9)},
+                    "o", Sesion.OperacionId).ToList()
+            End Function)
+    End Function
+
+End Class
+
+''' <summary>Un plato de minuta en la pantalla del chef: lo que produce hoy o en los días próximos.</summary>
+Public NotInheritable Class PlatoProduccionDto
+    Public Property MinutaDetalleId As Long
+    Public Property Fecha As Date
+    Public Property Servicio As String
+    Public Property Estructura As String
+    Public Property RecetaCodigo As String
+    Public Property Receta As String
+    Public Property RacionesMinuta As Long
+    Public Property RacionesProducir As Long
+    Public Property DiaCerrado As Boolean
 End Class

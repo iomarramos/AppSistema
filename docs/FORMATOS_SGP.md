@@ -97,3 +97,9 @@ Todas las vistas se pueden girar entre vertical y horizontal con el botón "Gira
 | V025 | `produccion_plan_cambio` (historial de solo lectura) | tabla nueva |
 
 No se modifica ninguna migración ya aplicada. Para aplicar: respaldar y luego `AppSistema.Instalador.exe actualizar <respaldo>` (o `migrar`). No aplicar el SQL a mano: el migrador guarda la huella de cada archivo y un cambio manual la desincroniza.
+
+## Menú de reportes y producción del chef (última entrega)
+
+* **Reportes (SGP y plan)** — menú *Cierres y control > Reportes (SGP y plan)*: elegir el reporte y el periodo (rango o mes) y abrir la vista previa. Incluye: requisición detallada por rango (SGP), salidas y devoluciones de producción por servicio, resumen de traspasos, boleta R-AL, frecuencia de la planificación teórica, costo piso y techo, menú teórico, menú real, food cost, comparativo de tres niveles y A13.
+* **Producción del chef** — menú *Menús > Produccion del chef (raciones a producir)*: lista los platos desde 3 días atrás (fecha de Lima); el chef cambia las raciones a producir y guarda. Los días cerrados no se editan y la base registra cada cambio.
+* Pendiente sin datos: aporte nutricional (los archivos no traen nutrientes) y consumo alternativo (falta definir su origen). La salida y devolución por estructura (no solo por servicio) queda pendiente.

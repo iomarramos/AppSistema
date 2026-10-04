@@ -51,6 +51,8 @@ Public Class ProduccionPlanTests
             ' Alta (50 de la minuta) + dos cambios: el historial guarda cada uno con su anterior y su nuevo valor.
             Assert.Equal(2L, Convert.ToInt64(bd.Escalar($"SELECT count(*) FROM produccion_plan_cambio WHERE minuta_detalle_id = {detalle}")))
             Assert.Equal(50L, Convert.ToInt64(bd.Escalar($"SELECT raciones_anterior FROM produccion_plan_cambio WHERE minuta_detalle_id = {detalle} ORDER BY id LIMIT 1")))
+            ' La pantalla del chef ve el plan vigente: 61 raciones a producir para ese plato.
+            Assert.Equal(61L, produccion.PlatosProducibles().Single(Function(x) x.MinutaDetalleId = detalle).RacionesProducir)
         End Using
     End Sub
 
