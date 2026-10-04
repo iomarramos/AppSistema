@@ -10,7 +10,7 @@ VB.NET + WinForms (.NET 8) en **Windows 10 o superior**, con **PostgreSQL** como
 | `src/AppSistema.Dominio` | Reglas puras: cantidades escaladas (u6), conversiones, empaques, previsión, permisos, lectura del CSV de catálogo |
 | `src/AppSistema.Datos` | Acceso a PostgreSQL (Npgsql): sesión, acceso, catálogo, proveedores, importación, stock, migrador |
 | `src/AppSistema.Escritorio` | Aplicación WinForms (acceso, catálogo, proveedores, importación, usuarios) |
-| `src/AppSistema.Instalador` | Consola para instalar una sede: migraciones, primera empresa, usuario de sede |
+| `src/AppSistema.Instalador` | Instalador de la sede: asistente (`AppSistema.Instalador.exe`) que crea la base, aplica las migraciones y carga los datos; además comandos de consola |
 | `database/postgresql` | Migraciones SQL y pruebas de la base (incluida concurrencia) |
 | `tests/` | Pruebas xUnit de dominio e integración |
 | `datos/sgp/` | Listado de productos del SGP (factor de conversión y unidad mínima de pedido) y su conversión al catálogo |
@@ -23,6 +23,10 @@ VB.NET + WinForms (.NET 8) en **Windows 10 o superior**, con **PostgreSQL** como
 | `docs/` | Requerimientos, guía de construcción, seguimiento y flujo de ramas |
 
 ## Instalar una sede (servidor)
+
+**Forma recomendada:** con PostgreSQL 16 o superior instalado y en ejecución, abrir `AppSistema.Instalador.exe` (doble clic). El asistente crea la base, aplica las migraciones, crea el usuario de las computadoras, la empresa y el dueño, y carga los datos de `datos\`. Guía completa en [`docs/INSTALACION_ASISTENTE.md`](docs/INSTALACION_ASISTENTE.md).
+
+Forma manual (consola, para automatizar o para casos puntuales):
 
 1. Instalar PostgreSQL 16 o superior en la PC servidor (Windows 10+) y crear una base vacía, p. ej. `appsistema`.
 2. Con la cuenta propietaria de la base:

@@ -6,7 +6,8 @@ Imports AppSistema.Dominio.Importacion
 Imports AppSistema.Dominio.Numerico
 
 ''' <summary>
-''' Herramienta de instalación de una sede. Usa la conexión del PROPIETARIO de la base
+''' Herramienta de instalación de una sede. Sin argumentos (o «instalar») abre el asistente (AsistenteInstalacion).
+''' Los demás comandos usan la conexión del PROPIETARIO de la base
 ''' (variable APPSISTEMA_CONEXION_PROPIETARIO o se solicita). No guarda claves.
 '''   migrar                      aplica las migraciones pendientes
 '''   crear-empresa               crea empresa, primera operación, almacén y administrador
@@ -43,9 +44,11 @@ Public Module Programa
 
     Public Function Main(args As String()) As Integer
         Console.OutputEncoding = Encoding.UTF8
-        If args.Length = 0 OrElse args(0) = "-h" OrElse args(0) = "--ayuda" Then
+        ' Sin argumentos (doble clic en el ejecutable) abre el asistente de instalación.
+        If args.Length = 0 OrElse args(0) = "instalar" Then Return AsistenteInstalacion.Ejecutar()
+        If args(0) = "-h" OrElse args(0) = "--ayuda" Then
             Ayuda()
-            Return If(args.Length = 0, 1, 0)
+            Return 0
         End If
         Try
             Select Case args(0)
@@ -230,7 +233,8 @@ Public Module Programa
     End Sub
 
     Private Sub Ayuda()
-        Console.WriteLine("Uso: AppSistema.Instalador <migrar | crear-empresa | crear-dueno | crear-usuario-sede NOMBRE | convertir-sgp ARCHIVO [DIR] | importar-sgp ARCHIVO | importar-catalogo ARCHIVO | importar-recetas ARCHIVO [--aprobar] | importar-inventario ARCHIVO>")
+        Console.WriteLine("Sin argumentos o 'instalar': asistente de instalacion (crea la base, aplica las migraciones, crea usuarios y carga todos los datos de datos\).")
+        Console.WriteLine("Uso avanzado: AppSistema.Instalador <migrar | crear-empresa | crear-dueno | crear-usuario-sede NOMBRE | convertir-sgp ARCHIVO [DIR] | importar-sgp ARCHIVO | importar-catalogo ARCHIVO | importar-recetas ARCHIVO [--aprobar] | importar-inventario ARCHIVO>")
         Console.WriteLine("Continuidad: <configurar-sede EMPRESA SEDE | sincronizar EMPRESA [--ahora] | estado-sincronizacion EMPRESA | registrar-sede EMPRESA SEDE NOMBRE | desactivar-sede EMPRESA SEDE | crear-usuario-sincronizacion NOMBRE | reporte-central EMPRESA | respaldar ARCHIVO | restaurar ARCHIVO | conciliar | actualizar ARCHIVO>")
         Console.WriteLine("Datos reales: <importar-precios ARCHIVO | marcar-sin-costo ARCHIVO | cargar-familias ARCHIVO | liberar-productos ARCHIVO | cargar-estructuras ARCHIVO | cargar-ciclo ARCHIVO AAAA-MM-DD DES ALM CEN [--aprobar] [--dias N]>")
         Console.WriteLine("Extensiones: <exportar-resultados AAAA-MM ARCHIVO>")
