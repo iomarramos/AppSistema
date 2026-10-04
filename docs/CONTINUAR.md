@@ -1,6 +1,6 @@
 # Cómo continuar (traspaso a una nueva conversación)
 
-Actualizado: 2026-10-03, 10:40 hora de Lima (15:40 UTC).
+Actualizado: 2026-10-05 (hora de Lima).
 
 | | |
 |---|---|
@@ -8,6 +8,38 @@ Actualizado: 2026-10-03, 10:40 hora de Lima (15:40 UTC).
 | PR | #1 (borrador, CI verde, sin conflictos) |
 | `develop` | en el mismo commit probado |
 | Último corte | 2026-10-04: **fase 2 de Planificación y Abastecimiento Central** (planificación con versiones inmutables, V022; solo base y pruebas, sin pantallas). Antes: fase 1 (seguridad de cuatro niveles, V021, 2026-10-03) y análisis y diseño en `docs/ARQUITECTURA_PLANIFICACION_CENTRAL.md` |
+
+## Estado al 2026-10-05 (sesión de reportes y producción)
+
+| | |
+|---|---|
+| Rama de trabajo y `develop` | `380dc78` (CI verde en `pruebas` y `e2e-windows`) |
+| Último commit | `380dc78` feat(produccion): plan de producción del chef con ventana de 3 días (V025) |
+
+**Hecho en esta sesión**
+* Instalador `AppSistema.Instalador.exe`: asistente que crea la base, aplica migraciones, crea usuarios, empresa y dueño, y carga todos los datos de `datos\` (catálogo, familias, precios, recetas, inventario, estructuras, ciclo y plan del SGP). Guía: `docs/INSTALACION_ASISTENTE.md`.
+* Plan teórico y real del SGP en el servidor (V023, tablas `sgp_*`): 11 046 platos, 2 778 líneas de requisición, comparativos, piso y techo, preparaciones.
+* Reportes con formato del SGP y vista previa propia (`VistaReporte`): inventario valorizado, diferencias físico vs sistema, movimiento de stock sintético, salidas y devoluciones consolidadas, A13, food cost, comparativo de tres niveles, traspasos, toma de inventario, boleta R-AL, explicación R-AI, menú teórico y real (horizontal). Detalle en `docs/FORMATOS_SGP.md`.
+* Días base de stock por contrato (V024) y plan de producción del chef con ventana de 3 días (V025).
+
+**Migraciones pendientes en la base de la sede** (no aplicadas todavía):
+* V024: `operacion.dias_stock_base`.
+* V025: tablas nuevas `produccion_plan` y `produccion_plan_cambio`.
+Para aplicar: respaldar y luego `AppSistema.Instalador.exe actualizar <respaldo>`. No ejecutar el SQL a mano.
+
+**Pendiente de formatos**
+* Requisición por rango de fechas (bruto por ración, bulto, despacho).
+* Salida y devolución por sector y por estructura.
+* Frecuencia de la planificación teórica.
+* Costo piso y techo (datos cargados, sin reporte).
+* Consumo alternativo.
+* Aporte nutricional (sin datos de nutrientes en los archivos).
+
+**Decisiones tomadas en esta sesión** (confirmar si cambian)
+* Ajustes R-AL y R-AI: formatos para imprimir y llenar a mano; no se guardan en el sistema.
+* Menú real = raciones preparadas del cierre diario; si el día no tiene registro, la celda queda vacía.
+* Días de stock: el contrato elige 20, 21, 30 o 31; por defecto 30. El SGP de Orcopampa parece usar 31.
+* Ventana del chef: 3 días atrás en adelante, según la fecha de Lima.
 
 El detalle de cada etapa está en `docs/SEGUIMIENTO.md`; el checklist de avance (pantallas, accesos por rol y pendientes) en `docs/CHECKLIST.md`.
 
