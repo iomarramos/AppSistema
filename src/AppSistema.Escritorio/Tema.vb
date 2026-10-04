@@ -16,25 +16,30 @@ Imports System.Windows.Forms
 ''' </summary>
 Public Module Tema
 
-    ' Paleta (Fluent 2, tema claro).
-    Public ReadOnly Acento As Color = Color.FromArgb(15, 108, 189)        ' #0F6CBD
-    Public ReadOnly AcentoOscuro As Color = Color.FromArgb(17, 94, 163)   ' #115EA3
-    Public ReadOnly AcentoSuave As Color = Color.FromArgb(235, 243, 252)  ' #EBF3FC
-    Public ReadOnly Texto As Color = Color.FromArgb(36, 36, 36)           ' #242424
-    Public ReadOnly TextoSecundario As Color = Color.FromArgb(97, 97, 97) ' #616161
-    Public ReadOnly Fondo As Color = Color.White
-    Public ReadOnly Superficie As Color = Color.FromArgb(250, 250, 250)   ' barras de acciones
-    Public ReadOnly SuperficieFuerte As Color = Color.FromArgb(240, 240, 240)
-    Public ReadOnly Borde As Color = Color.FromArgb(224, 224, 224)
-    Public ReadOnly FilaAlterna As Color = Color.FromArgb(248, 249, 251)
-    Public ReadOnly Seleccion As Color = Color.FromArgb(207, 228, 250)    ' #CFE4FA
-    Public ReadOnly AvisoFondo As Color = Color.FromArgb(255, 249, 230)   ' franja de ayuda (el amarillo del SGP, suavizado)
-    Public ReadOnly AvisoTexto As Color = Color.FromArgb(92, 68, 0)
-    Public ReadOnly Peligro As Color = Color.FromArgb(196, 49, 75)        ' #C4314B
+    ' Sistema visual: enterprise dashboard + Fluent 2, adaptado de UI UX Pro Max a WinForms.
+    ' Azul confiable para acciones, navy para navegación y superficies neutras de alta legibilidad.
+    Public ReadOnly Acento As Color = Color.FromArgb(37, 99, 235)          ' #2563EB
+    Public ReadOnly AcentoOscuro As Color = Color.FromArgb(29, 78, 216)   ' #1D4ED8
+    Public ReadOnly AcentoSuave As Color = Color.FromArgb(239, 246, 255)  ' #EFF6FF
+    Public ReadOnly Navegacion As Color = Color.FromArgb(11, 31, 51)      ' #0B1F33
+    Public ReadOnly NavegacionHover As Color = Color.FromArgb(24, 53, 78) ' #18354E
+    Public ReadOnly Texto As Color = Color.FromArgb(22, 31, 45)           ' #161F2D
+    Public ReadOnly TextoSecundario As Color = Color.FromArgb(91, 104, 121)
+    Public ReadOnly Fondo As Color = Color.FromArgb(247, 249, 252)        ' fondo de aplicación
+    Public ReadOnly Superficie As Color = Color.White                      ' tarjetas / barras
+    Public ReadOnly SuperficieFuerte As Color = Color.FromArgb(241, 245, 249)
+    Public ReadOnly Borde As Color = Color.FromArgb(217, 225, 234)
+    Public ReadOnly FilaAlterna As Color = Color.FromArgb(250, 251, 252)
+    Public ReadOnly Seleccion As Color = Color.FromArgb(219, 234, 254)
+    Public ReadOnly AvisoFondo As Color = Color.FromArgb(255, 247, 230)
+    Public ReadOnly AvisoTexto As Color = Color.FromArgb(120, 74, 0)
+    Public ReadOnly Peligro As Color = Color.FromArgb(220, 38, 38)         ' #DC2626
+    Public ReadOnly Exito As Color = Color.FromArgb(22, 163, 74)           ' #16A34A
 
-    Public ReadOnly Fuente As New Font("Segoe UI", 9.75F)
-    Public ReadOnly FuenteSemibold As New Font("Segoe UI Semibold", 9.75F)
-    Public ReadOnly FuenteTitulo As New Font("Segoe UI Semibold", 13.0F)
+    Public ReadOnly Fuente As New Font("Segoe UI", 10.0F)
+    Public ReadOnly FuenteSemibold As New Font("Segoe UI Semibold", 10.0F)
+    Public ReadOnly FuenteTitulo As New Font("Segoe UI Semibold", 14.5F)
+    Public ReadOnly FuenteHero As New Font("Segoe UI Semibold", 18.0F)
 
     Private Const Marca As String = "tema-aplicado"
 
@@ -93,12 +98,13 @@ Public Module Tema
         Dim titulo = If(f.Text, "")
         Dim guion = titulo.LastIndexOf(" - ", StringComparison.Ordinal)
         If guion > 0 Then titulo = titulo.Substring(0, guion)
-        Dim franja As New Panel With {.Dock = DockStyle.Top, .Height = 44, .BackColor = Fondo, .Padding = New Padding(14, 0, 14, 0)}
+        Dim franja As New Panel With {.Dock = DockStyle.Top, .Height = 62, .BackColor = Superficie, .Padding = New Padding(20, 0, 20, 0)}
         Dim nombre As New Label With {.Text = titulo, .Dock = DockStyle.Left, .AutoSize = True, .Font = FuenteTitulo, .ForeColor = Texto,
-                                      .TextAlign = ContentAlignment.MiddleLeft, .Padding = New Padding(0, 10, 0, 0)}
-        Dim donde As New Label With {.Text = operacion, .Dock = DockStyle.Right, .AutoSize = True, .ForeColor = TextoSecundario,
-                                     .TextAlign = ContentAlignment.MiddleRight, .Padding = New Padding(0, 14, 0, 0)}
-        Dim linea As New Panel With {.Dock = DockStyle.Bottom, .Height = 2, .BackColor = Acento}
+                                      .TextAlign = ContentAlignment.MiddleLeft, .Padding = New Padding(0, 18, 0, 0)}
+        Dim donde As New Label With {.Text = If(String.IsNullOrWhiteSpace(operacion), "", "OPERACIÓN · " & operacion), .Dock = DockStyle.Right,
+                                     .AutoSize = True, .Font = FuenteSemibold, .ForeColor = AcentoOscuro,
+                                     .BackColor = AcentoSuave, .TextAlign = ContentAlignment.MiddleRight, .Padding = New Padding(12, 18, 12, 0)}
+        Dim linea As New Panel With {.Dock = DockStyle.Bottom, .Height = 1, .BackColor = Borde}
         franja.Controls.Add(nombre) : franja.Controls.Add(donde) : franja.Controls.Add(linea)
         f.Controls.Add(franja)   ' agregada al final: se acopla primero y queda arriba de todo
         Aplicar(f)
@@ -147,8 +153,22 @@ Public Module Tema
                     s.SplitterWidth = 6
                     s.Panel1.BackColor = Fondo
                     s.Panel2.BackColor = Fondo
-                Case TypeOf c Is TextBox AndAlso DirectCast(c, TextBox).ReadOnly AndAlso DirectCast(c, TextBox).Multiline
+                Case TypeOf c Is TextBox
+                    Dim t = DirectCast(c, TextBox)
+                    t.BorderStyle = BorderStyle.FixedSingle
+                    t.BackColor = If(t.ReadOnly, SuperficieFuerte, Superficie)
+                    t.ForeColor = Texto
+                Case TypeOf c Is ComboBox
+                    Dim combo = DirectCast(c, ComboBox)
+                    combo.FlatStyle = FlatStyle.Flat
+                    combo.BackColor = Superficie
+                    combo.ForeColor = Texto
+                Case TypeOf c Is GroupBox
+                    c.Font = FuenteSemibold
+                    c.ForeColor = Texto
                     c.BackColor = Superficie
+                Case TypeOf c Is TabControl
+                    c.Font = FuenteSemibold
             End Select
             If c.HasChildren AndAlso Not TypeOf c Is DataGridView Then Estilo(c)
         Next
@@ -161,8 +181,8 @@ Public Module Tema
         b.FlatAppearance.MouseDownBackColor = Borde
         b.BackColor = Fondo
         b.ForeColor = Texto
-        b.Padding = New Padding(8, 2, 8, 2)
-        b.MinimumSize = New Size(0, 30)
+        b.Padding = New Padding(12, 3, 12, 3)
+        b.MinimumSize = New Size(0, 34)
         b.Cursor = Cursors.Hand
         Dim primera = b.Text.Split(" "c)(0).TrimEnd("."c)
         If {"Aprobar", "Autorizar", "Entregar", "Cerrar", "Guardar", "Aceptar", "Importar", "Ingresar"}.Contains(primera) AndAlso
@@ -187,7 +207,7 @@ Public Module Tema
         g.EnableHeadersVisualStyles = False
         g.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None
         g.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing
-        g.ColumnHeadersHeight = 34
+        g.ColumnHeadersHeight = 38
         With g.ColumnHeadersDefaultCellStyle
             .BackColor = SuperficieFuerte
             .ForeColor = Texto
@@ -206,7 +226,7 @@ Public Module Tema
             .Padding = New Padding(6, 0, 6, 0)
         End With
         g.AlternatingRowsDefaultCellStyle.BackColor = FilaAlterna
-        g.RowTemplate.Height = 28
+        g.RowTemplate.Height = 32
         g.RowHeadersVisible = False
         AddHandler g.DataBindingComplete, Sub() AlinearNumeros(g)
         AddHandler g.CellPainting, Sub(s, e) PintarEstado(g, e)
@@ -255,5 +275,117 @@ Public Module Tema
         p.CloseFigure()
         Return p
     End Function
+
+
+    ''' <summary>Estilo del shell principal: navegación oscura, estados claros y foco visible.</summary>
+    Public Sub AplicarShell(menu As MenuStrip, estado As StatusStrip)
+        menu.BackColor = Navegacion
+        menu.ForeColor = Color.White
+        menu.Font = FuenteSemibold
+        menu.Padding = New Padding(12, 7, 8, 7)
+        menu.RenderMode = ToolStripRenderMode.Professional
+        menu.Renderer = New ToolStripProfessionalRenderer(New ColoresShell())
+        For Each item In menu.Items.OfType(Of ToolStripMenuItem)()
+            item.ForeColor = Color.White
+            item.Padding = New Padding(10, 2, 10, 2)
+            EstiloSubmenu(item)
+        Next
+
+        estado.BackColor = Superficie
+        estado.ForeColor = TextoSecundario
+        estado.Font = Fuente
+        estado.Padding = New Padding(10, 3, 10, 3)
+        estado.SizingGrip = False
+    End Sub
+
+    Private Sub EstiloSubmenu(item As ToolStripMenuItem)
+        For Each hijo In item.DropDownItems.OfType(Of ToolStripMenuItem)()
+            hijo.BackColor = Superficie
+            hijo.ForeColor = Texto
+            hijo.Font = Fuente
+            hijo.Padding = New Padding(8, 4, 8, 4)
+            If hijo.HasDropDownItems Then EstiloSubmenu(hijo)
+        Next
+    End Sub
+
+    Private NotInheritable Class ColoresShell
+        Inherits ProfessionalColorTable
+
+        Public Overrides ReadOnly Property MenuStripGradientBegin As Color
+            Get
+                Return Navegacion
+            End Get
+        End Property
+        Public Overrides ReadOnly Property MenuStripGradientEnd As Color
+            Get
+                Return Navegacion
+            End Get
+        End Property
+        Public Overrides ReadOnly Property MenuItemSelected As Color
+            Get
+                Return NavegacionHover
+            End Get
+        End Property
+        Public Overrides ReadOnly Property MenuItemSelectedGradientBegin As Color
+            Get
+                Return NavegacionHover
+            End Get
+        End Property
+        Public Overrides ReadOnly Property MenuItemSelectedGradientEnd As Color
+            Get
+                Return NavegacionHover
+            End Get
+        End Property
+        Public Overrides ReadOnly Property MenuItemPressedGradientBegin As Color
+            Get
+                Return Superficie
+            End Get
+        End Property
+        Public Overrides ReadOnly Property MenuItemPressedGradientEnd As Color
+            Get
+                Return Superficie
+            End Get
+        End Property
+        Public Overrides ReadOnly Property MenuItemBorder As Color
+            Get
+                Return Acento
+            End Get
+        End Property
+        Public Overrides ReadOnly Property ToolStripDropDownBackground As Color
+            Get
+                Return Superficie
+            End Get
+        End Property
+        Public Overrides ReadOnly Property ImageMarginGradientBegin As Color
+            Get
+                Return SuperficieFuerte
+            End Get
+        End Property
+        Public Overrides ReadOnly Property ImageMarginGradientMiddle As Color
+            Get
+                Return SuperficieFuerte
+            End Get
+        End Property
+        Public Overrides ReadOnly Property ImageMarginGradientEnd As Color
+            Get
+                Return SuperficieFuerte
+            End Get
+        End Property
+        Public Overrides ReadOnly Property MenuBorder As Color
+            Get
+                Return Borde
+            End Get
+        End Property
+        Public Overrides ReadOnly Property SeparatorDark As Color
+            Get
+                Return Borde
+            End Get
+        End Property
+        Public Overrides ReadOnly Property SeparatorLight As Color
+            Get
+                Return Superficie
+            End Get
+        End Property
+    End Class
 
 End Module
