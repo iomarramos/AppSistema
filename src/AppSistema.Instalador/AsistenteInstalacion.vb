@@ -157,7 +157,7 @@ Public NotInheritable Class AsistenteInstalacion
         ' 7. Datos
         Paso("7. Datos de la empresa (carpeta datos\)")
         Dim carpeta = Leer("Carpeta de datos", CarpetaDatosPorDefecto())
-        Dim faltan = Archivos.Where(Function(a) Not File.Exists(Path.Combine(carpeta, a))).ToList()
+        Dim faltan = Archivos.Where(Function(a) Not File.Exists(RutaArchivo(carpeta, a))).ToList()
         If faltan.Count > 0 Then
             Throw New ReglaNegocioException("ARCHIVO_FALTANTE", "Faltan en la carpeta de datos: " & String.Join(", ", faltan))
         End If
@@ -196,7 +196,7 @@ Public NotInheritable Class AsistenteInstalacion
 
     ''' <summary>Carga los datos en el orden de dependencias: catálogo, familias, precios, recetas, insumos, productos activos, inventario, estructuras y ciclo.</summary>
     Private Shared Sub CargarDatos(cadena As String, sesion As SesionUsuario, carpeta As String)
-        Dim Texto = Function(indice As Integer) File.ReadAllText(Path.Combine(carpeta, Archivos(indice)), Encoding.UTF8)
+        Dim Texto = Function(indice As Integer) File.ReadAllText(RutaArchivo(carpeta, Archivos(indice)), Encoding.UTF8)
 
         Paso("7.1 Catalogo de productos e ingredientes")
         Dim catalogo = New ServicioImportacionCatalogo(cadena, sesion)
@@ -397,6 +397,11 @@ Public NotInheritable Class AsistenteInstalacion
 
     Private Shared Function Lit(valor As String) As String
         Return "'" & valor.Replace("'", "''") & "'"
+    End Function
+
+    ''' <summary>Ruta de un archivo de la lista (escrita con \) dentro de la carpeta de datos, con el separador del sistema.</summary>
+    Private Shared Function RutaArchivo(carpeta As String, relativo As String) As String
+        Return Path.Combine(carpeta, relativo.Replace("\"c, Path.DirectorySeparatorChar))
     End Function
 
     ''' <summary>La carpeta datos\ junto al ejecutable, la actual o una superior (desarrollo).</summary>
