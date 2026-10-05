@@ -47,7 +47,7 @@ Public Class FormPlanificacionMenus
         _minutas = New ServicioMinutas(cadena, sesion)
         _puedeEditar = sesion.Tiene(Permisos.MinutasEditar)
         _puedeAprobar = sesion.Tiene(Permisos.MinutasAprobar)
-        Name = "frmPlanificacionMenus"
+        Name = "FormPlanificacionMenus"
         Text = "Planificacion de menus - " & sesion.Operacion.Nombre
         _mes.Value = New Date(Date.Today.Year, Date.Today.Month, 1)
         _fechaSeleccionada = Date.Today
