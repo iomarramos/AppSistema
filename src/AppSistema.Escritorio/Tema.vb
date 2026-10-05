@@ -33,6 +33,10 @@ Public Module Tema
     Public ReadOnly AvisoFondo As Color = Color.FromArgb(255, 249, 230)   ' franja de ayuda (el amarillo del SGP, suavizado)
     Public ReadOnly AvisoTexto As Color = Color.FromArgb(92, 68, 0)
     Public ReadOnly Peligro As Color = Color.FromArgb(196, 49, 75)        ' #C4314B
+    ' Matriz de planificación: estructura del servicio (verde claro), celda habilitada (amarillo claro), bloqueada (rojo claro).
+    Public ReadOnly EstructuraFondo As Color = Color.FromArgb(220, 242, 220)
+    Public ReadOnly CeldaHabilitada As Color = Color.FromArgb(255, 248, 204)
+    Public ReadOnly CeldaBloqueada As Color = Color.FromArgb(248, 215, 215)
 
     Public ReadOnly Fuente As New Font("Segoe UI", 10.0F)
     Public ReadOnly FuenteSemibold As New Font("Segoe UI Semibold", 10.0F)

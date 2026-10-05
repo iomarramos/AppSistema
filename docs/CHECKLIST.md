@@ -30,6 +30,7 @@ Todas las pantallas **abren sin errores en Windows** con el superusuario (recorr
 | Catálogo > Importar catálogo | CATALOGO_IMPORTAR | Solo acepta archivos de catálogo o del listado SGP | 🟡 |
 | Menús > Recetas | MENUS_VER | Editar: RECETAS_EDITAR · Aprobar y retirar: RECETAS_APROBAR | 🟡 |
 | Menús > Minutas y necesidades | MENUS_VER | Planificar y cambiar comensales: MINUTAS_EDITAR · Aprobar: MINUTAS_APROBAR · Factores de la operación: **FACTORES_EDITAR** (V021; la base también lo exige) · Imprimir minuta: todos | 🟡 |
+| Menús > Planificación de menús (matriz mensual) | MENUS_VER | Matriz del mes por componente y alternativa: factor de participación, raciones, costo unitario y total por día, comensales y resúmenes. Editar factor, raciones y comensales: MINUTAS_EDITAR · Aprobar jornada: MINUTAS_APROBAR. Realizado y liberación: pendientes (`docs/PLANIFICACION_MENUS.md`) | 🟡 |
 | Menús > Servicios y estructuras | MENUS_CONFIGURAR | Estructura teórica, factor teórico y Food Cost objetivo | 🟡 |
 | Menús > Importar recetas | RECETAS_EDITAR | Solo acepta archivos de recetas | 🟡 |
 | Menús > Producción | MENUS_VER | Requerimientos, producción, merma, venta real y consumo: PRODUCCION_EDITAR · Entregar: STOCK_CONTABILIZAR · Teórico vs real e imprimir requerimiento: todos | 🟡 |
@@ -145,6 +146,7 @@ Cada reporte sale con el botón **Imprimir…** de su pantalla. Se puede imprimi
 | Recetas versionadas, minutas, costeo con snapshot y necesidades | ✅ |
 | Venta por estructura (factor y reparto, costo ÷ 48 %) | ✅ |
 | Teórico vs real (factores por operación, venta real, consumo, productos) | ✅ |
+| Planificación de menús: matriz mensual, factores de participación y costos (sin realizado ni liberación) | 🟡 |
 | Previsión y compras | ✅ |
 | Almacén y kárdex valorizado (promedio móvil) | ✅ |
 | Producción (entrega por presentación completa, mermas) | ✅ |
@@ -191,3 +193,4 @@ Cada reporte sale con el botón **Imprimir…** de su pantalla. Se puede imprimi
 | 23 | 🟡 **Pantallas editables en el Diseñador de Visual Studio** (pedido del usuario: el diseñador salía en blanco porque todo se armaba por código). Hechas: Acceso y Principal (menú y barra de estado). Siguen por etapas: Catálogo, Proveedores y Stock; Minutas, Recetas, Producción y Servicios; Compras, Consolidado, Inventarios y Cierres; Administración y resto. Las pruebas E2E verifican cada etapa en Windows | Programación |
 | 11 | ⬜ Piloto de un mes en una sede (`docs/PILOTO_ETAPA_8.md`) | Sede real |
 | 12 | ⬜ Integraciones (SAP, ADS, SGO) | Especificación del cliente |
+| 13 | ⬜ Planificación de menús: aclarar la letra "R" de las capturas, decidir costo en borrador, realizado y liberación (`docs/PLANIFICACION_MENUS.md` §1.3), y agregar selector de receta, copiar día/semana, Excel e impresión | Usuario y siguiente etapa |

@@ -45,6 +45,7 @@ Partial Class FormPrincipal
         Me.mnuPendientesCierresYFoodCost = New System.Windows.Forms.ToolStripMenuItem()
         Me.mnuReportesDelSgp = New System.Windows.Forms.ToolStripMenuItem()
         Me.mnuPlanProduccionChef = New System.Windows.Forms.ToolStripMenuItem()
+        Me.mnuPlanificacionDeMenus = New System.Windows.Forms.ToolStripMenuItem()
         Me.mnuContratosYClientes = New System.Windows.Forms.ToolStripMenuItem()
         Me.mnuGastosYResultadoMensual = New System.Windows.Forms.ToolStripMenuItem()
         Me.mnuAdministracion = New System.Windows.Forms.ToolStripMenuItem()
@@ -97,7 +98,7 @@ Partial Class FormPrincipal
         '
         'mnuMenus
         '
-        Me.mnuMenus.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.mnuRecetas, Me.mnuMinutasYNecesidades, Me.mnuServiciosYEstructuras, Me.mnuImportarRecetas, Me.mnuProduccion, Me.mnuPlanProduccionChef})
+        Me.mnuMenus.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.mnuRecetas, Me.mnuMinutasYNecesidades, Me.mnuServiciosYEstructuras, Me.mnuImportarRecetas, Me.mnuProduccion, Me.mnuPlanProduccionChef, Me.mnuPlanificacionDeMenus})
         Me.mnuMenus.Name = "mnuMenus"
         Me.mnuMenus.Text = "&Menus"
         '
@@ -174,6 +175,11 @@ Partial Class FormPrincipal
         'mnuPlanProduccionChef
         Me.mnuPlanProduccionChef.Name = "mnuPlanProduccionChef"
         Me.mnuPlanProduccionChef.Text = "Produccion del &chef (raciones a producir)..."
+        '
+        'mnuPlanificacionDeMenus
+        '
+        Me.mnuPlanificacionDeMenus.Name = "mnuPlanificacionDeMenus"
+        Me.mnuPlanificacionDeMenus.Text = "Planificacion de &menus (matriz mensual)..."
         '
         'mnuContratosYClientes
         '
@@ -301,6 +307,7 @@ Partial Class FormPrincipal
     Friend WithEvents mnuMenus As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents mnuReportesDelSgp As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents mnuPlanProduccionChef As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents mnuPlanificacionDeMenus As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents mnuRecetas As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents mnuMinutasYNecesidades As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents mnuServiciosYEstructuras As System.Windows.Forms.ToolStripMenuItem

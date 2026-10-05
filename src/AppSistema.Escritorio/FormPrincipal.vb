@@ -113,6 +113,7 @@ Partial Public Class FormPrincipal
         Opcion(mnuImportarRecetas, Permisos.RecetasEditar, Function() New FormImportacion(cadena, _sesion, ModoImportacion.Recetas))
         Opcion(mnuProduccion, Permisos.MenusVer, Function() New FormProduccion(cadena, _sesion))
         Opcion(mnuPlanProduccionChef, Permisos.ProduccionEditar, Function() New FormProduccionChef(cadena, _sesion))
+        Opcion(mnuPlanificacionDeMenus, Permisos.MenusVer, Function() New FormPlanificacionMenus(cadena, _sesion))
 
         Opcion(mnuStockEInventarioInicial, Permisos.CatalogoVer, Function() New FormStock(cadena, _sesion))
         Opcion(mnuInventarioFisico, Permisos.InventarioContar, Function() New FormInventarios(cadena, _sesion))

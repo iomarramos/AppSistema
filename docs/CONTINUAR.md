@@ -9,6 +9,13 @@ Actualizado: 2026-10-05 (hora de Lima).
 | `develop` | en el mismo commit probado |
 | Último corte | 2026-10-04: **fase 2 de Planificación y Abastecimiento Central** (planificación con versiones inmutables, V022; solo base y pruebas, sin pantallas). Antes: fase 1 (seguridad de cuatro niveles, V021, 2026-10-03) y análisis y diseño en `docs/ARQUITECTURA_PLANIFICACION_CENTRAL.md` |
 
+## Última entrega: planificación de menús (2026-10-05)
+
+* Menús > **Planificación de menús (matriz mensual)**: filas por componente y alternativa; por día, receta, factor de participación, raciones, costo unitario y total; comensales; costo del día y por bandeja; resúmenes del mes, del día y acumulado. Edición de factor, raciones y comensales solo en jornadas en borrador.
+* Cálculos en el Dominio (`PlanificacionMenu.vb`) y servicio en `ServicioPlanificacionMenu.vb`. Sin migración nueva: se reutilizan `minuta`, `minuta_detalle` y `minuta_estructura_fija`.
+* Pruebas: 12 de dominio y 5 de integración contra PostgreSQL 17 (clúster aislado en 5433), en verde. **La pantalla compila pero no se ha ejecutado en Windows con datos.**
+* Diagnóstico, reglas confirmadas y pendientes en `docs/PLANIFICACION_MENUS.md`. Preguntas abiertas: qué significa la "R" de las capturas, costo en borrador, realizado y liberación.
+
 ## Estado al 2026-10-05 (sesión de reportes y producción)
 
 | | |
