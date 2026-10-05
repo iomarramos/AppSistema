@@ -10,22 +10,55 @@ Partial Public Class FormPrincipal
 
     Private _config As Configuracion
     Private _sesion As SesionUsuario
-    Private _lblContexto As Label
-    Private _lblRol As Label
 
     Public Sub New()
         InitializeComponent()
         lblVersion.Text = "Version " & GetType(FormPrincipal).Assembly.GetName().Version.ToString(3)
-        Tema.AplicarShell(_menu, _estado)
-        CrearEncabezado()
-        For Each mdi In Controls.OfType(Of MdiClient)()
-            mdi.BackColor = Tema.Fondo
-        Next
+        _menu.MdiWindowListItem = mnuVentanas
+        AgregarAccionesVentanas()
+        Tema.Aplicar(Me)
         ' Toda ventana de trabajo recibe la franja con la operación y el estilo común (también las que abre otra pantalla).
         AddHandler MdiChildActivate, Sub()
                                          If ActiveMdiChild IsNot Nothing AndAlso _sesion IsNot Nothing Then Tema.AplicarVentana(ActiveMdiChild, _sesion.Operacion?.ToString())
                                      End Sub
         AddHandler Shown, Sub() IniciarSesion()
+    End Sub
+
+    Private Sub AgregarAccionesVentanas()
+        Dim ir As New ToolStripMenuItem("Ir a una pantalla...") With {.Name = "mnuIrPantalla", .ShortcutKeys = Keys.Control Or Keys.K}
+        Dim cascada As New ToolStripMenuItem("Organizar en cascada") With {.Name = "mnuOrganizarCascada"}
+        Dim mosaico As New ToolStripMenuItem("Organizar lado a lado") With {.Name = "mnuOrganizarMosaico"}
+        Dim cerrar As New ToolStripMenuItem("Cerrar ventana activa") With {.Name = "mnuCerrarVentanaActiva", .ShortcutKeys = Keys.Control Or Keys.F4}
+        AddHandler cascada.Click, Sub() LayoutMdi(MdiLayout.Cascade)
+        AddHandler mosaico.Click, Sub() LayoutMdi(MdiLayout.TileVertical)
+        AddHandler cerrar.Click, Sub() ActiveMdiChild?.Close()
+        AddHandler ir.Click, Sub() IrAPantalla()
+        mnuVentanas.DropDownItems.AddRange({ir, New ToolStripSeparator(), cascada, mosaico, cerrar, New ToolStripSeparator()})
+        AddHandler mnuVentanas.DropDownOpening, Sub()
+                                                  Dim hayVentanas = MdiChildren.Length > 0
+                                                  cascada.Enabled = hayVentanas
+                                                  mosaico.Enabled = hayVentanas
+                                                  cerrar.Enabled = hayVentanas
+                                              End Sub
+    End Sub
+
+    Private Sub IrAPantalla()
+        If _sesion Is Nothing Then Return
+        Dim opciones As New List(Of Object)()
+        For Each modulo In {mnuCatalogo, mnuMenus, mnuCompras, mnuAlmacen, mnuCierresYControl, mnuAdministracion}
+            If Not modulo.Available Then Continue For
+            For Each pantalla In modulo.DropDownItems.OfType(Of ToolStripMenuItem)()
+                If pantalla.Available Then opciones.Add(New Opcion(Of ToolStripMenuItem)(pantalla,
+                    Identificadores.NombreAccesible(modulo.Text) & " › " & Identificadores.NombreAccesible(pantalla.Text)))
+            Next
+        Next
+        If opciones.Count = 0 Then Return
+        Using dialogo As New DialogoCampos("Ir a una pantalla")
+            dialogo.Opciones("pantalla", "Pantalla disponible", opciones)
+            If dialogo.ShowDialog(Me) <> DialogResult.OK Then Return
+            Dim elegida = dialogo.Elegido(Of Opcion(Of ToolStripMenuItem))("pantalla")
+            If elegida IsNot Nothing AndAlso elegida.Valor.Available Then elegida.Valor.PerformClick()
+        End Using
     End Sub
 
     Private Sub IniciarSesion()
@@ -45,7 +78,6 @@ Partial Public Class FormPrincipal
             _sesion = f.Sesion
         End Using
         ConstruirMenu()
-        ActualizarEncabezado()
         _etiquetaEstado.Text = $"Empresa {_sesion.EmpresaCodigo}  |  Operacion {_sesion.Operacion}  |  Usuario {_sesion.NombreUsuario} ({_sesion.Login})" &
                                If(_sesion.EsDueno, "  |  DUENO DEL SISTEMA", "")
         If _sesion.Tiene(Permisos.ReportesVer) Then
@@ -66,95 +98,6 @@ Partial Public Class FormPrincipal
         End If
     End Sub
 
-
-    Private Sub CrearEncabezado()
-        Dim cabecera As New Panel With {
-            .Name = "pnlCabecera",
-            .Dock = DockStyle.Top,
-            .Height = 82,
-            .BackColor = Tema.Superficie,
-            .Padding = New Padding(22, 12, 22, 10)
-        }
-
-        Dim marca As New Panel With {
-            .Dock = DockStyle.Left,
-            .Width = 6,
-            .BackColor = Tema.Acento
-        }
-
-        Dim textos As New Panel With {
-            .Dock = DockStyle.Left,
-            .Width = 440,
-            .Padding = New Padding(16, 2, 0, 0)
-        }
-
-        Dim titulo As New Label With {
-            .Text = "AppSistema",
-            .Dock = DockStyle.Top,
-            .Height = 31,
-            .Font = Tema.FuenteHero,
-            .ForeColor = Tema.Texto,
-            .TextAlign = Drawing.ContentAlignment.MiddleLeft
-        }
-
-        Dim subtitulo As New Label With {
-            .Text = "Planificación · Compras · Inventarios · Producción · Control",
-            .Dock = DockStyle.Top,
-            .Height = 24,
-            .Font = Tema.Fuente,
-            .ForeColor = Tema.TextoSecundario,
-            .TextAlign = Drawing.ContentAlignment.MiddleLeft
-        }
-
-        textos.Controls.Add(subtitulo)
-        textos.Controls.Add(titulo)
-
-        Dim contexto As New Panel With {
-            .Dock = DockStyle.Right,
-            .Width = 440,
-            .Padding = New Padding(0, 4, 0, 0)
-        }
-
-        _lblRol = New Label With {
-            .Dock = DockStyle.Top,
-            .Height = 26,
-            .Font = Tema.FuenteSemibold,
-            .ForeColor = Tema.AcentoOscuro,
-            .TextAlign = Drawing.ContentAlignment.MiddleRight
-        }
-
-        _lblContexto = New Label With {
-            .Dock = DockStyle.Top,
-            .Height = 24,
-            .Font = Tema.Fuente,
-            .ForeColor = Tema.TextoSecundario,
-            .TextAlign = Drawing.ContentAlignment.MiddleRight
-        }
-
-        contexto.Controls.Add(_lblContexto)
-        contexto.Controls.Add(_lblRol)
-
-        Dim borde As New Panel With {
-            .Dock = DockStyle.Bottom,
-            .Height = 1,
-            .BackColor = Tema.Borde
-        }
-
-        cabecera.Controls.Add(contexto)
-        cabecera.Controls.Add(textos)
-        cabecera.Controls.Add(marca)
-        cabecera.Controls.Add(borde)
-        Controls.Add(cabecera)
-        cabecera.BringToFront()
-        _menu.BringToFront()
-        _estado.BringToFront()
-    End Sub
-
-    Private Sub ActualizarEncabezado()
-        If _sesion Is Nothing Then Return
-        _lblContexto.Text = $"{_sesion.EmpresaCodigo}  ·  {_sesion.Operacion}  ·  {_sesion.Login}"
-        _lblRol.Text = If(_sesion.EsDueno, "SUPERUSUARIO", _sesion.NombreUsuario)
-    End Sub
 
     ''' <summary>Activa cada opción del menú según el permiso de su pantalla; un menú sin opciones permitidas no se muestra.</summary>
     Private Sub ConstruirMenu()

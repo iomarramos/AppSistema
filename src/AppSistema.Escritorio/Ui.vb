@@ -123,6 +123,13 @@ Public Module Ui
             c.Visible = True
             c.HeaderText = If(partes.Length > 1, partes(1), partes(0))
             c.DisplayIndex = i
+            c.MinimumWidth = If(c.ValueType Is GetType(Boolean), 64, 88)
+            Dim descriptiva = {"Descripcion", "Nombre", "Observacion", "Detalle", "Mensaje"}.Any(
+                Function(prefijo) c.DataPropertyName.StartsWith(prefijo, StringComparison.Ordinal)) OrElse
+                {"Producto", "Ingrediente", "Concepto", "Receta", "Especificacion", "Servicio"}.Contains(c.DataPropertyName)
+            c.FillWeight = If(descriptiva, 180.0F, 100.0F)
+            If descriptiva Then c.MinimumWidth = 160
+            c.HeaderCell.ToolTipText = c.HeaderText
         Next
     End Sub
 
@@ -137,7 +144,16 @@ Public Module Ui
         ' Nombre estable para la automatización de interfaz (pruebas E2E): btn + texto.
         Dim b As New Button With {.Text = texto, .AutoSize = True, .Margin = New Padding(4),
                                   .Name = Identificadores.DesdeTexto("btn", texto), .AccessibleName = Identificadores.NombreAccesible(texto)}
-        AddHandler b.Click, Sub() accion()
+        AddHandler b.Click, Sub()
+                                ' Evita repetir una acción mientras un diálogo modal sigue abierto.
+                                If Not b.Enabled Then Return
+                                b.Enabled = False
+                                Try
+                                    accion()
+                                Finally
+                                    If Not b.IsDisposed Then b.Enabled = True
+                                End Try
+                            End Sub
         Return b
     End Function
 

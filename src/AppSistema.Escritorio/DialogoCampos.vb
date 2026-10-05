@@ -7,7 +7,8 @@ Imports System.Windows.Forms
 Public Class DialogoCampos
     Inherits Form
 
-    Private ReadOnly _tabla As New TableLayoutPanel With {.Dock = DockStyle.Fill, .ColumnCount = 2, .AutoSize = True, .Padding = New Padding(8)}
+    Private ReadOnly _tabla As New TableLayoutPanel With {.Dock = DockStyle.Fill, .ColumnCount = 2, .AutoSize = True,
+        .AutoScroll = True, .Padding = New Padding(16)}
     Private ReadOnly _campos As New Dictionary(Of String, Control)(StringComparer.Ordinal)
     Private ReadOnly _validar As Func(Of DialogoCampos, Boolean)
 
@@ -31,6 +32,10 @@ Public Class DialogoCampos
         botones.Controls.Add(cancelar) : botones.Controls.Add(aceptar)
         Controls.Add(_tabla) : Controls.Add(botones)
         AddHandler Load, Sub() Tema.Aplicar(Me)
+        AddHandler Shown, Sub()
+                              Dim primero = _campos.Values.FirstOrDefault(Function(c) c.CanSelect)
+                              If primero IsNot Nothing Then primero.Focus()
+                          End Sub
     End Sub
 
     Private Sub Agregar(clave As String, etiqueta As String, control As Control)
@@ -38,7 +43,10 @@ Public Class DialogoCampos
         ' Nombre estable por clave (txtServidor, cmbOp, fechaDesde…) y el texto de la etiqueta como nombre accesible.
         control.Name = Identificadores.DesdeTexto(Identificadores.Prefijo(control), clave)
         control.AccessibleName = Identificadores.NombreAccesible(etiqueta)
-        _tabla.Controls.Add(New Label With {.Text = etiqueta, .AutoSize = True, .Anchor = AnchorStyles.Left, .Margin = New Padding(3, 7, 3, 3)})
+        control.TabIndex = _campos.Count * 2 + 1
+        control.Margin = New Padding(6)
+        _tabla.Controls.Add(New Label With {.Text = etiqueta, .AutoSize = True, .Anchor = AnchorStyles.Left,
+            .TabIndex = _campos.Count * 2, .TabStop = False, .Margin = New Padding(3, 7, 12, 3)})
         _tabla.Controls.Add(control)
         _campos(clave) = control
     End Sub

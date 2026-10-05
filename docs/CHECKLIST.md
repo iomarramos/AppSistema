@@ -12,6 +12,15 @@ Actualizado: 2026-10-03, 12:30 hora de Lima. Se actualiza en cada entrega.
 
 ## 1. Pantallas (front) por menú
 
+### Mejoras compartidas de interfaz — 2026-10-04
+
+- ✅ Tema común: superficies, botones de 34 px, menús y pestañas con mayor espacio, encabezado de pantalla y operación sin solapamiento.
+- ✅ Tablas: encabezados multilínea, columnas descriptivas más anchas, filas de 32 px, estado con texto y foco de teclado, aviso cuando no hay registros.
+- ✅ Ayudas y totales ajustan su altura al ancho de la ventana; los diálogos conservan Enter/Escape y orden explícito de campos.
+- ✅ Ventanas: lista de pantallas abiertas, cascada, mosaico y cierre con Ctrl+F4. Ctrl+K abre un selector limitado a las opciones de menú permitidas.
+- ✅ Compilación Release sin advertencias; 98 pruebas de dominio y 6 pruebas de controles WinForms en Windows aprobadas. Capturas locales de acceso, diálogo, encabezado y tabla revisadas.
+- 🟡 Pendiente repetir el recorrido completo autenticado y comprobar DPI 125/150 %: la conexión PostgreSQL local requiere credenciales no disponibles en la sesión. No se modificaron servicios, permisos, datos ni migraciones.
+
 Todas las pantallas **abren sin errores en Windows** con el superusuario (recorrido E2E con FlaUI en el CI; capturas en el artefacto `e2e-capturas`). Falta la revisión visual y de uso por el usuario (🟡). Réplica visual: https://claude.ai/artifact/LqViLBPDyFwUqMktDxNqaz
 
 | Menú > opción | Permiso para abrir | Acciones con permiso propio | Estado |

@@ -3,6 +3,14 @@
 Actualizado: 2026-10-03. Registra **solo lo ejecutado y comprobado**; una tabla o pantalla no es "terminado".
 Plan: `docs/guia_construccion/04_PLAN_POR_ETAPAS.md`. Decisiones de negocio: `docs/guia_construccion/09_SEGUIMIENTO_Y_DECISIONES.md`.
 
+## 2026-10-04 — Mejora compartida de diseño y usabilidad
+
+Se mejoraron `Tema`, `Ui`, `DialogoCampos` y la navegación de `FormPrincipal`, siguiendo las pautas de referencia locales de `ui-ux-pro-max` (su buscador no se ejecutó porque Python no está disponible). Cambios: superficies consistentes, botones más cómodos, encabezados y columnas legibles, orientación en tablas vacías, foco visible en estados, ayudas que se ajustan al ancho y orden de teclado en diálogos. Ventanas incorpora selector de pantalla con Ctrl+K (solo opciones permitidas), lista de abiertas, cascada, mosaico y cierre de la activa. Se mantienen los identificadores existentes y la lógica de servicios, permisos, cálculos y base de datos.
+
+Validación local en Windows: compilación Release sin errores ni advertencias; 98 pruebas de dominio y 6 pruebas nuevas de controles aprobadas. Se revisaron capturas de acceso, diálogo, contexto y tabla (`artifacts/screenshots/ui-*.png`, datos de prueba). Las pruebas cubren solapamiento/idempotencia del encabezado, recuperación de botones tras error y repetición, pintura de estados en columnas estrechas, orden de campos y clave literal, ajuste de ayuda, formato monetario y costo pendiente.
+
+Pendiente: recorrido completo E2E con autenticación, pruebas de integración PostgreSQL y comprobación a DPI 125/150 %. PostgreSQL local responde, pero pide credenciales que no están configuradas para estas pruebas. Los archivos locales previos sin seguimiento se conservaron.
+
 ## Decisiones técnicas tomadas
 
 | ID | Decisión | Fecha | Origen |
