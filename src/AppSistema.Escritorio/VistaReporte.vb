@@ -53,6 +53,7 @@ Public NotInheritable Class VistaReporte
         barra.Items.Add(New ToolStripSeparator())
         barra.Items.Add(New ToolStripButton("Girar hoja (vertical / horizontal)", Nothing, Sub(s, e) Orientar(Not _documento.DefaultPageSettings.Landscape)))
         barra.Items.Add(New ToolStripButton("Ajustar a la ventana", Nothing, Sub() _vista.AutoZoom = True))
+        barra.Items.Add(New ToolStripButton("100 %", Nothing, Sub() Zoom(1.0 / _vista.Zoom)))
         barra.Items.Add(New ToolStripButton("Acercar", Nothing, Sub() Zoom(1.25)))
         barra.Items.Add(New ToolStripButton("Alejar", Nothing, Sub() Zoom(0.8)))
         barra.Items.Add(New ToolStripSeparator())
@@ -83,6 +84,10 @@ Public NotInheritable Class VistaReporte
         Dim area = New Rectangle(margenes.Left, margenes.Top, bounds.Width - margenes.Left - margenes.Right, bounds.Height - margenes.Top - margenes.Bottom)
         If _paginador IsNot Nothing Then _paginador.Liberar()
         _paginador = New PaginadorReporte(_reporte, area)
+        ' Hoja horizontal: a tamaño fijo (1,25) para que la barra de desplazamiento horizontal permita recorrer la tabla completa.
+        ' Hoja vertical: ajustada a la ventana.
+        _vista.AutoZoom = Not horizontal
+        If horizontal Then _vista.Zoom = 1.25
         _vista.StartPage = 0
         _vista.InvalidatePreview()
         ActualizarPagina()
@@ -169,9 +174,9 @@ Friend NotInheritable Class PaginadorReporte
     Private ReadOnly _paginas As New List(Of DefinicionPagina)()
     Private ReadOnly _fTitulo As New Font("Arial", 13, FontStyle.Bold, GraphicsUnit.Point)
     Private ReadOnly _fSeccion As New Font("Arial", 9.5F, FontStyle.Bold, GraphicsUnit.Point)
-    Private ReadOnly _fNormal As New Font("Arial", 7.5F, FontStyle.Regular, GraphicsUnit.Point)
-    Private ReadOnly _fNegrita As New Font("Arial", 7.5F, FontStyle.Bold, GraphicsUnit.Point)
-    Private ReadOnly _fPie As New Font("Arial", 7.5F, FontStyle.Regular, GraphicsUnit.Point)
+    Private _fNormal As Font
+    Private _fNegrita As Font
+    Private _fPie As Font
     Private ReadOnly _amarillo As Brush = New SolidBrush(Color.FromArgb(255, 255, 153))
     Private ReadOnly _tinta As Brush = Brushes.Black
     Private ReadOnly _lapiz As New Pen(Color.FromArgb(150, 150, 150), 1)
@@ -180,6 +185,12 @@ Friend NotInheritable Class PaginadorReporte
     Public Sub New(r As Reporte, area As Rectangle)
         _r = r
         _area = area
+        ' Letra según el número de columnas: con muchas (menú del mes) va chica; con pocas, legible como en el SGP.
+        Dim columnas = If(r.Secciones.Count = 0, 0, r.Secciones.Max(Function(x) x.Columnas.Count))
+        Dim tamano = If(columnas > 12, 7.5F, 9.5F)
+        _fNormal = New Font("Arial", tamano, FontStyle.Regular, GraphicsUnit.Point)
+        _fNegrita = New Font("Arial", tamano, FontStyle.Bold, GraphicsUnit.Point)
+        _fPie = New Font("Arial", 7.5F, FontStyle.Regular, GraphicsUnit.Point)
         Using bmp As New Bitmap(1, 1)
             bmp.SetResolution(100, 100)
             Using g = Graphics.FromImage(bmp)
