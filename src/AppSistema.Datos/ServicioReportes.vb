@@ -141,7 +141,7 @@ Public NotInheritable Class ServicioReportes
                 s.Agregar(l.ProductoDescripcion, l.Unidad, l.PrevistoU6, l.SolicitadoU6, Nothing, Nothing, Nothing, Nothing)
             End If
         Next
-        r.Notas.Add("Bulto = solicitado / contenido de la presentacion activa, en decimales (como la requisicion del SGP).")
+        r.Notas.Add("Bulto = solicitado / contenido de la presentacion activa, en decimales (como la requisicion de la planificacion).")
         r.Notas.Add("Se entrega la presentacion completa (D12); lo entregado a cocina se da por consumido.")
         r.Firmas.AddRange({"Solicitado por (cocina)", "Entregado por (almacen)", "Recibido por"})
         Return r

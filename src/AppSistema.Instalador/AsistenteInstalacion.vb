@@ -216,7 +216,7 @@ Public NotInheritable Class AsistenteInstalacion
             Console.WriteLine("Ya estaba cargado.")
         End If
 
-        Paso("7.2 Familias del SGP")
+        Paso("7.2 Familias de productos")
         Mostrar("Familias", New ServicioCargaReal(cadena, sesion).CargarFamilias(Texto(ArchivoFamilias)))
 
         Paso("7.3 Precios de compra")
@@ -261,13 +261,13 @@ Public NotInheritable Class AsistenteInstalacion
             {"CENA", LeerEntero("Comensales de cena", 300)}}
         Mostrar("Minutas del ciclo", New ServicioCargaReal(cadena, sesion).CargarCiclo(Texto(ArchivoCiclo), desde, comensales, aprobar:=True))
 
-        Paso("7.9 Plan teorico y real del SGP (Excel de plan_real)")
+        Paso("7.9 Plan teorico y real (Excel de plan_real)")
         Dim plan = New ServicioPlanSgp(cadena, sesion).Importar(Path.Combine(carpeta, "plan_real"))
         For Each p In plan.Problemas.Take(30)
             Console.Error.WriteLine("  " & p)
         Next
-        If plan.Problemas.Count > 0 Then _avisos.Add($"Plan del SGP: {plan.Problemas.Count} codigos sin enlace a AppSistema (ver la lista arriba).")
-        Console.WriteLine("Plan del SGP: " & plan.ToString())
+        If plan.Problemas.Count > 0 Then _avisos.Add($"Plan teorico y real: {plan.Problemas.Count} codigos sin enlace a AppSistema (ver la lista arriba).")
+        Console.WriteLine("Plan teorico y real: " & plan.ToString())
     End Sub
 
     ' ---------- Entrada y salida de consola ----------

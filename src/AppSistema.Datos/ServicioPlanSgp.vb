@@ -23,7 +23,7 @@ Public NotInheritable Class ResultadoPlanSgp
     Public Overrides Function ToString() As String
         Return $"{PlanDia} dias-servicio, {PlanPlato} platos, {Requisicion} lineas de requisicion, {ComparativoDia} comparativos por dia, " &
                $"{ComparativoTotal} totales, {CostoPisoTecho} piso y techo, {Preparaciones} pasos de preparacion; " &
-               $"codigos SGP: {CodigosReceta} recetas ({RecetasSinEnlace} sin receta en el sistema), {CodigosProducto} productos ({ProductosSinEnlace} sin producto)"
+               $"codigos del plan: {CodigosReceta} recetas ({RecetasSinEnlace} sin receta en el sistema), {CodigosProducto} productos ({ProductosSinEnlace} sin producto)"
     End Function
 End Class
 
@@ -79,7 +79,7 @@ Public NotInheritable Class ServicioPlanSgp
                     Dim codigoApp = f("receta_codigo_app")
                     Dim recetaId As Object = DBNull.Value
                     If codigoApp <> "" Then
-                        If recetasApp.ContainsKey(codigoApp) Then recetaId = recetasApp(codigoApp) Else r.Problemas.Add($"Receta SGP {f("receta_codigo_sgp")}: el codigo {codigoApp} no existe en AppSistema")
+                        If recetasApp.ContainsKey(codigoApp) Then recetaId = recetasApp(codigoApp) Else r.Problemas.Add($"Receta del plan {f("receta_codigo_sgp")}: el codigo {codigoApp} no existe en AppSistema")
                     End If
                     If recetaId Is DBNull.Value Then r.RecetasSinEnlace += 1
                     u.Ejecutar("INSERT INTO sgp_codigo_receta(empresa_id, codigo_sgp, nombre_sgp, receta_id) VALUES (@e, @c, @n, @r) " &
@@ -92,7 +92,7 @@ Public NotInheritable Class ServicioPlanSgp
                     Dim codigoApp = f("producto_codigo_app")
                     Dim productoId As Object = DBNull.Value
                     If codigoApp <> "" Then
-                        If productosApp.ContainsKey(codigoApp) Then productoId = productosApp(codigoApp) Else r.Problemas.Add($"Producto SGP {f("producto_codigo_sgp")}: el codigo {codigoApp} no existe en AppSistema")
+                        If productosApp.ContainsKey(codigoApp) Then productoId = productosApp(codigoApp) Else r.Problemas.Add($"Producto del plan {f("producto_codigo_sgp")}: el codigo {codigoApp} no existe en AppSistema")
                     End If
                     If productoId Is DBNull.Value Then r.ProductosSinEnlace += 1
                     u.Ejecutar("INSERT INTO sgp_codigo_producto(empresa_id, codigo_sgp, descripcion_sgp, unidad_bulto, unidad_despacho, variante_id) " &

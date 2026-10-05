@@ -31,7 +31,7 @@ Public Class FormReportes
     Public Sub New(cadena As String, sesion As SesionUsuario)
         _cadena = cadena
         _sesion = sesion
-        Text = "Reportes (SGP y plan) - " & sesion.Operacion.Nombre
+        Text = "Reportes - " & sesion.Operacion.Nombre
         _desde.Value = New Date(Date.Today.Year, Date.Today.Month, 1)
         _hasta.Value = Date.Today
         _mes.Value = Date.Today
@@ -52,7 +52,7 @@ Public Class FormReportes
     ''' <summary>Los reportes del menú. Los del SGP salen de los datos importados; los demás, de las minutas, las ventas y los movimientos.</summary>
     Private Shared Function Elementos() As List(Of Elemento)
         Return New List(Of Elemento) From {
-            New Elemento With {.Nombre = "Requisicion detallada (SGP, por rango)", .PorMes = False,
+            New Elemento With {.Nombre = "Requisicion detallada (por rango)", .PorMes = False,
                                .Generar = Function(s, d, h) s.RequisicionRango(d, h)},
             New Elemento With {.Nombre = "Salidas a produccion por servicio (por rango)", .PorMes = False,
                                .Generar = Function(s, d, h) s.SalidasPorServicio(d, h, False)},
@@ -64,7 +64,7 @@ Public Class FormReportes
                                .Generar = Function(s, d, h) s.BoletaAjuste(d, h)},
             New Elemento With {.Nombre = "Frecuencia de la planificacion teorica (mes)", .PorMes = True,
                                .Generar = Function(s, d, h) s.FrecuenciaTeorica(d.Year, d.Month)},
-            New Elemento With {.Nombre = "Costo piso y techo (mes, SGP)", .PorMes = True,
+            New Elemento With {.Nombre = "Costo piso y techo (mes)", .PorMes = True,
                                .Generar = Function(s, d, h) s.CostoPisoTecho(d.Year, d.Month)},
             New Elemento With {.Nombre = "Menu teorico - planificacion (mes)", .PorMes = True,
                                .Generar = Function(s, d, h) s.MenuMes(d.Year, d.Month, False)},

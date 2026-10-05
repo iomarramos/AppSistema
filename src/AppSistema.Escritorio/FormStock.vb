@@ -209,7 +209,7 @@ Partial Public Class FormStock
     Private Sub MovimientoSintetico()
         If Almacen Is Nothing Then Return
         Dim almacenId = Almacen.Id
-        Using d As New DialogoCampos("Movimiento de stock sintetico (formato SGP)")
+        Using d As New DialogoCampos("Movimiento de stock sintetico")
             d.Fecha("desde", "Desde", Date.Today.AddDays(-Date.Today.Day + 1)).Fecha("hasta", "Hasta", Date.Today)
             If d.ShowDialog(Me) <> DialogResult.OK Then Return
             Dim desde = d.FechaElegida("desde").Value, hasta = d.FechaElegida("hasta").Value

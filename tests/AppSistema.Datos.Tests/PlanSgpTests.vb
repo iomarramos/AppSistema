@@ -36,7 +36,7 @@ Public Class PlanSgpTests
             Assert.Equal(2778L, Convert.ToInt64(bd.Escalar("SELECT count(*) FROM sgp_requisicion")))
 
             ' Sin recetas cargadas en la base de prueba, ningún código con receta se enlaza: queda la advertencia.
-            Assert.Equal(553, primera.Problemas.Where(Function(p) p.StartsWith("Receta SGP")).Count())
+            Assert.Equal(553, primera.Problemas.Where(Function(p) p.StartsWith("Receta del plan")).Count())
             Assert.Equal(628L, Convert.ToInt64(bd.Escalar("SELECT count(*) FROM sgp_codigo_receta WHERE receta_id IS NULL")))
 
             ' Reimportar reemplaza la operación: mismas cifras, sin duplicados.

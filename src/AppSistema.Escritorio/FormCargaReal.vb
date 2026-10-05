@@ -31,9 +31,9 @@ Partial Public Class FormCargaReal
         Text = "Carga de datos reales - " & sesion.Operacion.Nombre
 
         Dim pasos As New TableLayoutPanel With {.Dock = DockStyle.Top, .AutoSize = True, .ColumnCount = 3, .Padding = New Padding(6)}
-        Paso(pasos, 1, "Catalogo: productos y presentaciones (listado SGP o catalogo por ingrediente)", Permisos.CatalogoImportar,
+        Paso(pasos, 1, "Catalogo: productos y presentaciones (listado de productos o catalogo por ingrediente)", Permisos.CatalogoImportar,
              "Abrir importacion de catalogo", Sub() Abrir(New FormImportacion(_cadena, _sesion, ModoImportacion.Catalogo)))
-        Paso(pasos, 2, "Familias del SGP: familia, subfamilia y grupo de cada producto (familias_sgp.csv)", Permisos.CatalogoEditar,
+        Paso(pasos, 2, "Familias: familia, subfamilia y grupo de cada producto (familias_sgp.csv)", Permisos.CatalogoEditar,
              "Cargar familias...", Sub() Cargar("Familias", AddressOf _carga.CargarFamilias))
         Paso(pasos, 3, "Precios por presentacion (precios_sgp.csv). Sin precio no se inventa; un precio ya cargado no se pisa", Permisos.PreciosEditar,
              "Cargar precios...", Sub() Cargar("Precios", AddressOf _carga.ImportarPrecios))
@@ -127,7 +127,7 @@ Partial Public Class FormCargaReal
         If Not Ui.Ejecutar(Me, Sub() e = _carga.Estado()) Then Return
         _estado.Text = $"Empresa: {e.Productos:N0} productos, {e.Presentaciones:N0} presentaciones, {e.PreciosSgp:N0} precios cargados, " &
                        $"{e.RecetasAprobadas:N0} recetas aprobadas, {e.InsumosSinCosto:N0} insumos sin costo." & vbCrLf &
-                       $"Presentaciones con familia SGP: {e.PresentacionesConFamilia:N0}. Productos activos en la operacion: {e.ProductosActivos:N0}." & vbCrLf &
+                       $"Presentaciones con familia: {e.PresentacionesConFamilia:N0}. Productos activos en la operacion: {e.ProductosActivos:N0}." & vbCrLf &
                        $"Operacion: inventario inicial en {e.AlmacenesConApertura} de {e.Almacenes} almacen(es), {e.ServiciosAsignados} servicio(s) asignado(s), " &
                        $"{e.Minutas:N0} minutas ({e.MinutasAprobadas:N0} aprobadas)."
     End Sub

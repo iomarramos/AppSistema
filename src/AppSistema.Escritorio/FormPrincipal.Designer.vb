@@ -170,7 +170,7 @@ Partial Class FormPrincipal
         Me.mnuPendientesCierresYFoodCost.Text = "&Pendientes, cierres y Food Cost"
         'mnuReportesDelSgp
         Me.mnuReportesDelSgp.Name = "mnuReportesDelSgp"
-        Me.mnuReportesDelSgp.Text = "&Reportes (SGP y plan)..."
+        Me.mnuReportesDelSgp.Text = "&Reportes..."
         'mnuPlanProduccionChef
         Me.mnuPlanProduccionChef.Name = "mnuPlanProduccionChef"
         Me.mnuPlanProduccionChef.Text = "Produccion del &chef (raciones a producir)..."

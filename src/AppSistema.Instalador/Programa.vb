@@ -53,10 +53,10 @@ Public Module Programa
         Try
             Select Case args(0)
                 Case "convertir-sgp"
-                    If args.Length < 2 Then Throw New ReglaNegocioException("DATO_OBLIGATORIO", "Indique el archivo del SGP.")
+                    If args.Length < 2 Then Throw New ReglaNegocioException("DATO_OBLIGATORIO", "Indique el archivo de productos.")
                     Return ConvertirSgp(args(1), If(args.Length > 2, args(2), Path.GetDirectoryName(Path.GetFullPath(args(1)))))
                 Case "importar-sgp"
-                    If args.Length < 2 Then Throw New ReglaNegocioException("DATO_OBLIGATORIO", "Indique el archivo del SGP.")
+                    If args.Length < 2 Then Throw New ReglaNegocioException("DATO_OBLIGATORIO", "Indique el archivo de productos.")
                     Return ImportarSgp(args(1))
                 Case "importar-catalogo"
                     If args.Length < 2 Then Throw New ReglaNegocioException("DATO_OBLIGATORIO", "Indique el archivo de catalogo.")
@@ -94,7 +94,7 @@ Public Module Programa
                     Requiere(args, 3, "Indique el periodo (AAAA-MM) y el archivo.")
                     Return ExportarResultados(args(1), args(2))
                 Case "importar-plan-sgp"
-                    Requiere(args, 2, "Indique la carpeta del plan del SGP (datos\plan_real).")
+                    Requiere(args, 2, "Indique la carpeta del plan (datos\plan_real).")
                     Return ImportarPlanSgp(args(1))
             End Select
 
@@ -339,7 +339,7 @@ Public Module Programa
         For Each p In r.Problemas.Take(30)
             Console.Error.WriteLine("  " & p)
         Next
-        Console.WriteLine("Plan del SGP: " & r.ToString())
+        Console.WriteLine("Plan teorico y real: " & r.ToString())
         Return 0
     End Function
 
