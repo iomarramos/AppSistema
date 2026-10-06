@@ -2,11 +2,13 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 0.1 – Borrador para revisión |
+| Versión | 0.1.2 – Borrador para revisión (RNF-12 VB.NET, RNF-12.1 Windows 10+, RNF-13 PostgreSQL, RNF-15 WinForms) |
 | Fecha | 2026-10-02 |
 | Fuente | *Manual SGP Local – Para Operaciones* (Sodexo Perú, V006, 01/07/2013, 92 pp.) |
 | Estado | Borrador: requiere validación del negocio (ver §12 Preguntas abiertas) |
 
+> **Vigencia.** Este documento recoge el alcance corporativo del manual SGP. La *Guía de construcción modular* (`docs/06_GUIA_DE_CONSTRUCCION/`) redefine la primera etapa como producto comercial para pymes (sin ADS/SGO/SAP, sin Consumo Alternativo automático, ingreso mensual por servicio) y prevalece donde haya contradicción. Estado real de la construcción: `docs/03_ESTADO/SEGUIMIENTO.md`.
+>
 > Las referencias `[p.N]` apuntan a la página del manual. Los requisitos nuevos que **no** salen del manual están marcados como **(propuesto)**.
 
 ---
@@ -69,10 +71,12 @@ El sistema gestiona, por **contrato** (operación/sitio):
 - Intercambios entre contratos por archivos `.zip` enviados por correo (Outlook) [p.46–59].
 - Reportes impresos, exportaciones a Excel para inventario.
 
-### 2.2 Dirección propuesta (to-be) **(propuesto)**
-- Aplicación **web** (PWA) con arquitectura **offline-first** y sincronización con un backend central, para conservar la tolerancia a conectividad mala de los sites mineros.
-- Eliminar el intercambio de `.zip` por correo: traspasos entre contratos como documentos electrónicos en el backend central, con modo diferido si no hay conexión.
-- Pila tecnológica a definir (§12, P-01).
+### 2.2 Dirección propuesta (to-be)
+- **Restricción tecnológica confirmada (RNF-12):** el sistema se desarrolla en **VB.NET** y debe ejecutarse en **todas las computadoras** de la operación (ver §8). **Reemplaza** la propuesta anterior de PWA/web.
+- Se mantiene la tolerancia a conectividad mala de los sites: la operación diaria no depende de internet y se sincroniza cuando hay conexión **(propuesto)**.
+- Eliminar el intercambio de `.zip` por correo: traspasos entre contratos como documentos electrónicos, con modo diferido si no hay conexión **(propuesto)**.
+- Equipos: **Windows 10 o superior** (RNF-12.1). Interfaz: **WinForms** (RNF-15). Base de datos: **PostgreSQL** (RNF-13).
+- Mecanismo de sincronización entre sedes y central: por definir (etapa 8 del plan).
 
 ### 2.3 Principios de diseño derivados del manual
 1. **Los documentos cerrados son inmutables** (no hay "marcha atrás"); se corrigen anulando y rehaciendo, conservando histórico de anulados [p.38, 53, 64].
@@ -386,6 +390,17 @@ Pedido propuesto = (+) Necesidad según minuta teórica (NT)
 | RNF-09 | **Multiempresa/contrato**: aislamiento de datos por contrato |
 | RNF-10 | **Trazabilidad** de cada ajuste y anulación |
 | RNF-11 | **Backup** y recuperación de la BD local/central |
+| RNF-12 | **Plataforma y lenguaje (confirmado, 02/10/2026):** el sistema se construye en **VB.NET** y debe funcionar en **todas las computadoras** donde se use. Esta decisión **reemplaza** el stack/PWA propuesto en versiones anteriores y la sugerencia Python/TypeScript de la *Guía de construcción modular* |
+| RNF-13 | **Base de datos (decidido, 02/10/2026):** **PostgreSQL**, con un servidor por sede al que se conectan los clientes VB.NET (acceso con `Npgsql`). Se descarta SQLite por la concurrencia estimada (≈20 computadoras, RNF-14) y porque no admite privilegios por tabla ni bloqueo por fila. Mismo motor en sede y central |
+| RNF-13.1 | **Hecho y verificado** (`database/postgresql/`): el esquema SQLite de referencia (59 tablas) se porta a PostgreSQL: triggers en PL/pgSQL, secuencias en lugar de `AUTOINCREMENT`, `bigint` para los campos `_u6`, y se repiten los controles de integridad **(propuesto)** |
+| RNF-13.2 | Las escrituras de stock usan transacciones con bloqueo por fila; la aplicación usa un rol con permisos de escritura y los operadores no acceden directamente a las tablas (cierra las brechas H01–H03 de la guía) **(propuesto)** |
+| RNF-13.3 | El servidor de sede requiere una PC con Windows 10 o superior, encendida durante la operación, con respaldo programado **(propuesto)** |
+| RNF-14 | **Volumen estimado:** ≈20 computadoras usando el sistema (por confirmar si son por sede o en total, y cuántas simultáneas) |
+| RNF-12.1 | **Equipos soportados (confirmado, 02/10/2026): Windows 10 o superior.** No se soportan Windows XP/7/8 ni Mac/Linux. Permite usar .NET 8 y Npgsql 8 |
+| RNF-12.2 | **.NET 8 (LTS)** fijado en los proyectos; el instalador debe incluir o verificar el runtime **(propuesto)** |
+| RNF-15 | **Interfaz (confirmado, 02/10/2026): WinForms** sobre .NET 8, orientada a captura rápida con teclado. Las reglas viven en las capas de dominio y datos, no en los formularios |
+| RNF-16 | **Control de versiones:** `main` (estable) ← `develop` (integración) ← `feature/etapa-N-*` (una rama por etapa del plan). Ver `docs/05_OPERACION/FLUJO_DE_RAMAS.md` |
+| RNF-12.3 | Instalación y actualización simples en cada PC, con número de versión visible **(propuesto)** |
 
 ---
 
@@ -437,7 +452,8 @@ Procesos del manual: FMS-04 (requerimiento de compras), FMS-05 (recepción y ent
 
 | ID | Pregunta / Supuesto |
 |---|---|
-| P-01 | **Stack tecnológico y despliegue** (web/PWA vs escritorio; nube vs on-premise; BD). Sin definir; el repo está vacío |
+| P-01 | **Stack tecnológico y despliegue.** *Resuelta salvo despliegue central:* VB.NET + WinForms (.NET 8) en Windows 10+, PostgreSQL con servidor por sede. Sigue abierto: nube vs on-premise para el servidor central |
+| P-17 | *Resuelta:* Windows 10 o superior (RNF-12.1) |
 | P-02 | **Interfaces con ADS, SGO y SAP**: ¿existen APIs, o se mantienen archivos? Formato y contratos |
 | P-03 | Regla de **redondeo** del pedido a unidad de despacho, y de **fechas de entrega** sugeridas (¿por qué calendario de proveedor?) |
 | P-04 | Cálculo de **Stock de seguridad** y quién lo mantiene ("actualizado por compras") |
@@ -449,7 +465,7 @@ Procesos del manual: FMS-04 (requerimiento de compras), FMS-05 (recepción y ent
 | P-10 | ¿Se mantiene el flujo "login de Soporte" para precios o se pasa a roles con aprobación? |
 | P-11 | ¿Se debe migrar la **historia** (kárdex, planificaciones) del SGP o solo saldos iniciales? |
 | P-12 | Alcance real de los **reportes de gerencia** (más allá de los del manual) |
-| P-13 | Volumen: n.º de contratos, usuarios concurrentes y productos/recetas |
+| P-13 | Volumen: ≈20 computadoras (RNF-14). Falta confirmar si son por sede o en total, n.º de contratos/sedes, usuarios simultáneos y n.º de productos/recetas |
 | P-14 | Gestión de **impuestos** (IGV) en compras: el manual muestra campos Exento/Neto/IGV/Otros imp./Total |
 | P-15 | El manual es de **2013 (V006)**: confirmar qué procesos cambiaron desde entonces |
 | P-16 | Moneda y localización: Soles/IGV 18 % (Perú); ¿otros países? |

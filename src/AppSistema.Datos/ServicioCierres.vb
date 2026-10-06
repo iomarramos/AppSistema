@@ -1,0 +1,521 @@
+Imports System.Collections.Generic
+Imports AppSistema.Dominio
+Imports AppSistema.Dominio.Calculos
+Imports AppSistema.Dominio.Numerico
+Imports AppSistema.Dominio.Seguridad
+
+Public NotInheritable Class PendienteDto
+    Public Property Codigo As String
+    Public Property Detalle As String
+    ''' <summary>True = impide cerrar; False = advertencia.</summary>
+    Public Property Bloqueante As Boolean
+End Class
+
+Public NotInheritable Class ResultadoCierre
+    Public Property Cerrado As Boolean
+    Public ReadOnly Property Pendientes As New List(Of PendienteDto)
+End Class
+
+Public NotInheritable Class LineaReporteServicio
+    Public Property OperacionServicioId As Long
+    Public Property Servicio As String
+    Public Property Regimen As String
+    Public Property RacionesServidas As Long
+    ''' <summary>Consumo neto de alimentos (entregas − devoluciones) a costo histórico.</summary>
+    Public Property CostoAlimentosU6 As Long
+    Public Property CostoPorRacionU6 As Long?
+    Public Property IngresoU6 As Long?
+    Public Property FoodCostU6 As Long?
+    Public Property ObjetivoU6 As Long?
+    Public Property DesviacionPuntosU6 As Long?
+    Public Property PresupuestoU6 As Long?
+    Public Property DiferenciaPresupuestoU6 As Long?
+    Public Property Observacion As String
+End Class
+
+''' <summary>Envíos a la central de esta empresa (cola de la sede): lo guardado localmente aún no sincronizado.</summary>
+Public NotInheritable Class EstadoEnvioDto
+    Public Property Configurada As Boolean
+    Public Property Pendientes As Long
+    Public Property ConError As Long
+    Public Property EnConflicto As Long
+    Public Property UltimoEnvio As DateTimeOffset?
+
+    Public Overrides Function ToString() As String
+        If Not Configurada Then Return "Central: sede sin sincronizacion configurada"
+        Return $"Central: {Pendientes} por enviar" & If(ConError > 0, $" ({ConError} con error de envio)", "") &
+               If(EnConflicto > 0, $", {EnConflicto} en conflicto", "") &
+               $"; ultimo envio {If(UltimoEnvio.HasValue, UltimoEnvio.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm"), "nunca")}"
+    End Function
+End Class
+
+Public NotInheritable Class ReporteMensualDto
+    Public Property Anio As Integer
+    Public Property Mes As Integer
+    Public Property Estado As String
+    Public ReadOnly Property Servicios As New List(Of LineaReporteServicio)
+    ''' <summary>Bajas de almacén (no atribuidas a un servicio).</summary>
+    Public Property BajasU6 As Long
+    ''' <summary>Ajustes de inventario: positivo = sobrante, negativo = faltante.</summary>
+    Public Property AjusteInventarioU6 As Long
+    Public Property TotalCostoAlimentosU6 As Long
+    Public Property TotalIngresoU6 As Long
+    Public Property FoodCostTotalU6 As Long?
+End Class
+
+''' <summary>
+''' Cierres y control (módulo 6). Pendientes accionables por día; cierre diario serializado con las contabilizaciones
+''' (bloquea los almacenes de la operación: una salida simultánea queda incluida antes o rechazada después, T38);
+''' ingreso mensual por servicio (D13: importe neto mensual) y objetivo de Food Cost; reporte mensual rastreable a
+''' documentos; cierre de mes con todos sus días con actividad cerrados. Un período cerrado no cambia (T48).
+''' </summary>
+Public NotInheritable Class ServicioCierres
+    Inherits ServicioConSesion
+
+    Public Sub New(cadenaConexion As String, sesion As SesionUsuario)
+        MyBase.New(cadenaConexion, sesion)
+    End Sub
+
+    Private ReadOnly Property Op As Long
+        Get
+            If Sesion.Operacion Is Nothing Then Throw New ReglaNegocioException("OPERACION_NO_SELECCIONADA", "Seleccione una operacion.")
+            Return Sesion.Operacion.Id
+        End Get
+    End Property
+
+    ' ---------- Día ----------
+
+    Public Function Pendientes(fecha As Date) As List(Of PendienteDto)
+        Dim o = Op
+        Return EnTransaccion(Permisos.ReportesVer, Function(u) LeerPendientes(u, o, fecha.Date, fecha.Date))
+    End Function
+
+    ''' <summary>Cierra el día si no hay pendientes bloqueantes (T37). Guarda las validaciones del cierre.</summary>
+    Public Function CerrarDia(fecha As Date) As ResultadoCierre
+        Dim o = Op
+        Return EnTransaccion(Permisos.CierreEjecutar,
+            Function(u)
+                ' T38: mismo bloqueo que toma cada contabilización → serializa cierre y salidas del día.
+                u.Ejecutar("SELECT id FROM almacen WHERE operacion_id = @o ORDER BY id FOR UPDATE", "o", o)
+                Dim r As New ResultadoCierre()
+                Dim id = u.Escalar("SELECT id FROM cierre_diario WHERE operacion_id = @o AND fecha = @f FOR UPDATE", "o", o, "f", fecha.Date)
+                If id IsNot Nothing AndAlso CStr(u.Escalar("SELECT estado FROM cierre_diario WHERE id = @i", "i", id)) = "cerrado" Then
+                    Throw New ReglaNegocioException("PERIODO_CERRADO", $"El dia {fecha:dd/MM/yyyy} ya esta cerrado.")
+                End If
+                If id Is Nothing Then
+                    id = u.EscalarLong("INSERT INTO cierre_diario(empresa_id, operacion_id, fecha) VALUES (@e, @o, @f) RETURNING id", "e", Sesion.EmpresaId, "o", o, "f", fecha.Date)
+                End If
+                r.Pendientes.AddRange(LeerPendientes(u, o, fecha.Date, fecha.Date))
+                u.Ejecutar("DELETE FROM cierre_validacion WHERE cierre_diario_id = @c", "c", id)
+                For Each p In r.Pendientes
+                    u.Ejecutar("INSERT INTO cierre_validacion(empresa_id, cierre_diario_id, codigo, resultado, detalle) VALUES (@e, @c, @cod, @res, @d)",
+                               "e", Sesion.EmpresaId, "c", id, "cod", p.Codigo, "res", If(p.Bloqueante, "error", "advertencia"), "d", p.Detalle)
+                Next
+                If r.Pendientes.Any(Function(p) p.Bloqueante) Then Return r
+                ' Foto de los movimientos del día: el cierre tiene el bloqueo de los almacenes, así que nada entra después (T38).
+                u.Ejecutar("UPDATE cierre_diario SET estado = 'cerrado', usuario_cierre_id = @u, fecha_cierre = now(), " &
+                           "movimientos_al_cerrar = (SELECT count(*) FROM movimiento_stock m JOIN almacen a ON a.id = m.almacen_id WHERE a.operacion_id = @o AND m.fecha = @f), " &
+                           "valor_al_cerrar_u6 = (SELECT COALESCE(sum(m.valor_u6), 0) FROM movimiento_stock m JOIN almacen a ON a.id = m.almacen_id WHERE a.operacion_id = @o AND m.fecha = @f) " &
+                           "WHERE id = @c", "u", Sesion.UsuarioId, "c", id, "o", o, "f", fecha.Date)
+                r.Cerrado = True
+                Return r
+            End Function)
+    End Function
+
+    Public Function DiaCerrado(fecha As Date) As Boolean
+        Dim o = Op
+        Return EnTransaccion(Permisos.ReportesVer,
+            Function(u) u.Escalar("SELECT 1 FROM cierre_diario WHERE operacion_id = @o AND fecha = @f AND estado = 'cerrado'", "o", o, "f", fecha.Date) IsNot Nothing)
+    End Function
+
+    ''' <summary>Último día cerrado de la operación (Nothing si todavía no hay cierres).</summary>
+    Public Function UltimoDiaCerrado() As Date?
+        Dim o = Op
+        Return EnTransaccion(Permisos.ReportesVer,
+            Function(u) CType(u.Escalar("SELECT max(fecha) FROM cierre_diario WHERE operacion_id = @o AND estado = 'cerrado'", "o", o), Date?))
+    End Function
+
+    ''' <summary>Estado de la cola de envío a la central (distingue confirmado localmente de sincronizado).</summary>
+    Public Function EstadoEnvio() As EstadoEnvioDto
+        Return EnTransaccion(Permisos.ReportesVer,
+            Function(u) u.Consultar(
+                "SELECT count(*) > 0, count(*) FILTER (WHERE estado IN ('pendiente','error')), count(*) FILTER (WHERE estado = 'error'), " &
+                "count(*) FILTER (WHERE estado = 'conflicto'), max(enviado_en) FROM sincronizacion_evento",
+                Function(rd) New EstadoEnvioDto With {
+                    .Configurada = rd.GetBoolean(0), .Pendientes = rd.GetInt64(1), .ConError = rd.GetInt64(2), .EnConflicto = rd.GetInt64(3),
+                    .UltimoEnvio = If(rd.IsDBNull(4), CType(Nothing, DateTimeOffset?), New DateTimeOffset(rd.GetDateTime(4)))}).Single())
+    End Function
+
+    ' ---------- Mes ----------
+
+    ''' <summary>Ingreso neto mensual del servicio (D13). Solo en un mes abierto.</summary>
+    Public Sub RegistrarIngreso(operacionServicioId As Long, anio As Integer, mes As Integer, importeNetoU6 As Long, ajustesU6 As Long, fuente As String)
+        If importeNetoU6 < 0 Then Throw New ReglaNegocioException("CANTIDAD_INVALIDA", "El importe no puede ser negativo.")
+        Dim o = Op
+        EnTransaccion(Permisos.CierreEjecutar,
+            Function(u)
+                ExigirServicio(u, operacionServicioId, o)
+                Dim periodoId = Periodo(u, o, anio, mes)
+                Return u.Ejecutar("INSERT INTO ingreso_servicio(empresa_id, operacion_servicio_id, periodo_id, importe_neto_u6, ajustes_u6, moneda, fuente) " &
+                                  "VALUES (@e, @os, @p, @i, @a, 'PEN', @f) ON CONFLICT (empresa_id, operacion_servicio_id, periodo_id) " &
+                                  "DO UPDATE SET importe_neto_u6 = EXCLUDED.importe_neto_u6, ajustes_u6 = EXCLUDED.ajustes_u6, fuente = EXCLUDED.fuente, origen = 'manual'",
+                                  "e", Sesion.EmpresaId, "os", operacionServicioId, "p", periodoId, "i", importeNetoU6, "a", ajustesU6,
+                                  "f", ServicioAdministracion.Requerido(fuente, "fuente del ingreso"))
+            End Function)
+    End Sub
+
+    ''' <summary>
+    ''' Venta del mes de cada servicio desde la estructura (D13): por cada minuta aprobada, la venta real cargada o, si no
+    ''' se cargó, la venta prevista (costo previsto / Food Cost objetivo). No reemplaza un ingreso manual ni uno de contrato.
+    ''' </summary>
+    Public Function GenerarVentaDesdeMinutas(anio As Integer, mes As Integer) As List(Of IngresoGeneradoDto)
+        Dim o = Op
+        Return EnTransaccion(Permisos.CierreEjecutar,
+            Function(u)
+                Dim periodoId = Periodo(u, o, anio, mes)
+                Dim desde As New Date(anio, mes, 1), hasta = New Date(anio, mes, 1).AddMonths(1).AddDays(-1)
+                Dim r As New List(Of IngresoGeneradoDto)
+                For Each s In u.Consultar(
+                    "SELECT os.id, s.nombre || ' - ' || rg.nombre, i.origen, " &
+                    "  count(m.id) AS minutas, count(m.id) FILTER (WHERE COALESCE(vs.importe_u6, m.venta_prevista_u6) IS NULL) AS sin_venta, " &
+                    "  COALESCE(sum(COALESCE(vs.importe_u6, m.venta_prevista_u6)), 0)::bigint AS venta, count(vs.id) AS reales, " &
+                    "  string_agg(DISTINCT (m.food_cost_objetivo_bp / 100.0)::numeric(6,2)::text, ', ') AS objetivos " &
+                    "FROM operacion_servicio os JOIN servicio s ON s.id = os.servicio_id JOIN regimen rg ON rg.id = os.regimen_id " &
+                    "LEFT JOIN ingreso_servicio i ON i.operacion_servicio_id = os.id AND i.periodo_id = @p " &
+                    "LEFT JOIN minuta m ON m.operacion_servicio_id = os.id AND m.estado IN ('aprobada','cerrada') AND m.fecha BETWEEN @d AND @h " &
+                    "LEFT JOIN venta_servicio vs ON vs.minuta_id = m.id " &
+                    "WHERE os.operacion_id = @o GROUP BY os.id, s.nombre, rg.nombre, i.origen ORDER BY 2",
+                    Function(rd) (Id:=rd.GetInt64(0), Nombre:=rd.GetString(1), Origen:=rd.TextoONada("origen"), Minutas:=rd.GetInt64(3),
+                                  SinVenta:=rd.GetInt64(4), Venta:=rd.GetInt64(5), Reales:=rd.GetInt64(6), Objetivos:=rd.TextoONada("objetivos")),
+                    "p", periodoId, "d", desde, "h", hasta, "o", o)
+                    If s.Minutas = 0 Then
+                        r.Add(New IngresoGeneradoDto With {.Servicio = s.Nombre, .Estado = "sin minutas", .Detalle = "No hay minutas aprobadas en el mes"})
+                        Continue For
+                    End If
+                    If s.Origen = "manual" OrElse s.Origen = "contrato" Then
+                        r.Add(New IngresoGeneradoDto With {.Servicio = s.Nombre, .ImporteU6 = s.Venta, .Estado = s.Origen & " conservado",
+                                                           .Detalle = $"Ya hay un ingreso de origen {s.Origen}; no se reemplaza"})
+                        Continue For
+                    End If
+                    Dim fuente = $"Estructura: {s.Minutas} minutas ({s.Reales} con venta real cargada, el resto con venta teorica), Food Cost objetivo {s.Objetivos} %" &
+                                 If(s.SinVenta > 0, $"; {s.SinVenta} minutas sin venta por costo pendiente", "")
+                    u.Ejecutar("INSERT INTO ingreso_servicio(empresa_id, operacion_servicio_id, periodo_id, importe_neto_u6, ajustes_u6, moneda, fuente, origen) " &
+                               "VALUES (@e, @os, @p, @i, 0, (SELECT moneda FROM empresa WHERE id = @e), @f, 'estructura') " &
+                               "ON CONFLICT (empresa_id, operacion_servicio_id, periodo_id) DO UPDATE SET importe_neto_u6 = EXCLUDED.importe_neto_u6, fuente = EXCLUDED.fuente " &
+                               "WHERE ingreso_servicio.origen = 'estructura'",
+                               "e", Sesion.EmpresaId, "os", s.Id, "p", periodoId, "i", s.Venta, "f", fuente)
+                    r.Add(New IngresoGeneradoDto With {.Servicio = s.Nombre, .ImporteU6 = s.Venta, .Estado = If(s.SinVenta > 0, "generado con pendientes", "generado"), .Detalle = fuente})
+                Next
+                Return r
+            End Function)
+    End Function
+
+    ''' <summary>Objetivo de Food Cost del servicio en puntos básicos (40 % = 4000).</summary>
+    Public Sub FijarObjetivo(operacionServicioId As Long, objetivoBp As Long?)
+        If objetivoBp.HasValue AndAlso (objetivoBp.Value <= 0 OrElse objetivoBp.Value > 10000) Then Throw New ReglaNegocioException("DATO_INVALIDO", "El objetivo va de 0,01 % a 100 %.")
+        Dim o = Op
+        EnTransaccion(Permisos.CierreEjecutar,
+            Function(u)
+                ExigirServicio(u, operacionServicioId, o)
+                Return u.Ejecutar("UPDATE operacion_servicio SET food_cost_objetivo_bp = @b WHERE id = @os",
+                                  "b", If(objetivoBp.HasValue, CType(objetivoBp.Value, Object), Nothing), "os", operacionServicioId)
+            End Function)
+    End Sub
+
+    ''' <summary>Reporte mensual por servicio: raciones, costo de alimentos, ingreso y Food Cost (T40/T41).</summary>
+    Public Function ReporteMensual(anio As Integer, mes As Integer) As ReporteMensualDto
+        Dim o = Op
+        Return EnTransaccion(Permisos.ReportesVer, Function(u) LeerReporte(u, o, anio, mes))
+    End Function
+
+    ''' <summary>
+    ''' Cierra el mes: todos los días con actividad deben estar cerrados y sin pendientes. Después, movimientos,
+    ''' ingresos y gastos del mes no cambian y el reporte se repite igual (T48).
+    ''' </summary>
+    Public Function CerrarMes(anio As Integer, mes As Integer) As ResultadoCierre
+        Dim o = Op
+        Return EnTransaccion(Permisos.CierreEjecutar,
+            Function(u)
+                u.Ejecutar("SELECT id FROM almacen WHERE operacion_id = @o ORDER BY id FOR UPDATE", "o", o)
+                Dim id = Periodo(u, o, anio, mes)
+                Dim desde As New Date(anio, mes, 1), hasta = New Date(anio, mes, 1).AddMonths(1).AddDays(-1)
+                Dim r As New ResultadoCierre()
+                r.Pendientes.AddRange(LeerPendientes(u, o, desde, hasta))
+                For Each f In u.Consultar(
+                    "SELECT DISTINCT f FROM (SELECT m.fecha AS f FROM movimiento_stock m JOIN almacen a ON a.id = m.almacen_id WHERE a.operacion_id = @o AND m.fecha BETWEEN @d AND @h " &
+                    "UNION SELECT mi.fecha FROM minuta mi JOIN operacion_servicio os ON os.id = mi.operacion_servicio_id WHERE os.operacion_id = @o AND mi.fecha BETWEEN @d AND @h) x " &
+                    "WHERE NOT EXISTS (SELECT 1 FROM cierre_diario c WHERE c.operacion_id = @o AND c.fecha = x.f AND c.estado = 'cerrado') ORDER BY f",
+                    Function(rd) rd.GetDateTime(0), "o", o, "d", desde, "h", hasta)
+                    r.Pendientes.Add(New PendienteDto With {.Codigo = "DIA_ABIERTO", .Detalle = $"El dia {f:dd/MM/yyyy} tiene actividad y no esta cerrado", .Bloqueante = True})
+                Next
+                For Each s In LeerReporte(u, o, anio, mes).Servicios.Where(Function(x) x.IngresoU6 Is Nothing AndAlso x.CostoAlimentosU6 > 0)
+                    r.Pendientes.Add(New PendienteDto With {.Codigo = "INGRESO_FALTANTE", .Detalle = $"{s.Servicio} - {s.Regimen}: sin ingreso del mes (Food Cost no calculable)", .Bloqueante = False})
+                Next
+                u.Ejecutar("DELETE FROM cierre_validacion WHERE periodo_id = @p", "p", id)
+                For Each p In r.Pendientes
+                    u.Ejecutar("INSERT INTO cierre_validacion(empresa_id, periodo_id, codigo, resultado, detalle) VALUES (@e, @p, @c, @r, @d)",
+                               "e", Sesion.EmpresaId, "p", id, "c", p.Codigo, "r", If(p.Bloqueante, "error", "advertencia"), "d", p.Detalle)
+                Next
+                If r.Pendientes.Any(Function(p) p.Bloqueante) Then Return r
+                u.Ejecutar("UPDATE periodo_mensual SET estado = 'cerrado', metodo_valoracion = 'promedio_movil', usuario_cierre_id = @u, fecha_cierre = now() WHERE id = @p",
+                           "u", Sesion.UsuarioId, "p", id)
+                r.Cerrado = True
+                Return r
+            End Function)
+    End Function
+
+    ' ---------- Auxiliares ----------
+
+    Private Function LeerPendientes(u As UnidadDeTrabajo, o As Long, desde As Date, hasta As Date) As List(Of PendienteDto)
+        Dim p As New List(Of PendienteDto)
+        Dim agregar = Sub(codigo As String, bloqueante As Boolean, sql As String)
+                          For Each d In u.Consultar(sql, Function(rd) rd.GetString(0), "o", o, "d", desde, "h", hasta)
+                              p.Add(New PendienteDto With {.Codigo = codigo, .Detalle = d, .Bloqueante = bloqueante})
+                          Next
+                      End Sub
+        agregar("MINUTA_SIN_APROBAR", True,
+            "SELECT 'Minuta ' || s.nombre || ' del ' || to_char(m.fecha, 'DD/MM/YYYY') || ' en borrador' FROM minuta m JOIN operacion_servicio os ON os.id = m.operacion_servicio_id " &
+            "JOIN servicio s ON s.id = os.servicio_id WHERE os.operacion_id = @o AND m.fecha BETWEEN @d AND @h AND m.estado = 'borrador' ORDER BY m.fecha")
+        agregar("PRODUCCION_SIN_REGISTRAR", True,
+            "SELECT 'Minuta ' || s.nombre || ' del ' || to_char(m.fecha, 'DD/MM/YYYY') || ' sin raciones producidas/servidas' FROM minuta m " &
+            "JOIN operacion_servicio os ON os.id = m.operacion_servicio_id JOIN servicio s ON s.id = os.servicio_id " &
+            "WHERE os.operacion_id = @o AND m.fecha BETWEEN @d AND @h AND m.estado = 'aprobada' AND NOT EXISTS (SELECT 1 FROM produccion pr WHERE pr.minuta_id = m.id) ORDER BY m.fecha")
+        agregar("REQUERIMIENTO_PENDIENTE", True,
+            "SELECT 'Requerimiento ' || q.numero || ' sin entregar' FROM requerimiento q JOIN almacen a ON a.id = q.almacen_id " &
+            "WHERE a.operacion_id = @o AND q.fecha BETWEEN @d AND @h AND q.estado = 'borrador' ORDER BY q.numero")
+        agregar("DOCUMENTO_BORRADOR", True,
+            "SELECT 'Documento ' || d.numero || ' en borrador' FROM documento_stock d JOIN almacen a ON a.id = d.almacen_id " &
+            "WHERE a.operacion_id = @o AND d.fecha BETWEEN @d AND @h AND d.estado = 'borrador'")
+        agregar("RECEPCION_BORRADOR", True,
+            "SELECT 'Recepcion ' || r.numero || ' en borrador' FROM recepcion r JOIN almacen a ON a.id = r.almacen_id " &
+            "WHERE a.operacion_id = @o AND r.fecha_recepcion BETWEEN @d AND @h AND r.estado = 'borrador'")
+        agregar("TRANSITO_PENDIENTE", True,
+            "SELECT 'Traspaso ' || t.numero || ' enviado el ' || to_char(t.fecha_envio, 'DD/MM/YYYY') || ' sin recibir' FROM traspaso_transito t " &
+            "WHERE t.operacion_id = @o AND t.fecha_envio BETWEEN @d AND @h AND t.estado = 'enviado' ORDER BY t.fecha_envio, t.numero")
+        agregar("INVENTARIO_ABIERTO", True,
+            "SELECT 'Inventario ' || i.numero || ' (' || i.estado || ') con diferencias sin tratar' FROM inventario i JOIN almacen a ON a.id = i.almacen_id " &
+            "WHERE a.operacion_id = @o AND i.fecha_corte <= @h AND i.estado <> 'cerrado'")
+        agregar("CONCILIACION", True,
+            "SELECT 'Saldo y movimientos no coinciden: almacen ' || a.codigo || ', variante ' || v.codigo FROM v_conciliacion_saldo c " &
+            "JOIN almacen a ON a.id = c.almacen_id JOIN variante_producto v ON v.id = c.variante_id WHERE a.operacion_id = @o")
+        agregar("PEDIDO_VENCIDO", False,
+            "SELECT 'Pedido ' || p.numero || ' con entrega vencida y saldo pendiente' FROM pedido_compra p JOIN almacen a ON a.id = p.almacen_id " &
+            "WHERE a.operacion_id = @o AND p.estado IN ('aprobado','enviado','parcial') AND EXISTS (SELECT 1 FROM pedido_detalle d WHERE d.pedido_id = p.id AND d.fecha_entrega <= @h)")
+        Return p
+    End Function
+
+    ' ---------- Sprint 5: checklist con "Ir a", calendario del mes y cierre mensual en 8 pasos ----------
+
+    ''' <summary>Dónde se resuelve cada pendiente en la aplicación (columna "Ir a").</summary>
+    Public Shared ReadOnly Property DestinoPendiente As IReadOnlyDictionary(Of String, String) = New Dictionary(Of String, String) From {
+        {"MINUTA_SIN_APROBAR", "Menus > Minutas y necesidades"},
+        {"PRODUCCION_SIN_REGISTRAR", "Menus > Produccion > Registrar produccion"},
+        {"REQUERIMIENTO_PENDIENTE", "Menus > Produccion > Entregar (almacen)"},
+        {"DOCUMENTO_BORRADOR", "Almacen > Stock e inventario inicial"},
+        {"RECEPCION_BORRADOR", "Almacen > Stock e inventario inicial > Recibir pedido"},
+        {"TRANSITO_PENDIENTE", "Almacen > Stock e inventario inicial > Recibir traspaso"},
+        {"INVENTARIO_ABIERTO", "Almacen > Inventario fisico"},
+        {"CONCILIACION", "Almacen > Stock e inventario inicial"},
+        {"PEDIDO_VENCIDO", "Abastecimiento > Prevision y pedidos"}}
+
+    Private Shared ReadOnly NombreControl As IReadOnlyDictionary(Of String, String) = New Dictionary(Of String, String) From {
+        {"MINUTA_SIN_APROBAR", "Minutas aprobadas"},
+        {"PRODUCCION_SIN_REGISTRAR", "Produccion registrada"},
+        {"REQUERIMIENTO_PENDIENTE", "Requerimientos entregados"},
+        {"DOCUMENTO_BORRADOR", "Documentos de stock confirmados"},
+        {"RECEPCION_BORRADOR", "Recepciones confirmadas"},
+        {"TRANSITO_PENDIENTE", "Traspasos enviados sin recibir"},
+        {"INVENTARIO_ABIERTO", "Inventarios cerrados"},
+        {"CONCILIACION", "Saldo concilia con movimientos"},
+        {"PEDIDO_VENCIDO", "Pedidos sin entrega vencida"}}
+
+    ''' <summary>Checklist del día: un control por cada tipo de pendiente, con estado, cantidad y "Ir a".</summary>
+    Public Function ChecklistDia(fecha As Date) As List(Of ControlCierreDto)
+        Dim lista = Pendientes(fecha)
+        Return DestinoPendiente.Keys.Select(Function(codigo)
+                                                Dim cuantos = lista.Where(Function(p) p.Codigo = codigo).ToList()
+                                                Return New ControlCierreDto With {
+                                                    .Control = NombreControl(codigo),
+                                                    .Estado = If(cuantos.Count = 0, "OK", If(cuantos.Any(Function(p) p.Bloqueante), "ERROR", "AVISO")),
+                                                    .Cantidad = cuantos.Count,
+                                                    .Detalle = If(cuantos.Count = 0, "Sin pendientes", cuantos(0).Detalle),
+                                                    .IrA = DestinoPendiente(codigo)}
+                                            End Function).ToList()
+    End Function
+
+    ''' <summary>Estado de cada día del mes: Cerrado, Con pendientes (impide cerrar), Listo o Abierto (día futuro).</summary>
+    Public Function CalendarioMes(anio As Integer, mes As Integer) As List(Of DiaCalendarioDto)
+        Dim dias As New List(Of DiaCalendarioDto)
+        Dim primero As New Date(anio, mes, 1)
+        For i = 0 To primero.AddMonths(1).AddDays(-1).Day - 1
+            Dim fecha = primero.AddDays(i)
+            Dim estado As String
+            If DiaCerrado(fecha) Then
+                estado = "Cerrado"
+            ElseIf fecha > Date.Today Then
+                estado = "Abierto"
+            ElseIf Pendientes(fecha).Any(Function(p) p.Bloqueante) Then
+                estado = "Con pendientes"
+            Else
+                estado = "Listo"
+            End If
+            dias.Add(New DiaCalendarioDto With {.Fecha = fecha, .Estado = estado})
+        Next
+        Return dias
+    End Function
+
+    ''' <summary>El mismo calendario en semanas (lunes a domingo): cada celda muestra el día y su estado. Fuera del mes, vacía.</summary>
+    Public Function CalendarioSemanal(anio As Integer, mes As Integer) As List(Of SemanaCalendarioDto)
+        Dim dias = CalendarioMes(anio, mes)
+        Dim primero As New Date(anio, mes, 1)
+        Dim ultimo = primero.AddMonths(1).AddDays(-1)
+        Dim semanas As New List(Of SemanaCalendarioDto)
+        Dim inicio = primero.AddDays(-((CInt(primero.DayOfWeek) + 6) Mod 7))
+        While inicio <= ultimo
+            Dim semana As New SemanaCalendarioDto With {.Semana = $"{inicio:dd/MM} al {inicio.AddDays(6):dd/MM}"}
+            For d = 0 To 6
+                Dim f = inicio.AddDays(d)
+                If f.Month = mes AndAlso f.Year = anio Then semana.Asignar(d, $"{f.Day} {dias(f.Day - 1).Estado}")
+            Next
+            semanas.Add(semana)
+            inicio = inicio.AddDays(7)
+        End While
+        Return semanas
+    End Function
+
+    ''' <summary>Cierre mensual en 8 pasos: documentos, día final, gastos, inventario, ajustes, resultado, integración y cierre.</summary>
+    Public Function ChecklistMes(anio As Integer, mes As Integer) As List(Of PasoCierreDto)
+        Dim o = Op
+        Dim desde As New Date(anio, mes, 1)
+        Dim hasta = desde.AddMonths(1).AddDays(-1)
+        Dim pendientes As List(Of PendienteDto) = EnTransaccion(Permisos.ReportesVer, Function(u) LeerPendientes(u, o, desde, hasta))
+        Dim dias = CalendarioMes(anio, mes)
+        Dim pasadosSinCerrar = dias.Where(Function(d) d.Fecha <= Date.Today AndAlso d.Estado <> "Cerrado").Count()
+        Dim resultado As ReporteMensualDto = EnTransaccion(Permisos.ReportesVer, Function(u) LeerReporte(u, o, anio, mes))
+        Dim cuantos = Function(codigo As String) pendientes.Where(Function(p) p.Codigo = codigo).Count()
+        Dim pasos As New List(Of PasoCierreDto) From {
+            New PasoCierreDto With {.Paso = 1, .Nombre = "Documentos", .Estado = If(cuantos("DOCUMENTO_BORRADOR") + cuantos("RECEPCION_BORRADOR") + cuantos("REQUERIMIENTO_PENDIENTE") = 0, "OK", "PENDIENTE"),
+                                    .Detalle = $"{cuantos("DOCUMENTO_BORRADOR") + cuantos("RECEPCION_BORRADOR") + cuantos("REQUERIMIENTO_PENDIENTE")} documentos en borrador"},
+            New PasoCierreDto With {.Paso = 2, .Nombre = "Dia final", .Estado = If(pasadosSinCerrar = 0, "OK", "PENDIENTE"),
+                                    .Detalle = $"{pasadosSinCerrar} dias pasados sin cerrar"},
+            New PasoCierreDto With {.Paso = 3, .Nombre = "Gastos", .Estado = "INFO", .Detalle = "Revisar gastos del mes en Contratos y resultados"},
+            New PasoCierreDto With {.Paso = 4, .Nombre = "Inventario", .Estado = If(cuantos("INVENTARIO_ABIERTO") = 0, "OK", "PENDIENTE"),
+                                    .Detalle = $"{cuantos("INVENTARIO_ABIERTO")} inventarios sin cerrar"},
+            New PasoCierreDto With {.Paso = 5, .Nombre = "Ajustes", .Estado = If(cuantos("CONCILIACION") = 0, "OK", "PENDIENTE"),
+                                    .Detalle = $"{cuantos("CONCILIACION")} diferencias de conciliacion"},
+            New PasoCierreDto With {.Paso = 6, .Nombre = "Resultado", .Estado = If(resultado.Estado = "cerrado", "OK", "INFO"),
+                                    .Detalle = $"Periodo {resultado.Estado}"},
+            New PasoCierreDto With {.Paso = 7, .Nombre = "Integracion", .Estado = "INFO", .Detalle = "Envio a la central: ver Continuidad"},
+            New PasoCierreDto With {.Paso = 8, .Nombre = "Cierre del mes", .Estado = If(resultado.Estado = "cerrado", "OK", "PENDIENTE"),
+                                    .Detalle = If(resultado.Estado = "cerrado", "Mes cerrado", "Cerrar cuando los pasos 1, 2, 4 y 5 esten en OK")}}
+        Return pasos
+    End Function
+
+    Friend Shared Function LeerReporte(u As UnidadDeTrabajo, o As Long, anio As Integer, mes As Integer) As ReporteMensualDto
+        Dim desde As New Date(anio, mes, 1), hasta = New Date(anio, mes, 1).AddMonths(1).AddDays(-1)
+        Dim r As New ReporteMensualDto With {.Anio = anio, .Mes = mes}
+        r.Estado = CStr(If(u.Escalar("SELECT estado FROM periodo_mensual WHERE operacion_id = @o AND anio = @a AND mes = @m", "o", o, "a", anio, "m", mes), "abierto"))
+        For Each s In u.Consultar(
+            "SELECT os.id, s.nombre, rg.nombre, os.food_cost_objetivo_bp, " &
+            "  COALESCE((SELECT sum(pr.raciones_servidas) FROM produccion pr WHERE pr.operacion_servicio_id = os.id AND pr.fecha BETWEEN @d AND @h), 0)::bigint, " &
+            "  COALESCE((SELECT sum(CASE WHEN dc.tipo = 'salida_produccion' THEN l.valor_u6 ELSE -l.valor_u6 END) FROM documento_stock dc " &
+            "            JOIN documento_stock_detalle l ON l.documento_id = dc.id WHERE dc.operacion_servicio_id = os.id AND dc.estado = 'confirmado' " &
+            "            AND dc.tipo IN ('salida_produccion','devolucion_produccion') AND dc.fecha BETWEEN @d AND @h), 0)::bigint, " &
+            "  (SELECT i.importe_neto_u6 + i.ajustes_u6 FROM ingreso_servicio i JOIN periodo_mensual pm ON pm.id = i.periodo_id " &
+            "    WHERE i.operacion_servicio_id = os.id AND pm.anio = @a AND pm.mes = @m) " &
+            "FROM operacion_servicio os JOIN servicio s ON s.id = os.servicio_id JOIN regimen rg ON rg.id = os.regimen_id WHERE os.operacion_id = @o ORDER BY s.nombre, rg.nombre",
+            Function(rd) (Id:=rd.GetInt64(0), Servicio:=rd.GetString(1), Regimen:=rd.GetString(2), Objetivo:=CType(If(rd.IsDBNull(3), VentaEstructura.ObjetivoPorDefectoBp, rd.GetInt64(3)), Long?),
+                          Raciones:=rd.GetInt64(4), Costo:=rd.GetInt64(5), Ingreso:=If(rd.IsDBNull(6), CType(Nothing, Long?), rd.GetInt64(6))),
+            "o", o, "d", desde, "h", hasta, "a", anio, "m", mes)
+            Dim fc = FoodCost.Calcular(s.Costo, If(s.Ingreso, 0L), s.Objetivo)
+            r.Servicios.Add(New LineaReporteServicio With {
+                .OperacionServicioId = s.Id, .Servicio = s.Servicio, .Regimen = s.Regimen, .RacionesServidas = s.Raciones, .CostoAlimentosU6 = s.Costo,
+                .CostoPorRacionU6 = If(s.Raciones > 0, EscalaU6.MultiplicarDividir(s.Costo, 1, s.Raciones), CType(Nothing, Long?)),
+                .IngresoU6 = s.Ingreso, .FoodCostU6 = fc.PorcentajeU6, .ObjetivoU6 = If(s.Objetivo.HasValue, s.Objetivo.Value * 10000L, CType(Nothing, Long?)),
+                .DesviacionPuntosU6 = fc.DesviacionPuntosU6, .PresupuestoU6 = fc.PresupuestoU6, .DiferenciaPresupuestoU6 = fc.DiferenciaPresupuestoU6,
+                .Observacion = If(fc.Calculable, "", If(s.Ingreso.HasValue, "Ingreso cero o negativo: Food Cost no calculable", "Sin ingreso registrado: Food Cost no calculable"))})
+        Next
+        Dim otros = u.Consultar(
+            "SELECT COALESCE(sum(l.valor_u6) FILTER (WHERE d.tipo = 'baja'), 0)::bigint, " &
+            "       COALESCE(sum(CASE d.tipo WHEN 'ajuste_positivo' THEN l.valor_u6 WHEN 'ajuste_negativo' THEN -l.valor_u6 ELSE 0 END), 0)::bigint " &
+            "FROM documento_stock d JOIN almacen a ON a.id = d.almacen_id JOIN documento_stock_detalle l ON l.documento_id = d.id " &
+            "WHERE a.operacion_id = @o AND d.estado = 'confirmado' AND d.fecha BETWEEN @d AND @h",
+            Function(rd) (rd.GetInt64(0), rd.GetInt64(1)), "o", o, "d", desde, "h", hasta).Single()
+        r.BajasU6 = otros.Item1
+        r.AjusteInventarioU6 = otros.Item2
+        r.TotalCostoAlimentosU6 = r.Servicios.Sum(Function(s) s.CostoAlimentosU6)
+        r.TotalIngresoU6 = r.Servicios.Sum(Function(s) If(s.IngresoU6, 0L))
+        r.FoodCostTotalU6 = FoodCost.Calcular(r.TotalCostoAlimentosU6, r.TotalIngresoU6, Nothing).PorcentajeU6
+        Return r
+    End Function
+
+    Private Function Periodo(u As UnidadDeTrabajo, o As Long, anio As Integer, mes As Integer) As Long
+        Return PeriodoAbierto(u, Sesion.EmpresaId, o, anio, mes)
+    End Function
+
+    ''' <summary>Id del período (lo crea si no existe) bloqueado; PERIODO_CERRADO si ya se cerró.</summary>
+    Friend Shared Function PeriodoAbierto(u As UnidadDeTrabajo, empresaId As Long, o As Long, anio As Integer, mes As Integer) As Long
+        If mes < 1 OrElse mes > 12 Then Throw New ReglaNegocioException("DATO_INVALIDO", "Mes invalido.")
+        u.Ejecutar("INSERT INTO periodo_mensual(empresa_id, operacion_id, anio, mes) VALUES (@e, @o, @a, @m) ON CONFLICT (empresa_id, operacion_id, anio, mes) DO NOTHING",
+                   "e", empresaId, "o", o, "a", anio, "m", mes)
+        Dim p = u.Consultar("SELECT id, estado FROM periodo_mensual WHERE operacion_id = @o AND anio = @a AND mes = @m FOR UPDATE",
+                            Function(rd) (rd.GetInt64(0), rd.GetString(1)), "o", o, "a", anio, "m", mes).Single()
+        If p.Item2 = "cerrado" Then Throw New ReglaNegocioException("PERIODO_CERRADO", $"El mes {mes:00}/{anio} ya esta cerrado.")
+        Return p.Item1
+    End Function
+
+    Friend Shared Sub ExigirServicio(u As UnidadDeTrabajo, operacionServicioId As Long, o As Long)
+        If u.Escalar("SELECT 1 FROM operacion_servicio WHERE id = @os AND operacion_id = @o", "os", operacionServicioId, "o", o) Is Nothing Then
+            Throw New ReglaNegocioException("OPERACION_AJENA", "El servicio no pertenece a la operacion seleccionada.")
+        End If
+    End Sub
+
+End Class
+
+''' <summary>Un control del checklist del día: estado (OK, AVISO o ERROR), cantidad, detalle y dónde resolverlo.</summary>
+Public NotInheritable Class ControlCierreDto
+    Public Property Control As String
+    Public Property Estado As String
+    Public Property Cantidad As Long
+    Public Property Detalle As String
+    Public Property IrA As String
+End Class
+
+''' <summary>Día del calendario del mes con su estado.</summary>
+''' <summary>Una semana del calendario mensual: una celda por día (lunes a domingo).</summary>
+Public NotInheritable Class SemanaCalendarioDto
+    Public Property Semana As String
+    Public Property Lunes As String = ""
+    Public Property Martes As String = ""
+    Public Property Miercoles As String = ""
+    Public Property Jueves As String = ""
+    Public Property Viernes As String = ""
+    Public Property Sabado As String = ""
+    Public Property Domingo As String = ""
+
+    ''' <summary>Pone el texto del día: 0 = lunes ... 6 = domingo.</summary>
+    Public Sub Asignar(indice As Integer, texto As String)
+        Select Case indice
+            Case 0 : Lunes = texto
+            Case 1 : Martes = texto
+            Case 2 : Miercoles = texto
+            Case 3 : Jueves = texto
+            Case 4 : Viernes = texto
+            Case 5 : Sabado = texto
+            Case Else : Domingo = texto
+        End Select
+    End Sub
+End Class
+
+Public NotInheritable Class DiaCalendarioDto
+    Public Property Fecha As Date
+    Public Property Estado As String
+End Class
+
+''' <summary>Paso del cierre mensual (OK, PENDIENTE o INFO).</summary>
+Public NotInheritable Class PasoCierreDto
+    Public Property Paso As Integer
+    Public Property Nombre As String
+    Public Property Estado As String
+    Public Property Detalle As String
+End Class

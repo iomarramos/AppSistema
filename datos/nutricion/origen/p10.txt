@@ -1,0 +1,113 @@
+TABLAS PERUANAS DE COMPOSICIÓN DE ALIMENTOS
+
+Actualizado
+
+GRUPO A. CEREALES Y DERIVADOS
+
+CÓDIGO
+
+NOMBRE DEL ALIMENTO
+
+A51
+
+Quinua, blanca de Junín
+
+GÉNERO - ESPECIE - VARIEDAD Chenopodium quinoa Willd.
+
+OTROS NOMBRES Ayara, kiuna, quinoa
+
+Composición en 100 g de alimento
+
+Componente <IDENTIFICADOR>
+
+Unidad
+
+Energía <ENERC>
+
+kcal
+
+Energía <ENERC>
+
+kJ
+
+Agua <WATER>
+
+g
+
+Proteínas <PROCNT>
+
+g
+
+Grasa total <FAT>
+
+g
+
+Carbohidratos totales <CHOCDF>
+
+g
+
+Carbohidratos disponibles <CHOAVL>
+
+g
+
+Fibra dietaria <FIBTG>
+
+g
+
+Cenizas <ASH>
+
+g
+
+Calcio <CA>
+
+mg
+
+Fósforo <P>
+
+mg
+
+Zinc <ZN>
+
+mg
+
+Hierro <FE>
+
+mg
+
+Betacaroteno equivalentes totales <CARTBQ>
+
+g
+
+Retinol
+
+g
+
+Vitamina A equivalentes totales <VITA>
+
+g
+
+Tiamina <THIA>
+
+mg
+
+Riboflavina <RIBF>
+
+mg
+
+Niacina <NIA>
+
+mg
+
+Vitamina C <VITC>
+
+mg
+
+Cantidad 334 1396 12,8 12,5 6,5 66,0 56,0 9,98 2,19 85 155 3,54 3,03 ·
+0,00 1,55 0,4 0,77
+· 0,00
+
+0,00 el nutriente no se encuentra en el alimento o está en trazas. "· "no se ha reportado o se desconoce el dato.
+
+Investigar para proteger la salud
+
+

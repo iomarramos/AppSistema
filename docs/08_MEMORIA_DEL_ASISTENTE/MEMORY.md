@@ -1,0 +1,1 @@
+- [Estado sesión reportes y producción](estado-sesion-reportes-produccion.md) — qué está hecho, migraciones pendientes en la sede y formatos faltantes (al 2026-10-05)
