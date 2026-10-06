@@ -2,7 +2,7 @@ Imports Xunit
 Imports AppSistema.Dominio.Catalogo
 Imports AppSistema.Dominio.Numerico
 
-' Datos ficticios. Los IDs T04.. corresponden a la matriz de pruebas de la guía (docs/guia_construccion/07).
+' Datos ficticios. Los IDs T04.. corresponden a la matriz de pruebas de la guía (docs/06_GUIA_DE_CONSTRUCCION/07).
 Public Class CatalogoTests
 
     Private Shared Function CajaDe4x4L() As EmpaqueCompra

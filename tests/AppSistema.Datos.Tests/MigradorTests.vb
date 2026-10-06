@@ -12,8 +12,8 @@ Public Class MigradorTests
             Assert.Equal(Migrador.Disponibles().Count, segunda.Count)
             Assert.True(segunda.All(Function(m) Not m.Aplicada))
             Assert.Equal(CLng(Migrador.Disponibles().Count), Convert.ToInt64(bd.Escalar("SELECT count(*) FROM esquema_migracion")))
-            Assert.Equal(72L, Convert.ToInt64(bd.Escalar(
-                "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE'")))  ' 59 del esquema + esquema_migracion + 7 de sincronizacion (V012) + 3 de teorico vs real (V015) + producto_operacion (V018) + usuario_permiso (V021)
+            Assert.Equal(75L, Convert.ToInt64(bd.Escalar(
+                "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE'")))  ' 59 del esquema + esquema_migracion + 7 de sincronizacion (V012) + 3 de teorico vs real (V015) + producto_operacion (V018) + usuario_permiso (V021) + devolucion_solicitud (V024) + minuta_ajuste_operativo (V026)
         End Using
     End Sub
 
@@ -34,7 +34,7 @@ Public Class MigradorTests
             "minuta.empresa_id,usuario_id", "movimiento_stock.empresa_id,usuario_id", "operacion_servicio.empresa_id,regimen_id",
             "pedido_compra.empresa_id,aprobador_id", "pedido_compra.empresa_id,usuario_id", "periodo_mensual.empresa_id,usuario_cierre_id",
             "prevision.empresa_id,usuario_id", "produccion.empresa_id,usuario_id", "producto_base.empresa_id,unidad_base_id", "producto_operacion.empresa_id,usuario_id",
-            "recepcion.empresa_id,usuario_id", "recepcion_detalle.empresa_id,empaque_id", "requerimiento.empresa_id,aprobador_id",
+            "recepcion.empresa_id,usuario_id", "recepcion_detalle.empresa_id,empaque_id", "requerimiento.empresa_id,aprobado_por", "requerimiento.empresa_id,aprobador_id",
             "requerimiento.empresa_id,usuario_id", "sincronizacion_evento.empresa_id,operacion_id", "variante_producto.empresa_id,marca_id",
             "venta_servicio.empresa_id,usuario_id"})
         Using bd = BaseDatosPrueba.Crear()

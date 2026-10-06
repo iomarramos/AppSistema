@@ -192,6 +192,70 @@ Public Class SeguridadCentralTests
         End Using
     End Sub
 
+    ''' <summary>
+    ''' Perfiles de la operación (V022): cada perfil tiene lo que le toca y no lo que corresponde a otro. El almacenero
+    ''' ejecuta; el jefe de almacén aprueba inventarios y ajustes; el jefe de operación aprueba y cierra sin mover stock;
+    ''' el chef programa y produce sin precios ni stock.
+    ''' </summary>
+    <FactPostgres>
+    Public Sub Perfiles_de_la_operacion_tienen_solo_lo_que_les_corresponde()
+        Using bd = BaseDatosPrueba.Crear()
+            Call New ServicioInstalacion(bd.CadenaAdmin).CrearDueno("A", "dueno", "Superusuario", ClaveDueno)
+            Dim admin As New ServicioAdministracion(bd.CadenaAplicacion, bd.Sesion("A"))
+            For Each rol In {"ALMACEN", "JEFE_ALMACEN", "OPERACIONES", "CHEF", "PLANIFICADOR_CENTRAL", "COMPRAS_CENTRAL"}
+                admin.CrearUsuario(rol.ToLower(), rol, Clave, bd.A.OperacionId, rol)
+            Next
+
+            Dim almacenero = Entrar(bd, "almacen")
+            Assert.True(almacenero.Tiene(Permisos.StockContabilizar))
+            Assert.True(almacenero.Tiene(Permisos.InventarioContar))
+            Assert.False(almacenero.Tiene(Permisos.InventarioAprobar))
+            Assert.False(almacenero.Tiene(Permisos.MinutasAprobar))
+            Assert.False(almacenero.Tiene(Permisos.ComprasEditar))
+            Assert.False(almacenero.Tiene(Permisos.AdicionalAprobar))
+            Assert.True(almacenero.Tiene(Permisos.InventarioVer))
+
+            Dim jefeAlmacen = Entrar(bd, "jefe_almacen")
+            Assert.True(jefeAlmacen.Tiene(Permisos.StockContabilizar))
+            Assert.True(jefeAlmacen.Tiene(Permisos.InventarioAprobar))
+            Assert.True(jefeAlmacen.Tiene(Permisos.ReportesVer))
+            Assert.False(jefeAlmacen.Tiene(Permisos.CierreEjecutar))
+            Assert.False(jefeAlmacen.Tiene(Permisos.MinutasAprobar))
+            Assert.False(jefeAlmacen.Tiene(Permisos.ComprasEditar))
+
+            Dim jefeOperacion = Entrar(bd, "operaciones")
+            Assert.True(jefeOperacion.Tiene(Permisos.CierreEjecutar))
+            Assert.True(jefeOperacion.Tiene(Permisos.MinutasAprobar))
+            Assert.True(jefeOperacion.Tiene(Permisos.ResultadosVer))
+            Assert.False(jefeOperacion.Tiene(Permisos.StockContabilizar))
+            Assert.False(jefeOperacion.Tiene(Permisos.InventarioAprobar))
+            Assert.True(jefeOperacion.Tiene(Permisos.AdicionalAprobar))
+            Assert.True(jefeOperacion.Tiene(Permisos.InventarioVer))
+            Assert.False(jefeOperacion.Tiene(Permisos.PreciosEditar))
+
+            Dim chef = Entrar(bd, "chef")
+            Assert.True(chef.Tiene(Permisos.FactoresEditar))
+            Assert.True(chef.Tiene(Permisos.MinutasEditar))
+            Assert.True(chef.Tiene(Permisos.ProduccionEditar))
+            Assert.False(chef.Tiene(Permisos.StockContabilizar))
+            Assert.False(chef.Tiene(Permisos.PreciosEditar))
+            Assert.False(chef.Tiene(Permisos.CatalogoEditar))
+            Assert.False(chef.Tiene(Permisos.CierreEjecutar))
+            Assert.False(chef.Tiene(Permisos.ComprasAprobar))
+            Assert.False(chef.Tiene(Permisos.AdicionalAprobar))
+
+            Dim planificador = Entrar(bd, "planificador_central")
+            Assert.False(planificador.Tiene(Permisos.StockContabilizar))
+            Assert.False(planificador.Tiene(Permisos.InventarioContar))
+            Assert.False(planificador.Tiene(Permisos.ComprasAprobar))
+
+            Dim compras = Entrar(bd, "compras_central")
+            Assert.True(compras.Tiene(Permisos.PreciosEditar))
+            Assert.False(compras.Tiene(Permisos.StockContabilizar))
+            Assert.False(compras.Tiene(Permisos.MinutasEditar))
+        End Using
+    End Sub
+
     ''' <summary>SQL con el rol de la aplicación y la sesión de un usuario (como lo haría la aplicación).</summary>
     Private Shared Sub ComoUsuario(bd As BaseDatosPrueba, usuarioId As Long, sql As String)
         Using cn As New Npgsql.NpgsqlConnection(bd.CadenaAplicacion)

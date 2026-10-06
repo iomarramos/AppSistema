@@ -1,3 +1,4 @@
+Imports AppSistema.Dominio.Inventario
 Imports Xunit
 Imports AppSistema.Dominio
 Imports AppSistema.Dominio.Numerico
@@ -104,6 +105,42 @@ Public Class InventariosTests
             Assert.Equal("APROBACION_NO_INDEPENDIENTE", Assert.Throws(Of ReglaNegocioException)(Function() e.Admin.AutorizarAjuste(inv, Fecha, "Rotativo")).Codigo)
             Dim ex = Assert.ThrowsAny(Of Npgsql.PostgresException)(Sub() bd.EjecutarAdmin($"UPDATE inventario_detalle SET stock_sistema_u6 = 1 WHERE inventario_id = {inv}"))
             Assert.Contains("FOTOGRAFIA_INMUTABLE", ex.MessageText)
+        End Using
+    End Sub
+
+    <FactPostgres>
+    Public Sub Sprint4_ABC_motivo_normalizado_boleta_y_explicacion_de_ajustes()
+        Using bd = BaseDatosPrueba.Crear()
+            Dim e As New Escenario(bd)
+
+            ' ABC: el consumo de la botella (1 L) la hace A; el bidón sin consumo queda C.
+            Dim almacen As New ServicioAlmacen(bd.CadenaAplicacion, bd.Sesion("A"))
+            almacen.SalidaProduccion(bd.A.AlmacenId, Fecha, {New LineaSalida With {.VarianteId = e.Botella, .CantidadBaseU6 = U(1D)}})
+            Dim clases = e.Admin.ClasificarAbc(bd.A.AlmacenId, Fecha, Fecha)
+            Assert.Equal("A", clases.Single(Function(x) x.VarianteId = e.Botella).Clase)
+            Assert.Equal("C", clases.Single(Function(x) x.VarianteId = bd.VarianteAceiteId).Clase)
+
+            ' Motivo fuera de la lista: se rechaza antes de tocar el inventario.
+            Dim inv = e.Contador.Abrir(bd.A.AlmacenId, Fecha, "general")
+            Assert.Equal("DATO_INVALIDO", Assert.Throws(Of ReglaNegocioException)(Function() e.Admin.AutorizarAjusteNormalizado(inv, Fecha, "INVENTADO", "x", Nothing)).Codigo)
+            Assert.Throws(Of ReglaNegocioException)(Function() e.Admin.AutorizarAjusteNormalizado(inv, Fecha, MotivosAjuste.ErrorConteo, "   ", Nothing))
+
+            Assert.Equal(2, e.Contador.ImportarConteo(inv, "variante_codigo;envases;parcial" & vbLf & "ACE-A-4L;6;2" & vbLf & "ACE-1L;7;" & vbLf))
+            e.Contador.CerrarConteo(inv)
+            e.Admin.Revisar(inv)
+            e.Admin.AutorizarAjusteNormalizado(inv, Fecha, MotivosAjuste.ErrorConteo, "Conteo mal digitado", "Planilla 12")
+
+            Assert.Equal(MotivosAjuste.ErrorConteo, Convert.ToString(bd.Escalar("SELECT min(motivo_codigo) FROM inventario_ajuste WHERE documento_soporte = 'Planilla 12'")))
+            Assert.Equal("Conteo mal digitado", Convert.ToString(bd.Escalar("SELECT min(explicacion) FROM inventario_ajuste WHERE documento_soporte = 'Planilla 12'")))
+
+            Dim boleta = New ServicioReportes(bd.CadenaAplicacion, bd.Sesion("A")).BoletaAjustes(inv)
+            Assert.Equal("Boleta de ajuste de inventario", boleta.Titulo)
+            Assert.Equal(2, boleta.Secciones(0).Filas.Count)
+            Assert.Equal("Planilla 12", CStr(boleta.Secciones(0).Filas(0)(4)))
+
+            Dim explicacion = New ServicioReportes(bd.CadenaAplicacion, bd.Sesion("A")).ExplicacionAjustes(Fecha, Fecha)
+            Assert.NotEmpty(explicacion.Secciones(0).Filas)
+            Assert.Equal("Error de conteo previo", CStr(explicacion.Secciones(0).Filas(0)(0)))
         End Using
     End Sub
 

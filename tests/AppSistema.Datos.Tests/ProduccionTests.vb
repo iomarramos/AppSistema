@@ -60,8 +60,9 @@ Public Class ProduccionDatosTests
             Assert.Equal(U(5D), l.EntregadoU6)
             Assert.Equal(U(40D), entrega.ValorU6)
 
-            Dim adicional = e.Produccion.RequerimientoAdicional(e.Minuta, bd.A.AlmacenId)
+            Dim adicional = e.Produccion.RequerimientoAdicional(e.Minuta, bd.A.AlmacenId, "Motivo de prueba")
             e.Produccion.Solicitar(adicional, bd.ProductoAceiteId, U(1D))
+            e.Produccion.AprobarAdicional(adicional)
             e.Produccion.Atender(adicional, Fecha)
             e.Almacen.DevolucionProduccion(entrega.DocumentoId.Value, Fecha, {New LineaSalida With {.VarianteId = e.Botella, .CantidadBaseU6 = U(0.5D)}})
 
@@ -93,18 +94,21 @@ Public Class ProduccionDatosTests
         Using bd = BaseDatosPrueba.Crear()
             Dim e As New Escenario(bd)
             ' Primero se agotan las botellas de 1 L con otra entrega.
-            Dim r1 = e.Produccion.RequerimientoAdicional(e.Minuta, bd.A.AlmacenId)
+            Dim r1 = e.Produccion.RequerimientoAdicional(e.Minuta, bd.A.AlmacenId, "Motivo de prueba")
             e.Produccion.Solicitar(r1, bd.ProductoAceiteId, U(10D))
+            e.Produccion.AprobarAdicional(r1)
             Assert.Equal("10 x Aceite botella 1 L", e.Produccion.Atender(r1, Fecha).Lineas.Single().Presentaciones)
 
-            Dim r2 = e.Produccion.RequerimientoAdicional(e.Minuta, bd.A.AlmacenId)
+            Dim r2 = e.Produccion.RequerimientoAdicional(e.Minuta, bd.A.AlmacenId, "Motivo de prueba")
             e.Produccion.Solicitar(r2, bd.ProductoAceiteId, U(0.5D))
+            e.Produccion.AprobarAdicional(r2)
             Dim l = e.Produccion.Atender(r2, Fecha).Lineas.Single()
             Assert.Equal(U(4D), l.EntregadoU6)                      ' un bidón completo de 4 L
             Assert.Equal(U(3.5D), l.ExcedentePresentacionU6)
 
-            Dim r3 = e.Produccion.RequerimientoAdicional(e.Minuta, bd.A.AlmacenId)
+            Dim r3 = e.Produccion.RequerimientoAdicional(e.Minuta, bd.A.AlmacenId, "Motivo de prueba")
             e.Produccion.Solicitar(r3, bd.ProductoAceiteId, U(6D))   ' queda 1 bidón (4 L)
+            e.Produccion.AprobarAdicional(r3)
             Dim l3 = e.Produccion.Atender(r3, Fecha).Lineas.Single()
             Assert.Equal(U(4D), l3.EntregadoU6)
             Assert.Equal(U(2D), l3.FaltanteU6)
@@ -129,9 +133,120 @@ Public Class ProduccionDatosTests
             ' Cocina pide y registra, pero no entrega (eso es del almacén).
             Call New ServicioAdministracion(bd.CadenaAplicacion, bd.Sesion("A")).CrearUsuario("cocina", "Cocinero", "Cocina-Clave-2026", bd.A.OperacionId, "COCINA")
             Dim cocina As New ServicioProduccion(bd.CadenaAplicacion, bd.Sesion("A", "cocina", "Cocina-Clave-2026"))
-            Dim adicional = cocina.RequerimientoAdicional(e.Minuta, bd.A.AlmacenId)
+            Dim adicional = cocina.RequerimientoAdicional(e.Minuta, bd.A.AlmacenId, "Motivo de prueba")
             cocina.Solicitar(adicional, bd.ProductoAceiteId, U(1D))
             Assert.Equal("SIN_PERMISO", Assert.Throws(Of ReglaNegocioException)(Function() cocina.Atender(adicional, Fecha)).Codigo)
+        End Using
+    End Sub
+
+    ''' <summary>
+    ''' El adicional lo aprueba el jefe de operación (la cocina no puede). La cocina pide devolver una entrega; el almacén la
+    ''' atiende y recién entonces hay devolución de stock. Una solicitud atendida o anulada no vuelve a atenderse.
+    ''' </summary>
+    <FactPostgres>
+    Public Sub Adicional_lo_aprueba_el_jefe_y_la_devolucion_de_cocina_la_atiende_el_almacen()
+        Using bd = BaseDatosPrueba.Crear()
+            Dim e As New Escenario(bd)
+            Dim admin As New ServicioAdministracion(bd.CadenaAplicacion, bd.Sesion("A"))
+            admin.CrearUsuario("cocina", "Cocinero", "Cocina-Clave-2026", bd.A.OperacionId, "COCINA")
+            admin.CrearUsuario("jefe", "Jefe de operacion", "Jefe-Clave-2026", bd.A.OperacionId, "OPERACIONES")
+            Dim cocina As New ServicioProduccion(bd.CadenaAplicacion, bd.Sesion("A", "cocina", "Cocina-Clave-2026"))
+            Dim jefe As New ServicioProduccion(bd.CadenaAplicacion, bd.Sesion("A", "jefe", "Jefe-Clave-2026"))
+
+            ' El adicional no sale sin la aprobación del jefe; la cocina no puede aprobarlo.
+            Dim adicional = cocina.RequerimientoAdicional(e.Minuta, bd.A.AlmacenId, "Motivo de prueba")
+            cocina.Solicitar(adicional, bd.ProductoAceiteId, U(1D))
+            Assert.Equal("SIN_PERMISO", Assert.Throws(Of ReglaNegocioException)(Sub() cocina.AprobarAdicional(adicional)).Codigo)
+            Assert.Equal("ADICIONAL_NO_APROBADO", Assert.Throws(Of ReglaNegocioException)(Function() e.Produccion.Atender(adicional, Fecha)).Codigo)
+            jefe.AprobarAdicional(adicional)
+            Dim entrega = e.Produccion.Atender(adicional, Fecha)
+            Assert.Equal(U(1D), entrega.Lineas.Single().EntregadoU6)
+
+            ' La cocina pide devolver: sin stock hasta que el almacén la atienda, y no más de lo entregado.
+            Dim solicitud = cocina.SolicitarDevolucion(entrega.DocumentoId.Value, e.Botella, U(0.5D), "Sobro en la cocina")
+            Assert.Equal("DEVOLUCION_EXCEDIDA", Assert.Throws(Of ReglaNegocioException)(Function() cocina.SolicitarDevolucion(entrega.DocumentoId.Value, e.Botella, U(0.6D), "Mas")).Codigo)
+            Assert.Equal(0L, Convert.ToInt64(bd.Escalar("SELECT count(*) FROM documento_stock WHERE tipo = 'devolucion_produccion'")))
+            Assert.Single(cocina.ListarEntregasDevolubles(e.Minuta).Where(Function(x) x.VarianteId = e.Botella))
+            Assert.Equal(U(0.5D), cocina.ListarEntregasDevolubles(e.Minuta).Single(Function(x) x.VarianteId = e.Botella).DisponibleU6)
+
+            Assert.Single(e.Almacen.ListarDevolucionesPendientes(bd.A.AlmacenId))
+            Dim documento = e.Almacen.AtenderDevolucion(solicitud, Fecha)
+            Assert.Equal("devolucion_produccion", Convert.ToString(bd.Escalar($"SELECT tipo FROM documento_stock WHERE id = {documento}")))
+            Assert.Equal("atendida", Convert.ToString(bd.Escalar($"SELECT estado FROM devolucion_solicitud WHERE id = {solicitud}")))
+            Assert.Empty(e.Almacen.ListarDevolucionesPendientes(bd.A.AlmacenId))
+            Assert.Equal("SOLICITUD_NO_PENDIENTE", Assert.Throws(Of ReglaNegocioException)(Function() e.Almacen.AtenderDevolucion(solicitud, Fecha)).Codigo)
+            Assert.Equal("DEVOLUCION_EXCEDIDA", Assert.Throws(Of ReglaNegocioException)(Function() cocina.SolicitarDevolucion(entrega.DocumentoId.Value, e.Botella, U(0.6D), "Otra vez")).Codigo)
+
+            ' Una solicitud pendiente la cocina la puede anular; el almacén ya no la atiende.
+            Dim otra = cocina.SolicitarDevolucion(entrega.DocumentoId.Value, e.Botella, U(0.5D), "Dudoso")
+            cocina.AnularDevolucion(otra)
+            Assert.Empty(e.Almacen.ListarDevolucionesPendientes(bd.A.AlmacenId))
+            Assert.Equal("SOLICITUD_NO_PENDIENTE", Assert.Throws(Of ReglaNegocioException)(Function() e.Almacen.AtenderDevolucion(otra, Fecha)).Codigo)
+        End Using
+    End Sub
+
+    <FactPostgres>
+    Public Sub Adicional_exige_motivo_y_lo_guarda()
+        Using bd = BaseDatosPrueba.Crear()
+            Dim e As New Escenario(bd)
+            Assert.Throws(Of ReglaNegocioException)(Function() e.Produccion.RequerimientoAdicional(e.Minuta, bd.A.AlmacenId, "   "))
+            Dim adicional = e.Produccion.RequerimientoAdicional(e.Minuta, bd.A.AlmacenId, "Llegaron 20 invitados")
+            Assert.Equal("Llegaron 20 invitados", Convert.ToString(bd.Escalar($"SELECT motivo FROM requerimiento WHERE id = {adicional}")))
+            Assert.Equal("borrador", Convert.ToString(bd.Escalar($"SELECT estado FROM requerimiento WHERE id = {adicional}")))
+        End Using
+    End Sub
+
+    <FactPostgres>
+    Public Sub Minuta_despachada_no_admite_ajuste_operativo()
+        Using bd = BaseDatosPrueba.Crear()
+            Dim e As New Escenario(bd)
+            Dim minutas As New ServicioMinutas(bd.CadenaAplicacion, bd.Sesion("A"))
+            Dim plato = minutas.ListarPlatos(e.Minuta).First().Id
+            Dim req = e.Produccion.CalcularRequerimiento(e.Minuta, bd.A.AlmacenId)
+            e.Produccion.Atender(req, Fecha)
+            Assert.Equal("DESPACHADA", Assert.Throws(Of ReglaNegocioException)(Sub() minutas.AjustarRacionesOperativas(plato, 40, "Menos comensales")).Codigo)
+        End Using
+    End Sub
+
+    <FactPostgres>
+    Public Sub Reporte_salida_a_produccion_suma_lo_entregado_al_costo_de_la_entrega()
+        Using bd = BaseDatosPrueba.Crear()
+            Dim e As New Escenario(bd)
+            Dim req = e.Produccion.CalcularRequerimiento(e.Minuta, bd.A.AlmacenId)
+            Dim entrega = e.Produccion.Atender(req, Fecha)
+
+            Dim reporte = New ServicioReportes(bd.CadenaAplicacion, bd.Sesion("A")).SalidasAProduccion(Fecha, Fecha)
+            Assert.Equal("Salida a produccion", reporte.Titulo)
+            Assert.Equal(1, reporte.Secciones(0).Filas.Count)
+            Assert.Equal(entrega.ValorU6, CType(reporte.Secciones(0).Totales(8), Long))
+            Assert.Empty(New ServicioReportes(bd.CadenaAplicacion, bd.Sesion("A")).SalidasAProduccion(Fecha.AddDays(1), Fecha.AddDays(1)).Secciones(0).Filas)
+        End Using
+    End Sub
+
+    <FactPostgres>
+    Public Sub Requisicion_por_servicio_solo_cuenta_lo_atendido()
+        Using bd = BaseDatosPrueba.Crear()
+            Dim e As New Escenario(bd)
+            Dim reportes = New ServicioReportes(bd.CadenaAplicacion, bd.Sesion("A"))
+            Assert.Empty(reportes.RequisicionPorServicio(Fecha, Fecha).Secciones(0).Filas)   ' todavia no hay entrega
+
+            Dim req = e.Produccion.CalcularRequerimiento(e.Minuta, bd.A.AlmacenId)
+            e.Produccion.Atender(req, Fecha)
+            Dim filas = reportes.RequisicionPorServicio(Fecha, Fecha).Secciones(0).Filas
+            Assert.NotEmpty(filas)
+            Assert.True(filas.All(Function(f) CType(f(3), Long) > 0))
+        End Using
+    End Sub
+
+    <FactPostgres>
+    Public Sub Costo_realizado_sale_con_lo_entregado_de_la_minuta()
+        Using bd = BaseDatosPrueba.Crear()
+            Dim e As New Escenario(bd)
+            Dim req = e.Produccion.CalcularRequerimiento(e.Minuta, bd.A.AlmacenId)
+            e.Produccion.Atender(req, Fecha)
+            Dim realizado = New ServicioReportes(bd.CadenaAplicacion, bd.Sesion("A")).CostoRealizado(Fecha, Fecha)
+            Assert.NotEmpty(realizado.Secciones(0).Filas)
+            Assert.True(realizado.Secciones(0).Filas.All(Function(f) CType(f(5), Long) > 0))
         End Using
     End Sub
 

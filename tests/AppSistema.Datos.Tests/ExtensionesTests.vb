@@ -188,4 +188,45 @@ Public Class ExtensionesTests
         End Using
     End Sub
 
+    <FactPostgres>
+    Public Sub Sprint6_comparacion_con_presupuesto_por_rubro_mes_anterior_y_acumulado()
+        Using bd = BaseDatosPrueba.Crear()
+            Dim e As New Escenario(bd)
+            e.Resultados.RegistrarGasto(2026, 9, e.Servicio, "Planilla de septiembre", "personal", U(1000D), False)
+            e.Resultados.RegistrarGasto(2026, 10, e.Servicio, "Planilla de octubre", "personal", U(3000D), False)
+            e.Resultados.RegistrarGasto(2026, 10, e.Servicio, "Planilla presupuestada", "personal", U(2800D), True)
+            e.Resultados.RegistrarGasto(2026, 10, e.Servicio, "Gas presupuestado", "operacion", U(800D), True)
+            e.Resultados.RegistrarGasto(2026, 10, Nothing, "Supervision presupuestada", "administracion", U(500D), True)
+
+            Dim filas = e.Resultados.Comparacion(2026, 10)
+            Dim personal = filas.Single(Function(f) f.Concepto = "Gastos de personal")
+            Assert.Equal("2800.00", personal.PresupuestoTexto)
+            Assert.Equal(U(3000D), personal.ValorRealU6)                 ' lo proyectado no entra al real
+            Assert.Equal(U(1000D), personal.ValorMesAnteriorU6)
+            Assert.Equal(U(4000D), personal.ValorAcumuladoU6)            ' enero a octubre
+            Assert.Equal("800.00", filas.Single(Function(f) f.Concepto = "Gastos de operacion").PresupuestoTexto)
+            Assert.Equal("500.00", filas.Single(Function(f) f.Concepto.StartsWith("Otros gastos")).PresupuestoTexto)
+            Assert.Equal("4100.00", filas.Single(Function(f) f.Concepto = "Total gastos").PresupuestoTexto)
+            Assert.Equal("-", filas.Single(Function(f) f.Concepto = "Ingreso").PresupuestoTexto)
+            Assert.Equal("-", filas.Single(Function(f) f.Concepto = "Margen").PresupuestoTexto)
+        End Using
+    End Sub
+
+    <FactPostgres>
+    Public Sub Sprint5_calendario_por_semanas_muestra_cada_dia_del_mes_una_vez_en_su_dia()
+        Using bd = BaseDatosPrueba.Crear()
+            Dim semanas = New ServicioCierres(bd.CadenaAplicacion, bd.Sesion("A")).CalendarioSemanal(2026, 10)
+            Dim celdas = semanas.SelectMany(Function(s) {s.Lunes, s.Martes, s.Miercoles, s.Jueves, s.Viernes, s.Sabado, s.Domingo}).Where(Function(t) t <> "").ToList()
+            Assert.Equal(31, celdas.Count)
+            ' 1 de octubre de 2026 cae en la primera semana, en su día (lunes = 0).
+            Dim primera = semanas.First()
+            Dim porDia As String() = {primera.Lunes, primera.Martes, primera.Miercoles, primera.Jueves, primera.Viernes, primera.Sabado, primera.Domingo}
+            Dim indice = (CInt(New Date(2026, 10, 1).DayOfWeek) + 6) Mod 7
+            Assert.StartsWith("1 ", porDia(indice))
+            For k = 0 To indice - 1
+                Assert.Equal("", porDia(k))                                   ' antes del 1, casillas vacías
+            Next
+        End Using
+    End Sub
+
 End Class

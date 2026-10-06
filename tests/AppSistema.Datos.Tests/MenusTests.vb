@@ -263,4 +263,223 @@ Public Class MenusTests
         End Using
     End Sub
 
+    <FactPostgres>
+    Public Sub Matriz_muestra_costo_solo_si_esta_aprobada_y_el_chef_no_cambia_comensales_aprobados()
+        Using bd = BaseDatosPrueba.Crear()
+            Dim e As New Escenario(bd)
+            Dim sopa = e.RecetaAprobada("SOPA1", 10D, (bd.ProductoAceiteId, 1D))
+            Dim fondo = e.RecetaAprobada("FONDO1", 20D, (bd.ProductoAceiteId, 1D))
+            Dim m = e.Minutas.CrearMinuta(e.OperacionServicioId, Fecha, 150)
+            e.Minutas.AgregarPlato(m, e.Sopa, sopa, 150)
+            e.Minutas.AgregarPlato(m, e.Fondo, fondo, 100)
+            Dim matriz As New ServicioMatrizMenu(bd.CadenaAplicacion, bd.Sesion("A"))
+
+            ' En borrador: raciones y platos, pero sin costo previsto (no se inventa).
+            Dim borrador = matriz.Celdas(Fecha, Fecha).Single()
+            Assert.Equal(250L, borrador.RacionesTeoricas)
+            Assert.Equal(150L, borrador.Comensales)
+            Assert.Null(borrador.CostoPrevistoU6)
+            Assert.Null(borrador.CostoPorComensalU6)
+            Assert.Contains("x 100", borrador.Platos)
+            Assert.False(borrador.ProduccionRegistrada)
+            Assert.Equal("", borrador.EstadoRequerimiento)
+
+            ' El chef cambia comensales mientras la minuta está en borrador.
+            e.Minutas.ActualizarComensales(m, 160)
+            Assert.Equal(160L, matriz.Celdas(Fecha, Fecha).Single().Comensales)
+
+            ' Aprobada: aparece el costo y el costo por comensal; ya no se cambian los comensales.
+            e.Minutas.Aprobar(m, "PEN")
+            Dim aprobada = matriz.Celdas(Fecha, Fecha).Single()
+            Assert.NotNull(aprobada.CostoPrevistoU6)
+            Assert.Equal(EscalaU6.MultiplicarDividir(aprobada.CostoPrevistoU6.Value, 1, 160), aprobada.CostoPorComensalU6.Value)
+            Assert.Equal("MINUTA_APROBADA", Assert.Throws(Of ReglaNegocioException)(Sub() e.Minutas.ActualizarComensales(m, 170)).Codigo)
+            Assert.Equal(160L, matriz.Celdas(Fecha, Fecha).Single().Comensales)
+
+            ' Techo = costo patrón por comensal del servicio (S/ 6) × comensales; la desviación es costo − techo.
+            Assert.Equal(U6(960D), aprobada.TechoU6)
+            Assert.Equal(aprobada.CostoPrevistoU6.Value - U6(960D), aprobada.DesviacionU6)
+            Dim dia = matriz.ResumenPorDia(matriz.Celdas(Fecha, Fecha)).Single()
+            Assert.Equal(1L, dia.Minutas)
+            Assert.Equal(160L, dia.Comensales)
+            Assert.Equal(0L, dia.MinutasSinCosto)
+            Assert.Equal(aprobada.CostoPrevistoU6, dia.CostoDiaU6)
+            Assert.Equal(U6(960D), dia.TechoU6)
+            Assert.Equal(aprobada.DesviacionU6, dia.DesviacionU6)
+            Assert.Equal("DATO_INVALIDO", Assert.Throws(Of ReglaNegocioException)(Function() matriz.Celdas(Fecha.AddDays(1), Fecha)).Codigo)
+        End Using
+    End Sub
+
+    <FactPostgres>
+    Public Sub Reporte_de_la_matriz_tiene_minutas_y_resumen_por_dia_con_techo_y_desviacion()
+        Using bd = BaseDatosPrueba.Crear()
+            Dim e As New Escenario(bd)
+            Dim sopa = e.RecetaAprobada("SOPA1", 10D, (bd.ProductoAceiteId, 1D))
+            Dim m = e.Minutas.CrearMinuta(e.OperacionServicioId, Fecha, 160)
+            e.Minutas.AgregarPlato(m, e.Sopa, sopa, 150)
+            e.Minutas.Aprobar(m, "PEN")
+
+            Dim r = New ServicioReportes(bd.CadenaAplicacion, bd.Sesion("A")).MatrizDelPeriodo(Fecha, Fecha)
+            Assert.Equal("Matriz de planificacion de menus", r.Titulo)
+            Assert.Equal(2, r.Secciones.Count)
+            Assert.Single(r.Secciones(0).Filas)
+            Assert.Single(r.Secciones(1).Filas)
+            ' Columnas de la sección Minutas: 4 comensales, 6 costo previsto, 8 techo, 9 desviación.
+            Dim fila = r.Secciones(0).Filas(0)
+            Assert.Equal(160L, CType(fila(4), Long))
+            Assert.Equal(U6(960D), CType(fila(8), Long))
+            Assert.Equal(CType(fila(6), Long) - U6(960D), CType(fila(9), Long))
+        End Using
+    End Sub
+
+    <FactPostgres>
+    Public Sub Chef_sustituye_una_receta_aprobada_solo_en_borrador()
+        Using bd = BaseDatosPrueba.Crear()
+            Dim e As New Escenario(bd)
+            Dim sopa = e.RecetaAprobada("SOPA1", 10D, (bd.ProductoAceiteId, 1D))
+            Dim fondo = e.RecetaAprobada("FONDO1", 20D, (bd.ProductoAceiteId, 1D))
+            Dim sinAprobar = e.Recetas.CrearReceta("BORR1", "Receta sin aprobar", Nothing, U6(5D), Nothing)
+            Dim m = e.Minutas.CrearMinuta(e.OperacionServicioId, Fecha, 150)
+            e.Minutas.AgregarPlato(m, e.Sopa, sopa, 150)
+            Dim plato = e.Minutas.ListarPlatos(m).Single().Id
+
+            Assert.Equal("RECETA_NO_APROBADA", Assert.Throws(Of ReglaNegocioException)(Sub() e.Minutas.SustituirReceta(plato, sinAprobar)).Codigo)
+            e.Minutas.SustituirReceta(plato, fondo)
+            Assert.Equal("FONDO1", e.Minutas.ListarPlatos(m).Single().RecetaCodigo)
+            Assert.Equal("PLATO_REPETIDO", Assert.Throws(Of ReglaNegocioException)(Sub() e.Minutas.SustituirReceta(plato, fondo)).Codigo)
+
+            e.Minutas.Aprobar(m, "PEN")
+            Assert.Throws(Of ReglaNegocioException)(Sub() e.Minutas.SustituirReceta(plato, sopa))
+            Assert.Equal("FONDO1", e.Minutas.ListarPlatos(m).Single().RecetaCodigo)
+        End Using
+    End Sub
+
+    <FactPostgres>
+    Public Sub Chef_ajusta_raciones_operativas_del_plan_aprobado_y_la_teorica_no_cambia()
+        Using bd = BaseDatosPrueba.Crear()
+            Dim e As New Escenario(bd)
+            Dim sopa = e.RecetaAprobada("SOPA1", 10D, (bd.ProductoAceiteId, 1D))
+            Dim m = e.Minutas.CrearMinuta(e.OperacionServicioId, Fecha, 150)
+            e.Minutas.AgregarPlato(m, e.Sopa, sopa, 150)
+            Dim plato = e.Minutas.ListarPlatos(m).Single().Id
+            Dim matriz As New ServicioMatrizMenu(bd.CadenaAplicacion, bd.Sesion("A"))
+
+            ' Solo sobre plan aprobado.
+            Assert.Equal("MINUTA_NO_APROBADA", Assert.Throws(Of ReglaNegocioException)(Sub() e.Minutas.AjustarRacionesOperativas(plato, 120, "Llegaron menos")).Codigo)
+            e.Minutas.Aprobar(m, "PEN")
+
+            Assert.Equal("CANTIDAD_INVALIDA", Assert.Throws(Of ReglaNegocioException)(Sub() e.Minutas.AjustarRacionesOperativas(plato, -1, "Negativo")).Codigo)
+            Assert.Throws(Of ReglaNegocioException)(Sub() e.Minutas.AjustarRacionesOperativas(plato, 120, "   "))
+
+            e.Minutas.AjustarRacionesOperativas(plato, 120, "Llegaron menos")
+            Dim c = matriz.Celdas(Fecha, Fecha).Single()
+            Assert.Equal(150L, c.RacionesTeoricas)
+            Assert.Equal(120L, c.RacionesOperativas)
+
+            ' Un nuevo ajuste reemplaza el anterior; la teórica sigue igual.
+            e.Minutas.AjustarRacionesOperativas(plato, 130, "Corregido")
+            Assert.Equal(130L, matriz.Celdas(Fecha, Fecha).Single().RacionesOperativas)
+            Assert.Equal(150L, matriz.Celdas(Fecha, Fecha).Single().RacionesTeoricas)
+        End Using
+    End Sub
+
+    <FactPostgres>
+    Public Sub Comparativo_y_resultado_mensual_salen_con_sus_secciones()
+        Using bd = BaseDatosPrueba.Crear()
+            Dim e As New Escenario(bd)
+            Dim sopa = e.RecetaAprobada("SOPA1", 10D, (bd.ProductoAceiteId, 1D))
+            Dim m = e.Minutas.CrearMinuta(e.OperacionServicioId, Fecha, 150)
+            e.Minutas.AgregarPlato(m, e.Sopa, sopa, 150)
+            e.Minutas.Aprobar(m, "PEN")
+            Dim reportes = New ServicioReportes(bd.CadenaAplicacion, bd.Sesion("A"))
+
+            Dim comparativo = reportes.ComparativoMensual(e.OperacionServicioId, Fecha.Year, Fecha.Month)
+            Assert.Equal(3, comparativo.Secciones.Count)
+            Assert.Equal(150L, CType(comparativo.Secciones(0).Filas(0)(1), Long))
+
+            Dim resultado = reportes.ResultadoMensual(Fecha.Year, Fecha.Month)
+            Assert.Equal("Resultado mensual de alimentos", resultado.Titulo)
+            Assert.Equal(3, resultado.Secciones.Count)
+        End Using
+    End Sub
+
+    <FactPostgres>
+    Public Sub Reportes_de_costo_previsión_frecuencia_y_raciones_salen_con_datos_reales()
+        Using bd = BaseDatosPrueba.Crear()
+            Dim e As New Escenario(bd)
+            Dim sopa = e.RecetaAprobada("SOPA1", 10D, (bd.ProductoAceiteId, 1D))
+            Dim m = e.Minutas.CrearMinuta(e.OperacionServicioId, Fecha, 150)
+            e.Minutas.AgregarPlato(m, e.Sopa, sopa, 150)
+            e.Minutas.Aprobar(m, "PEN")
+            Dim reportes = New ServicioReportes(bd.CadenaAplicacion, bd.Sesion("A"))
+
+            Dim costo = reportes.CostoResumidoTeorico(Fecha, Fecha)
+            Assert.Single(costo.Secciones(0).Filas)
+            Assert.Equal(CType(costo.Secciones(0).Filas(0)(4), Long), CType(costo.Secciones(0).Totales(4), Long))
+
+            Dim previsto = reportes.PrevisionConsumo(Fecha, Fecha)
+            Assert.Contains(previsto.Secciones(0).Filas, Function(f) CStr(f(1)).Contains("aceite", StringComparison.OrdinalIgnoreCase) OrElse CStr(f(1)).Contains("Aceite"))
+
+            Dim frecuencia = reportes.FrecuenciaRecetas(Fecha, Fecha)
+            Assert.Single(frecuencia.Secciones(0).Filas)
+            Assert.Equal("SOPA1", CStr(frecuencia.Secciones(0).Filas(0)(0)))
+
+            Dim raciones = reportes.ComparativoRaciones(Fecha, Fecha)
+            Assert.Single(raciones.Secciones(0).Filas)
+            Assert.Equal(150L, CType(raciones.Secciones(0).Filas(0)(2), Long))
+            Assert.Equal(150L, CType(raciones.Secciones(0).Filas(0)(3), Long))
+            Assert.Null(raciones.Secciones(0).Filas(0)(4))   ' sin produccion registrada: vacio, no cero
+        End Using
+    End Sub
+
+    <FactPostgres>
+    Public Sub Pendientes_sprint3_costo_teorico_requisicion_por_estructura_y_control_de_raciones()
+        Using bd = BaseDatosPrueba.Crear()
+            Dim e As New Escenario(bd)
+            Dim sopa = e.RecetaAprobada("SOPA1", 10D, (bd.ProductoAceiteId, 1D))
+            Dim m = e.Minutas.CrearMinuta(e.OperacionServicioId, Fecha, 150)
+            e.Minutas.AgregarPlato(m, e.Sopa, sopa, 150)
+            e.Minutas.Aprobar(m, "PEN")
+            Dim reportes = New ServicioReportes(bd.CadenaAplicacion, bd.Sesion("A"))
+
+            ' 150 raciones con 1 L cada 10 raciones = 15 L de aceite a S/ 8 por litro = S/ 120.
+            Dim costo = reportes.CostoDetalladoTeorico(Fecha, Fecha)
+            Assert.Single(costo.Secciones(0).Filas)
+            Assert.Equal(U6(15D), CType(costo.Secciones(0).Filas(0)(3), Long))
+            Assert.Equal(U6(120D), CType(costo.Secciones(0).Filas(0)(5), Long))
+
+            Dim requisicion = reportes.RequisicionPorEstructura(Fecha, Fecha)
+            Assert.Single(requisicion.Secciones(0).Filas)
+            Assert.Equal("Sopa", CStr(requisicion.Secciones(0).Filas(0)(0)))
+            Assert.Equal(U6(15D), CType(requisicion.Secciones(0).Filas(0)(4), Long))
+
+            Dim control = reportes.ControlRaciones(Fecha, Fecha)
+            Assert.Single(control.Secciones(0).Filas)
+            Assert.Equal(150L, CType(control.Secciones(0).Filas(0)(2), Long))
+            Assert.Null(control.Secciones(0).Filas(0)(4))            ' sin produccion: vacio
+            Assert.Null(control.Secciones(0).Filas(0)(5))            ' sin venta: vacio
+
+            ' Sin datos: vacios, no ceros.
+            Assert.Empty(reportes.VentaServicioContado(Fecha, Fecha).Secciones(0).Filas)
+            Assert.Empty(reportes.ResumenCompras(Fecha, Fecha).Secciones(0).Filas)
+            Assert.Empty(reportes.ResumenTraspasos(Fecha, Fecha).Secciones(0).Filas)
+            Assert.Empty(reportes.MapaSolicitudCompras(bd.A.AlmacenId).Secciones)
+        End Using
+    End Sub
+
+    <FactPostgres>
+    Public Sub Sprint6_resultado_comparado_tiene_presupuesto_teorico_real_y_alerta_de_food_cost()
+        Using bd = BaseDatosPrueba.Crear()
+            Dim e As New Escenario(bd)
+            Dim sopa = e.RecetaAprobada("SOPA1", 10D, (bd.ProductoAceiteId, 1D))
+            Dim m = e.Minutas.CrearMinuta(e.OperacionServicioId, Fecha, 150)
+            e.Minutas.AgregarPlato(m, e.Sopa, sopa, 150)
+            e.Minutas.Aprobar(m, "PEN")
+            Dim comparado = New ServicioReportes(bd.CadenaAplicacion, bd.Sesion("A")).ComparativoResultado(Fecha.Year, Fecha.Month)
+            Assert.Equal(2, comparado.Secciones.Count)
+            Assert.NotEmpty(comparado.Secciones(0).Filas)
+            Assert.True(comparado.Secciones(1).Filas.All(Function(f) {"Sin dato", "Sobre objetivo", "En objetivo"}.Contains(CStr(f(3)))))
+        End Using
+    End Sub
+
 End Class

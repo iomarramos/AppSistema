@@ -174,14 +174,18 @@ Public Class ComprasTests
     End Sub
 
     <FactPostgres>
-    Public Sub Almacen_prepara_pero_no_aprueba_y_otra_empresa_no_ve_los_pedidos()
+    Public Sub Almacen_no_prepara_ni_aprueba_pedidos_y_otra_empresa_no_ve_los_pedidos()
         Using bd = BaseDatosPrueba.Crear()
             Dim e As New Escenario(bd)
             Call New ServicioAdministracion(bd.CadenaAplicacion, bd.Sesion("A")).CrearUsuario("almacen", "Almacenero", "Almacen-Clave-2026", bd.A.OperacionId, "ALMACEN")
             Dim almacen As New ServicioCompras(bd.CadenaAplicacion, bd.Sesion("A", "almacen", "Almacen-Clave-2026"))
-            Dim p = almacen.CrearPedido(bd.A.AlmacenId, e.P2, "extra", "PEN")
-            almacen.AgregarLinea(p, e.Bidon, 1, Desde, 0)
+            ' V023: el almacenero no prepara pedidos (lo hace compras); sí ve los pedidos para recibirlos contra la orden.
+            Assert.Equal("SIN_PERMISO", Assert.Throws(Of ReglaNegocioException)(Function() almacen.CrearPedido(bd.A.AlmacenId, e.P2, "extra", "PEN")).Codigo)
+            Dim compras = New ServicioCompras(bd.CadenaAplicacion, bd.Sesion("A"))
+            Dim p = compras.CrearPedido(bd.A.AlmacenId, e.P2, "extra", "PEN")
+            compras.AgregarLinea(p, e.Bidon, 1, Desde, 0)
             Assert.Equal("SIN_PERMISO", Assert.Throws(Of ReglaNegocioException)(Sub() almacen.AprobarPedido(p)).Codigo)
+            Assert.Contains(almacen.ListarPedidos(bd.A.AlmacenId), Function(x) x.Id = p)
 
             Dim b As New ServicioCompras(bd.CadenaAplicacion, bd.Sesion("B"))
             Assert.Empty(b.ListarPedidos(bd.A.AlmacenId))

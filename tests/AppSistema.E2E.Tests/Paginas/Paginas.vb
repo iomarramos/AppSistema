@@ -75,16 +75,27 @@ Public NotInheritable Class PaginaPrincipal
     Private Sub Desplegar(menuId As String)
         Dim m = _app.Esperar(menuId)
         If m.Patterns.ExpandCollapse.IsSupported Then
-            m.Patterns.ExpandCollapse.Pattern.Expand()
+            ' Un menú que quedó desplegado de una apertura anterior no vuelve a abrirse con Expand: se contrae antes.
+            Dim patron = m.Patterns.ExpandCollapse.Pattern
+            If patron.ExpandCollapseState.Value = FlaUI.Core.Definitions.ExpandCollapseState.Expanded Then patron.Collapse()
+            patron.Expand()
         Else
             AplicacionE2E.Pulsar(m)
         End If
         Wait.UntilInputIsProcessed()
     End Sub
 
-    Private Shared Sub Plegar()
-        Keyboard.Press(VirtualKeyShort.ESCAPE)
-        Keyboard.Press(VirtualKeyShort.ESCAPE)
+    ''' <summary>Cierra los menús desplegados contrayéndolos por UI Automation (sin teclado: la sesión puede no tener entrada).</summary>
+    Private Sub Plegar()
+        For Each v In _app.Ventanas()
+            For Each m In AplicacionE2E.OpcionesDeMenu(v)
+                If m.Patterns.ExpandCollapse.IsSupported Then
+                    If m.Patterns.ExpandCollapse.Pattern.ExpandCollapseState.Value = FlaUI.Core.Definitions.ExpandCollapseState.Expanded Then
+                        m.Patterns.ExpandCollapse.Pattern.Collapse()
+                    End If
+                End If
+            Next
+        Next
         Wait.UntilInputIsProcessed()
     End Sub
 

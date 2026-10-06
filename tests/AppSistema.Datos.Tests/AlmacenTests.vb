@@ -122,13 +122,40 @@ Public Class AlmacenTests
             Assert.Equal(U(414D), bd.ValorU6(bd.VarianteAceiteId))
 
             Dim cocina = New ServicioAdministracion(bd.CadenaAplicacion, bd.Sesion("A")).CrearAlmacen(bd.A.OperacionId, "COC", "Cocina")
-            e.Almacen.Traspasar(bd.A.AlmacenId, cocina, Fecha, {New LineaSalida With {.VarianteId = bd.VarianteAceiteId, .CantidadBaseU6 = U(10D)}})
+            Dim transito = e.Almacen.Traspasar(bd.A.AlmacenId, cocina, Fecha, {New LineaSalida With {.VarianteId = bd.VarianteAceiteId, .CantidadBaseU6 = U(10D)}})
+
+            ' Enviado: sale del origen y todavía no está en el destino (queda en tránsito, fuera de los almacenes).
+            Assert.Equal(U(36D), bd.SaldoU6(bd.VarianteAceiteId))
+            Assert.Equal(U(324D), Convert.ToInt64(bd.Escalar("SELECT sum(valor_u6) FROM saldo_stock")))
+            Assert.Empty(e.Almacen.ListarDocumentos(cocina, Fecha, Fecha))
+            Assert.Equal(1, e.Almacen.ListarTransitos(True).Count)
+
+            ' Recibido en el destino: entra el mismo stock y valor, y solo una vez.
+            e.Almacen.Recibir(transito, Fecha)
             Assert.Equal(U(90D), Convert.ToInt64(bd.Escalar($"SELECT valor_u6 FROM saldo_stock WHERE almacen_id = {cocina}")))
-            Assert.Equal(U(36D), bd.SaldoU6(bd.VarianteAceiteId) - U(10D))   ' 46 − 10 en origen
+            Assert.Equal(U(46D), bd.SaldoU6(bd.VarianteAceiteId))
             Assert.Equal(U(414D), Convert.ToInt64(bd.Escalar("SELECT sum(valor_u6) FROM saldo_stock")))   ' el traspaso no crea ni pierde valor
             Assert.Equal(0L, bd.FilasSinConciliar())
             Assert.Equal("recepcion,baja,traspaso_salida", String.Join(",", e.Almacen.ListarDocumentos(bd.A.AlmacenId, Fecha, Fecha).Select(Function(d) d.Tipo)))
             Assert.Equal("traspaso_entrada", e.Almacen.ListarDocumentos(cocina, Fecha, Fecha).Single().Tipo)
+            Assert.Empty(e.Almacen.ListarTransitos(True))
+            Assert.Equal("TRASPASO_RECIBIDO", Assert.Throws(Of ReglaNegocioException)(Sub() e.Almacen.Recibir(transito, Fecha)).Codigo)
+            ' Un traspaso recibido no se borra ni se cambia, ni siquiera desde la base (trigger de V029).
+            Assert.Contains("TRASPASO_TRANSITO", Assert.ThrowsAny(Of Exception)(Sub() bd.EjecutarAdmin("DELETE FROM traspaso_transito")).Message)
+        End Using
+    End Sub
+
+    <FactPostgres>
+    Public Sub Traspaso_en_transito_bloquea_el_cierre_del_dia_hasta_recibirlo()
+        Using bd = BaseDatosPrueba.Crear()
+            Dim e As New Escenario(bd)
+            e.Recibir("F001-2", 3D, 144D)
+            Dim cocina = New ServicioAdministracion(bd.CadenaAplicacion, bd.Sesion("A")).CrearAlmacen(bd.A.OperacionId, "COC", "Cocina")
+            Dim transito = e.Almacen.Traspasar(bd.A.AlmacenId, cocina, Fecha, {New LineaSalida With {.VarianteId = bd.VarianteAceiteId, .CantidadBaseU6 = U(10D)}})
+            Dim cierres = New ServicioCierres(bd.CadenaAplicacion, bd.Sesion("A"))
+            Assert.Contains(cierres.Pendientes(Fecha), Function(p) p.Codigo = "TRANSITO_PENDIENTE" AndAlso p.Bloqueante)
+            e.Almacen.Recibir(transito, Fecha)
+            Assert.DoesNotContain(cierres.Pendientes(Fecha), Function(p) p.Codigo = "TRANSITO_PENDIENTE")
         End Using
     End Sub
 

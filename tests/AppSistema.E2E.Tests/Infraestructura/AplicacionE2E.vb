@@ -93,13 +93,12 @@ Public NotInheritable Class AplicacionE2E
     ''' y se espera como máximo 3 s; lo que se abra se busca después.
     ''' </remarks>
     Public Shared Sub Pulsar(e As AutomationElement)
-        ' Clic real de mouse: con Invoke, si el control abre un diálogo modal (MessageBox, ShowDialog), la aplicación deja
-        ' de atender UI Automation hasta cerrarlo y las búsquedas siguientes vencen por tiempo.
-        Dim punto As Drawing.Point
-        If e.TryGetClickablePoint(punto) Then
-            Mouse.Click(punto)
-        ElseIf e.Patterns.Invoke.IsSupported Then
+        ' Primero el patrón Invoke: no depende de la entrada del sistema (en sesiones sin entrada de mouse el clic no hace
+        ' nada, sin error). El clic de mouse queda como último recurso para controles sin Invoke.
+        If e.Patterns.Invoke.IsSupported Then
             Dim patron = e.Patterns.Invoke.Pattern
+            ' Invoke no vuelve mientras el control abre un diálogo modal (MessageBox, ShowDialog): se espera como máximo 3 s y lo
+            ' abierto se busca después.
             Task.Run(Sub()
                          Try
                              patron.Invoke()
@@ -108,7 +107,12 @@ Public NotInheritable Class AplicacionE2E
                          End Try
                      End Sub).Wait(TimeSpan.FromSeconds(3))
         Else
-            e.Click()
+            Dim punto As Drawing.Point
+            If e.TryGetClickablePoint(punto) Then
+                Mouse.Click(punto)
+            Else
+                e.Click()
+            End If
         End If
         Wait.UntilInputIsProcessed()
     End Sub

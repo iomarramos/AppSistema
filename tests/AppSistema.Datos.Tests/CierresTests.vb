@@ -100,9 +100,11 @@ Public Class CierresTests
             Dim resultados = tareas.Select(Function(t) t.Result).ToList()
             Assert.Contains("cierre", resultados)
             Assert.All(resultados, Sub(x) Assert.Contains(x, {"ok", "DIA_CERRADO", "cierre"}))
-            ' Ninguna salida quedó registrada después del cierre.
-            Assert.Equal(0L, Convert.ToInt64(bd.Escalar(
-                $"SELECT count(*) FROM movimiento_stock m JOIN cierre_diario c ON c.fecha = m.fecha WHERE m.fecha = '{dia:yyyy-MM-dd}' AND m.creado_en > c.fecha_cierre")))
+            ' Lo que el cierre contó (su foto) es exactamente lo que quedó registrado: ninguna salida entró después.
+            Dim fotoCantidad = Convert.ToInt64(bd.Escalar($"SELECT movimientos_al_cerrar FROM cierre_diario WHERE fecha = '{dia:yyyy-MM-dd}'"))
+            Dim fotoValor = Convert.ToInt64(bd.Escalar($"SELECT valor_al_cerrar_u6 FROM cierre_diario WHERE fecha = '{dia:yyyy-MM-dd}'"))
+            Assert.Equal(fotoCantidad, Convert.ToInt64(bd.Escalar($"SELECT count(*) FROM movimiento_stock WHERE fecha = '{dia:yyyy-MM-dd}'")))
+            Assert.Equal(fotoValor, Convert.ToInt64(bd.Escalar($"SELECT COALESCE(sum(valor_u6), 0) FROM movimiento_stock WHERE fecha = '{dia:yyyy-MM-dd}'")))
             Assert.Equal(CLng(resultados.Where(Function(x) x = "ok").Count()), Convert.ToInt64(bd.Escalar($"SELECT count(*) FROM movimiento_stock WHERE fecha = '{dia:yyyy-MM-dd}'")))
             Assert.Equal(0L, bd.FilasSinConciliar())
         End Using
@@ -161,5 +163,38 @@ Public Class CierresTests
         Return String.Join("|", {r.Estado, r.BajasU6.ToString(), r.AjusteInventarioU6.ToString(), r.TotalCostoAlimentosU6.ToString(), r.TotalIngresoU6.ToString(), r.FoodCostTotalU6.ToString()}.Concat(
             r.Servicios.Select(Function(s) $"{s.Servicio};{s.RacionesServidas};{s.CostoAlimentosU6};{s.IngresoU6};{s.FoodCostU6};{s.DesviacionPuntosU6};{s.DiferenciaPresupuestoU6}")))
     End Function
+
+    <FactPostgres>
+    Public Sub Sprint5_checklist_calendario_y_cierre_mensual_en_8_pasos()
+        Using bd = BaseDatosPrueba.Crear()
+            Dim sesion = bd.Sesion("A")
+            Dim cierres As New ServicioCierres(bd.CadenaAplicacion, sesion)
+            Dim dia = New Date(2026, 3, 10)
+
+            Dim controles = cierres.ChecklistDia(dia)
+            Assert.Equal(9, controles.Count)                      ' 9 con el control de traspasos enviados sin recibir (V029)
+            Assert.All(controles, Sub(c) Assert.False(String.IsNullOrEmpty(c.IrA)))
+            Assert.True(controles.All(Function(c) c.Estado = "OK"))
+
+            Dim calendario = cierres.CalendarioMes(2026, 3)
+            Assert.Equal(31, calendario.Count)
+            Assert.Equal("Listo", calendario.Single(Function(d) d.Fecha = dia).Estado)
+
+            ' Una minuta en borrador ese dia lo deja con pendientes (impide cerrar).
+            Dim minutas As New ServicioMinutas(bd.CadenaAplicacion, sesion)
+            Dim servicio = minutas.CrearServicio("ALM", "Almuerzo")
+            Dim regimen = minutas.CrearRegimen("GEN", "General")
+            Dim operacionServicio = minutas.AsignarServicio(servicio, regimen, Nothing)
+            minutas.CrearMinuta(operacionServicio, dia, 100)
+            Assert.Equal("Con pendientes", cierres.CalendarioMes(2026, 3).Single(Function(d) d.Fecha = dia).Estado)
+            Assert.Equal("ERROR", cierres.ChecklistDia(dia).Single(Function(c) c.Control = "Minutas aprobadas").Estado)
+
+            Dim pasos = cierres.ChecklistMes(2026, 3)
+            Assert.Equal(8, pasos.Count)
+            Assert.Equal("OK", pasos.Single(Function(x) x.Paso = 1).Estado)          ' sin documentos en borrador
+            Assert.Equal("PENDIENTE", pasos.Single(Function(x) x.Paso = 2).Estado)   ' dias pasados sin cerrar
+            Assert.Equal("PENDIENTE", pasos.Single(Function(x) x.Paso = 8).Estado)
+        End Using
+    End Sub
 
 End Class

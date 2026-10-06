@@ -173,4 +173,17 @@ Public Class TeoricoRealTests
         End Using
     End Sub
 
+    <FactPostgres>
+    Public Sub Planilla_cambia_raciones_solo_en_minuta_en_borrador()
+        Using bd = BaseDatosPrueba.Crear()
+            Dim e As New Escenario(bd)
+            Dim plato = e.Plato(e.Minuta, e.Cafe)
+            Assert.Equal("CANTIDAD_INVALIDA", Assert.Throws(Of ReglaNegocioException)(Sub() e.Minutas.FijarRaciones(plato, 0)).Codigo)
+            e.Minutas.FijarRaciones(plato, 450)
+            Assert.Equal(450L, e.Minutas.ListarPlatos(e.Minuta).Single(Function(p) p.Id = plato).Raciones)
+            e.Minutas.Aprobar(e.Minuta, "PEN")
+            Assert.Equal("MINUTA_APROBADA", Assert.Throws(Of ReglaNegocioException)(Sub() e.Minutas.FijarRaciones(plato, 400)).Codigo)
+        End Using
+    End Sub
+
 End Class

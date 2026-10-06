@@ -35,6 +35,12 @@ Public Class RecorridoPantallasTests
                             app.CerrarMensaje()
                         ElseIf ventana Is Nothing Then
                             fallas.Add($"{opcion}: no se abrio ninguna ventana")
+                        Else
+                            ' Especificación: las pantallas deben caber en 1366x768 (la ventana completa, con su barra de título).
+                            Dim area = ventana.BoundingRectangle
+                            If area.Width > 1366 OrElse area.Height > 768 Then
+                                fallas.Add($"{opcion}: la ventana mide {area.Width}x{area.Height} y no cabe en 1366x768")
+                            End If
                         End If
                         indice.Add($"{nombre}.png;{opcion};{If(ventana?.AutomationId, "")}")
                         ' Cerrar lo que haya quedado abierto: diálogos primero y luego la ventana de trabajo.
