@@ -132,6 +132,10 @@ H01, H02 y H03: **cerradas** (V003) y probadas también con el rol de la aplicac
 
 **Brechas de esquema aún abiertas:** estado "en tránsito" para traspasos entre bodegas; atributos de receta por régimen; raciones diarias por cliente; fórmula exacta de `necesidad_neta` con `reserva` y `stock_utilizable`.
 
+## Entrega 2026-10-06: tablas de las pantallas del SGP
+
+Material nuevo del usuario (`datos/sgp_pantallas/`): 75 capturas del SGP, manual V006 y reportes del pre-cierre del 27/09/2026. Se transcribieron las capturas, se cruzaron con las 88 tablas de la base y se creó la migración V026 con lo que las pantallas muestran con claridad (14 tablas, columnas opcionales en 8 tablas existentes). Todo lo demás quedó en `docs/TABLAS_SGP_VS_BASE.md` como pendiente o por confirmar, sin inventar. Hallazgo importante: la base exige la salida local para registrar una entrada de traspaso, y el SGP recibe traspasos de otros contratos. Reporte nuevo: Consumo alternativo (= diferencias de la toma).
+
 ## Siguiente tarea exacta
 
 1. Probar la aplicación WinForms en una PC Windows 10+ con un PostgreSQL local (pasos en `README.md`) y registrar observaciones.

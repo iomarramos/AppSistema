@@ -601,6 +601,39 @@ Public NotInheritable Class ServicioReportes
     End Function
 
     ''' <summary>
+    ''' Consumo alternativo (Informes > Stock del SGP; antes "ajuste de inventario"): los productos de una toma de inventario cuya
+    ''' diferencia entre lo físico y el sistema no es cero, en orden alfabético, con su diferencia, precio (P.M.P.) y total, y el
+    ''' total general. En el cierre de Orcopampa del 27/09/2026 son exactamente las filas con diferencia del reporte
+    ''' "Diferencias físico vs sistema - valorizado", con los mismos valores.
+    ''' </summary>
+    Public Function ConsumoAlternativo(inventarioId As Long) As Reporte
+        Dim servicio As New ServicioInventarios(CadenaConexion, Sesion)
+        Dim cab = EnTransaccion(Permisos.InventarioContar,
+            Function(u) u.Consultar(
+                "SELECT i.numero, i.fecha_corte, a.codigo || ' - ' || a.nombre FROM inventario i JOIN almacen a ON a.id = i.almacen_id " &
+                "WHERE i.id = @i AND a.operacion_id = @o",
+                Function(rd) (Numero:=rd.GetString(0), Corte:=rd.GetDateTime(1), Almacen:=rd.GetString(2)),
+                "i", inventarioId, "o", Sesion.OperacionId).ToList())
+        If cab.Count = 0 Then Throw New ReglaNegocioException("OPERACION_AJENA", "El inventario no pertenece a la operacion seleccionada.")
+        Dim lineas = servicio.Hoja(inventarioId).Where(Function(l) l.FisicoU6.HasValue AndAlso l.DiferenciaU6.HasValue AndAlso l.DiferenciaU6.Value <> 0).
+                     OrderBy(Function(l) l.Descripcion, StringComparer.CurrentCultureIgnoreCase).ToList()
+
+        Dim r = Nuevo("Consumo alternativo")
+        r.Dato("Bodega", cab(0).Almacen)
+        r.Dato("Toma de inventario", cab(0).Corte.ToString("dd/MM/yyyy"))
+        Dim s = r.Seccion("", C("Codigo"), C("Descripcion"), C("Unidad"), C("Diferencia", FormatoColumna.Cantidad), C("Precio", FormatoColumna.Dinero), C("Total", FormatoColumna.Dinero))
+        Dim total As Long = 0
+        For Each l In lineas
+            Dim valor = l.ValorDiferenciaU6.GetValueOrDefault()
+            total += valor
+            s.Agregar(l.VarianteCodigo, l.Descripcion, l.Unidad, l.DiferenciaU6, l.CostoU6, valor)
+        Next
+        s.Totales = {"TOTAL GENERAL", $"{lineas.Count} productos", Nothing, Nothing, Nothing, total}
+        r.Firmas.AddRange({"Elaborado por", "Revisado por", "Autorizado por"})
+        Return r
+    End Function
+
+    ''' <summary>
     ''' Menú del mes por servicio, en hoja horizontal, como la planificación del SGP: una columna por día, con el costo del
     ''' día y el costo total del servicio. El teórico es lo que planifica el área de planificación (la minuta aprobada, con
     ''' sus raciones y su costo previsto por ración). El real son las raciones preparadas que registra el chef en el cierre

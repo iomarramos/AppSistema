@@ -1,6 +1,6 @@
 # Cómo continuar (traspaso a una nueva conversación)
 
-Actualizado: 2026-10-05 (hora de Lima).
+Actualizado: 2026-10-06 (hora de Lima).
 
 | | |
 |---|---|
@@ -8,6 +8,17 @@ Actualizado: 2026-10-05 (hora de Lima).
 | PR | #1 (borrador, CI verde, sin conflictos) |
 | `develop` | en el mismo commit probado |
 | Último corte | 2026-10-04: **fase 2 de Planificación y Abastecimiento Central** (planificación con versiones inmutables, V022; solo base y pruebas, sin pantallas). Antes: fase 1 (seguridad de cuatro niveles, V021, 2026-10-03) y análisis y diseño en `docs/ARQUITECTURA_PLANIFICACION_CENTRAL.md` |
+
+## Última entrega: tablas de las pantallas del SGP (2026-10-06)
+
+El usuario subió `origen.zip` (75 capturas del SGP, el manual V006 y los reportes del pre-cierre) y pidió actualizar la base con esas tablas y llegar a los reportes.
+
+* Archivado en `datos/sgp_pantallas/` (`origen/`, `LEEME.md`, `indice_capturas.csv` y la transcripción de cada captura en `transcripcion/`).
+* **`docs/TABLAS_SGP_VS_BASE.md`**: cada tabla que muestran las pantallas contra la base (✅ existía, 🆕 agregada, ⏳ pendiente, ❓ por confirmar) y 9 preguntas para el usuario.
+* **V026** (14 tablas, 89 → 103 con `esquema_migracion`): receta por régimen y local, categoría dietética, tipo de plato, nutrientes (sin valores), estado mensual de la planificación, control de raciones, venta del día, cafetería, traspasos y columnas de proveedor, pedido, recepción, salida a producción y operación. Reglas en la base (día cerrado, versión aprobada, permisos). Pruebas: `TablasSgpTests` (12).
+* Reporte **Consumo alternativo** (Inventarios): son las diferencias de la toma (43 filas, total −26,388276 verificado contra el SGP).
+* **Falta (servicios y pantallas sobre esas tablas):** control de raciones, venta contado y cafetería; receta con las tres pestañas y su costeo por régimen; traspaso desde otro contrato (la base hoy exige la salida en la misma base: `ORIGEN_REQUERIDO`); Generar minuta real y Copiar minutas; los 6 informes de costo con acumulados; cartola, detalle de cartola y producto sin movimiento.
+* **Preguntas abiertas:** `docs/TABLAS_SGP_VS_BASE.md` §9 (traspasos externos, prioridad local/régimen, sector de cocina, siglas CFC/CD/ADS, fórmulas de la cabecera de receta, desechables, mermas del control de raciones, tabla de nutrientes, "Estado GH/GI" y la "R").
 
 ## Última entrega: planificación de menús (2026-10-05)
 

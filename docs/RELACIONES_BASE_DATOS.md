@@ -1,6 +1,6 @@
 # Relaciones de la base de datos (llaves primarias y foráneas)
 
-Actualizado: 2026-10-03 (migraciones V001–V019).
+Actualizado: 2026-10-06. El detalle de V001–V019 se generó el 2026-10-03; al final están las 14 tablas de **V026** (las de V020–V025 no se han agregado a este documento).
 
 La base tiene 71 tablas: las 70 del esquema y `esquema_migracion`, que crea el migrador. Hay 203 llaves foráneas. Este documento se generó leyendo las restricciones directamente de PostgreSQL.
 
@@ -288,3 +288,28 @@ erDiagram
 | `central_movimiento` | `id` | `empresa_id` → `empresa.id`<br>`documento_id` → `central_documento.id`<br>`sede_id` → `sede_central.id` |  |
 | `central_cierre` | `id` | `empresa_id` → `empresa.id`<br>`sede_id` → `sede_central.id` |  |
 | `integracion_envio` | `id` | `empresa_id` → `empresa.id` |  |
+
+## Pantallas del SGP (V026)
+
+Llaves foráneas de las 14 tablas nuevas y de las columnas nuevas de tablas existentes. Todas llevan `empresa_id → empresa.id` y,
+como el resto, sus llaves incluyen `empresa_id`. Detalle de qué muestra cada pantalla: `docs/TABLAS_SGP_VS_BASE.md`.
+
+| Tabla | PK | Llaves foráneas (columna → tabla.columna) | Reglas |
+|---|---|---|---|
+| `categoria_dietetica` | `id` | — | `codigo` único por empresa |
+| `tipo_plato` | `id` | `padre_id` → `tipo_plato.id` (misma empresa) | jerarquía; no es su propio padre |
+| `receta` (columnas nuevas) | `id` | `categoria_dietetica_id` → `categoria_dietetica.id`<br>`tipo_plato_id` → `tipo_plato.id` | opcionales |
+| `receta_ingrediente_ambito` | `id` | `receta_version_id` → `receta_version.id`<br>`operacion_id` → `operacion.id`<br>`regimen_id` → `regimen.id`<br>`producto_base_id` → `producto_base.id` | `local` exige operación; `regimen` exige régimen; una fila por ámbito y producto; con la versión aprobada no cambia (`RECETA_APROBADA`) |
+| `nutriente` | `id` | — | `codigo` único por empresa |
+| `producto_nutriente` | `id` | `producto_base_id` → `producto_base.id`<br>`nutriente_id` → `nutriente.id` | una fila por producto y nutriente; valor por 100 g |
+| `planificacion_mes_estado` | `id` | `operacion_servicio_id` → `operacion_servicio.id`<br>`usuario_cierre_id` → `usuario.id` | único por servicio, año, mes y tipo (teórica o real); cerrado exige fecha de cierre |
+| `control_racion` | `id` | `operacion_servicio_id` → `operacion_servicio.id`<br>`cliente_id` → `cliente.id`<br>`usuario_id` → `usuario.id` | `concepto` cliente, personal, producidas, mer_descon o mer_produc; solo `cliente` lleva cliente; no cambia con el día cerrado (`DIA_CERRADO`); exige `PRODUCCION_EDITAR` |
+| `control_racion_dia` | `id` | `operacion_servicio_id` → `operacion_servicio.id`<br>`usuario_id` → `usuario.id` | casilla facturable por servicio y día; mismas reglas de día cerrado |
+| `forma_pago` | `id` | — | `codigo` único por empresa |
+| `venta_servicio_dia` | `id` | `operacion_servicio_id` → `operacion_servicio.id`<br>`cliente_id` → `cliente.id`<br>`forma_pago_id` → `forma_pago.id`<br>`usuario_id` → `usuario.id` | una fila por servicio, día, cliente (o ninguno) y forma de pago; día cerrado bloquea; exige `CIERRE_EJECUTAR` |
+| `venta_cafeteria` | `id` | `almacen_id` → `almacen.id`<br>`cliente_id` → `cliente.id`<br>`documento_stock_id` → `documento_stock.id`<br>`usuario_id` → `usuario.id` |  |
+| `venta_cafeteria_detalle` | `id` | `venta_id` → `venta_cafeteria.id`<br>`variante_id` → `variante_producto.id` | cantidad mayor que cero; precio no negativo |
+| `traspaso_documento` | `id` | `documento_stock_id` → `documento_stock.id` | uno por documento de stock; modalidad contrato, cd, bodega o alm_remoto |
+| `traspaso_linea` | `id` | `documento_detalle_id` → `documento_stock_detalle.id` | una por línea; cantidad recibida |
+
+Columnas nuevas sin tabla nueva: `proveedor` (`direccion`, `fax`), `pedido_compra` (`codigo_sgp`, `persona_contacto`, `correo_destino`, `periodo_desde`, `periodo_hasta`), `recepcion` (`modalidad_sgp` CFC o FOFI, `folio`, `glosa`, `fletes_u6`, `exento_u6`), `documento_stock` (`fecha_produccion`), `documento_stock_detalle` (`cantidad_planificada_u6`), `operacion` (`codigo_optimum`), `receta_ingrediente` (`pct_aprovechamiento_bp`, `pct_ajuste_coccion_bp`).

@@ -166,6 +166,12 @@ Public Class ReportesTests
             Assert.True(explica.Horizontal)
             Assert.Equal("ACE-1L", CStr(explica.Secciones(0).Filas.Single()(0)))
 
+            ' Consumo alternativo (SGP): las mismas diferencias, con diferencia, precio y total, y el total general igual al de la explicacion.
+            Dim alternativo = reportes.ConsumoAlternativo(inv)
+            Assert.Equal(6, alternativo.Secciones(0).Columnas.Count)
+            Assert.Equal("ACE-1L", CStr(alternativo.Secciones(0).Filas.Single()(0)))
+            Assert.Equal(CLng(explica.Secciones(0).Filas.Single()(9)), CLng(alternativo.Secciones(0).Totales(5)))
+
             ' Otra empresa no ve la minuta; cocina no tiene permiso de inventario.
             Dim otra As New ServicioReportes(bd.CadenaAplicacion, bd.Sesion("B"))
             Assert.Equal("OPERACION_AJENA", Assert.Throws(Of ReglaNegocioException)(Function() otra.MinutaDelDia(minuta)).Codigo)
@@ -173,6 +179,7 @@ Public Class ReportesTests
             Call New ServicioAdministracion(bd.CadenaAplicacion, s).CrearUsuario("cocina", "Cocinero", "Cocina-Clave-2026", bd.A.OperacionId, "COCINA")
             Dim cocina As New ServicioReportes(bd.CadenaAplicacion, bd.Sesion("A", "cocina", "Cocina-Clave-2026"))
             Assert.Equal("SIN_PERMISO", Assert.Throws(Of ReglaNegocioException)(Function() cocina.Inventario(inv, True)).Codigo)
+            Assert.Equal("SIN_PERMISO", Assert.Throws(Of ReglaNegocioException)(Function() cocina.ConsumoAlternativo(inv)).Codigo)
             Assert.Equal("Minuta Almuerzo 2026-10-02", cocina.MinutaDelDia(minuta).Titulo)
         End Using
     End Sub

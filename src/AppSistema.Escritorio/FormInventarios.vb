@@ -38,7 +38,8 @@ Partial Public Class FormInventarios
                                     Ui.Boton("Cerrar conteo", Sub() Accion(Sub(i) _servicio.CerrarConteo(i))), Ui.Boton("Recontar", Sub() Accion(Sub(i) _servicio.Recontar(i))),
                                     Ui.BotonSi(aprueba, "Revisar", Sub() Accion(Sub(i) _servicio.Revisar(i))), Ui.BotonSi(aprueba, "Autorizar ajuste...", AddressOf Autorizar),
                                     Ui.Boton("Imprimir hoja de conteo...", Sub() Imprimir(True)), Ui.Boton("Imprimir resultado...", Sub() Imprimir(False)),
-                                    Ui.Boton("Explicacion de ajustes R-AI...", Sub() ImprimirExplicacion()))
+                                    Ui.Boton("Explicacion de ajustes R-AI...", Sub() ImprimirExplicacion()),
+                                    Ui.Boton("Consumo alternativo...", Sub() ImprimirConsumoAlternativo()))
         Dim division As New SplitContainer With {.Dock = DockStyle.Fill, .Orientation = Orientation.Horizontal, .SplitterDistance = 140}
         division.Panel1.Controls.Add(_inventarios)
         division.Panel2.Controls.Add(_hoja)
@@ -168,6 +169,13 @@ Partial Public Class FormInventarios
         Dim i = Inventario
         If i Is Nothing Then Ui.Informar(Me, "Seleccione un inventario.") : Return
         SalidaReporte.Emitir(Me, Function() _reportes.ExplicacionAjustes(i.Id))
+    End Sub
+
+    ''' <summary>Consumo alternativo: los productos del inventario seleccionado con diferencia, con su precio y total.</summary>
+    Private Sub ImprimirConsumoAlternativo()
+        Dim i = Inventario
+        If i Is Nothing Then Ui.Informar(Me, "Seleccione un inventario.") : Return
+        SalidaReporte.Emitir(Me, Function() _reportes.ConsumoAlternativo(i.Id))
     End Sub
 
 End Class

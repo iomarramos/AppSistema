@@ -24,7 +24,7 @@ Referencia: `Pantalla\Reportes Cierre` y `Pantalla\Reportes Cierre Pre Cierre` (
 |---|---|
 | Food Cost (Alimento) | Revisar `ServicioCierres` contra el formato diario por servicio (ración vendida, valor bandeja, costo bandeja, food cost). |
 | Traspasos (entrada CD, entrada y salida entre contratos) | AppSistema tiene los movimientos (`traspaso_entrada` / `traspaso_salida`), pero no un listado con número de documento, origen y folio. |
-| Consumo Alternativo | Pendiente de definir el origen de la diferencia. |
+| Consumo Alternativo | Hecho: son las diferencias de la toma (ver «Consumo alternativo» al final). |
 | Boleta de ajustes R-AL-15-2 y formato de explicación de ajustes R-AI-15-2 | Requieren un flujo de ajustes con justificación; no existe todavía. |
 | Listado para toma de inventario / TOMA_INVENTARIO.xls | La hoja de conteo de AppSistema tiene otras columnas; falta igualarla. |
 | Requisición (Formato de Requisición Detallado) | Se compara con el requerimiento por minuta en la siguiente revisión. |
@@ -102,4 +102,23 @@ No se modifica ninguna migración ya aplicada. Para aplicar: respaldar y luego `
 
 * **Reportes (SGP y plan)** — menú *Cierres y control > Reportes (SGP y plan)*: elegir el reporte y el periodo (rango o mes) y abrir la vista previa. Incluye: requisición detallada por rango (SGP), salidas y devoluciones de producción por servicio, resumen de traspasos, boleta R-AL, frecuencia de la planificación teórica, costo piso y techo, menú teórico, menú real, food cost, comparativo de tres niveles y A13.
 * **Producción del chef** — menú *Menús > Produccion del chef (raciones a producir)*: lista los platos desde 3 días atrás (fecha de Lima); el chef cambia las raciones a producir y guarda. Los días cerrados no se editan y la base registra cada cambio.
-* Pendiente sin datos: aporte nutricional (los archivos no traen nutrientes) y consumo alternativo (falta definir su origen). La salida y devolución por estructura (no solo por servicio) queda pendiente.
+* Pendiente sin datos: aporte nutricional (los archivos no traen nutrientes) y (ya resuelto) consumo alternativo. La salida y devolución por estructura (no solo por servicio) queda pendiente.
+
+## Consumo alternativo (2026-10-06)
+
+* **Inventarios > Consumo alternativo...**: cabecera Bodega y Toma de inventario; columnas Código, Descripción, Unidad, Diferencia, Precio (P.M.P.) y Total; en orden alfabético; al pie el **Total general**.
+* Origen: el menú Stock del SGP lo rotula «Consumo Alternativo (ex ajuste de inventario)». Contra el reporte de diferencias de la misma toma (27/09/2026) son **exactamente los productos con diferencia distinta de cero** (43 filas), con la misma diferencia, el mismo precio y el mismo total; el total general es **−26,388276** en los dos reportes. Un producto con diferencia positiva (sobrante) y otro con diferencia negativa (faltante) aparecen juntos: por eso el total es la diferencia neta.
+* No guarda nada: se arma con `ServicioReportes.ConsumoAlternativo(inventarioId)` a partir de las líneas del inventario (permiso `INVENTARIO_CONTAR`).
+* Pruebas: `ReportesTests` (mismas diferencias y total que la explicación R-AI; el usuario sin permiso recibe `SIN_PERMISO`).
+* Material de origen: `datos/sgp_pantallas/origen/Reportes Cierre Pre Cierre/`.
+
+## Tablas de las pantallas del SGP (V026)
+
+Las 14 tablas y las columnas nuevas de esta migración, y lo que queda por confirmar con el usuario, están en `docs/TABLAS_SGP_VS_BASE.md`.
+
+| Migración | Cambio | Tipo |
+|---|---|---|
+| V026 | `categoria_dietetica`, `tipo_plato`, `receta_ingrediente_ambito`, `nutriente`, `producto_nutriente`, `planificacion_mes_estado`, `control_racion`, `control_racion_dia`, `forma_pago`, `venta_servicio_dia`, `venta_cafeteria`, `venta_cafeteria_detalle`, `traspaso_documento`, `traspaso_linea` | tablas nuevas |
+| V026 | `receta` (nombre de fantasía, categoría dietética, tipo de plato), `receta_ingrediente` (% aprovechamiento y % ajuste de cocción), `proveedor` (dirección, fax), `pedido_compra` (código SGP, contacto, correo, periodo), `recepcion` (modalidad CFC/FOFI, folio, glosa, fletes, exento), `documento_stock` (fecha de producción), `documento_stock_detalle` (cantidad planificada), `operacion` (código OPTIMUM) | columnas nuevas (todas opcionales) |
+
+Para aplicar en la base de la sede: respaldar y `AppSistema.Instalador.exe actualizar <respaldo>` (o `migrar`). No aplicar el SQL a mano.
