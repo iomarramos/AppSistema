@@ -1,0 +1,108 @@
+grupo;codigo;alimento;energia_kcal;energia_kj;agua_g;proteina_g;grasa_g;carbohidratos_totales_g;carbohidratos_disponibles_g;fibra_g;cenizas_g;calcio_mg;fosforo_mg;zinc_mg;hierro_mg;betacaroteno_equivalentes_ug;retinol_ug;vitamina_a_equivalentes_ug;tiamina_mg;riboflavina_mg;niacina_mg;vitamina_c_mg
+A. CEREALES Y DERIVADOS;A10;Ca�ihua, hojuelas de;318.0;1331.0;11.4;14.5;8.9;61.0;45.5;15.5;4.2;141.0;320.0;4.55;17.07;;;;0.67;0.3;1.45;0.0
+A. CEREALES Y DERIVADOS;A48;Pan franc�s;298.0;1248.0;25.6;10.2;1.4;61.0;59.4;1.5;1.8;35.0;101.0;0.74;6.56;;0.0;0.0;0.11;0.32;2.96;
+A. CEREALES Y DERIVADOS;A51;Quinua, blanca de Jun�n;334.0;1396.0;12.8;12.5;6.5;66.0;56.0;9.98;2.19;85.0;155.0;3.54;3.03;;0.0;1.55;0.4;0.77;;0.0
+A. CEREALES Y DERIVADOS;A58;Quinua, harina de;337.0;1408.0;11.7;12.4;6.0;67.2;57.9;9.3;2.8;104.0;330.0;5.19;9.65;;0.0;;0.19;0.24;0.68;
+A. CEREALES Y DERIVADOS;A59;Quinua, hojuelas de;376.0;1572.0;13.4;13.9;7.4;63.1;;;2.6;114.0;60.0;3.72;5.46;;0.0;;0.13;0.38;1.1;
+A. CEREALES Y DERIVADOS;A74;Ca�ihua, harina de;327.0;1367.0;10.2;15.2;8.3;63.0;48.2;14.9;3.3;182.0;350.0;5.68;15.2;;;;;;;
+A. CEREALES Y DERIVADOS;A75;Galleta de soda;440.0;1843.0;3.9;9.3;13.3;70.8;;;2.7;;;;7.7;;;;;;;
+A. CEREALES Y DERIVADOS;A76;Galleta de vainilla;461.0;1930.0;2.7;7.3;15.6;73.1;;;1.3;;;;4.4;;;;;;;
+A. CEREALES Y DERIVADOS;A77;Galleta dulce con relleno;494.0;2065.0;1.9;4.7;22.0;70.5;;;0.9;;;;5.2;;;;;;;
+A. CEREALES Y DERIVADOS;A78;"Galleta dulce con relleno de ""chocolate""";487.0;2039.0;2.5;5.7;21.1;69.8;;;0.9;;;;3.7;;;;;;;
+A. CEREALES Y DERIVADOS;A79;Kiwicha, harina de;352.0;1474.0;10.9;12.2;7.9;66.4;58.0;8.4;2.6;214.0;360.0;3.76;5.3;;;;;;;
+A. CEREALES Y DERIVADOS;A80;Kiwicha, precocida, hojuelas de;400.0;1675.0;8.4;13.4;8.1;68.0;;;2.0;;;2.77;7.21;;;;;;;
+A. CEREALES Y DERIVADOS;A82;Ma�z blanco, harina de;343.0;1435.0;11.6;5.5;5.0;76.6;71.0;5.6;1.3;19.0;;1.73;2.35;;;;;;;
+A. CEREALES Y DERIVADOS;A83;Ma�z blanco precocido, harina de;327.0;1369.0;12.1;6.8;5.2;74.8;65.9;8.9;1.2;;;1.76;2.08;;;;;;;
+A. CEREALES Y DERIVADOS;A84;Ma�z morado, harina de;318.0;1331.0;11.4;8.5;4.2;74.3;64.5;9.8;1.7;29.0;300.0;2.6;6.47;;;;;;;
+A. CEREALES Y DERIVADOS;A85;Pan �rabe;295.0;1233.0;27.8;10.3;3.5;56.7;54.3;2.4;1.7;;;;6.98;;;;;0.32;6.47;
+A. CEREALES Y DERIVADOS;A86;Pan cachanga;445.0;1862.0;17.4;7.7;26.1;47.4;;;1.4;;;;3.99;;;;;0.27;;
+A. CEREALES Y DERIVADOS;A87;Pan chapla;327.0;1367.0;22.2;9.3;3.5;63.2;;;1.9;;;;4.67;;;;;0.37;;
+A. CEREALES Y DERIVADOS;A88;Pan chuta;388.0;1624.0;16.3;9.5;11.1;62.3;;;0.8;;;;4.71;;;;;0.39;;
+A. CEREALES Y DERIVADOS;A89;Pan ciabatta;270.0;1131.0;32.1;9.2;2.0;55.0;52.6;2.5;1.7;;;;5.59;;;;;0.71;4.94;
+A. CEREALES Y DERIVADOS;A90;Pan cuay de trigo;335.0;1403.0;23.8;10.0;11.6;53.4;;;1.15;;;;5.62;;;;;;;
+A. CEREALES Y DERIVADOS;A91;Pan cuay de trigo;277.0;1161.0;31.6;7.6;10.1;48.9;43.8;5.1;1.8;;;;4.45;;;;0.33;0.34;3.01;
+A. CEREALES Y DERIVADOS;A92;Pan de ma�z;321.0;1341.0;25.4;7.7;8.7;56.7;52.6;4.1;1.6;;;;3.49;;;;;0.24;3.81;
+A. CEREALES Y DERIVADOS;A93;Pan de ma�z;333.0;1391.0;24.0;9.3;11.4;53.8;;;1.47;;;;5.24;;;;;;;
+A. CEREALES Y DERIVADOS;A94;Pan de ma�z;272.0;1140.0;31.7;9.2;4.6;53.3;;;1.28;;;;5.06;;;;;;;
+A. CEREALES Y DERIVADOS;A95;Pan de ma�z;335.0;1403.0;22.0;8.0;15.2;53.0;47.5;5.5;1.85;;;;3.5;;;;0.25;0.29;2.96;
+A. CEREALES Y DERIVADOS;A96;Pan de trigo;268.0;1122.0;32.5;8.8;4.6;52.4;;;1.68;;;;5.11;;;;;;;
+A. CEREALES Y DERIVADOS;A97;Pan de yema;322.0;1349.0;25.6;9.4;8.1;55.4;52.5;2.9;1.54;;;;4.47;;;;;0.29;4.01;
+A. CEREALES Y DERIVADOS;A98;Pan de huevo;340.0;1421.0;23.2;9.3;6.9;59.4;;;1.25;;;;5.79;;;;;0.35;;
+A. CEREALES Y DERIVADOS;A99;Pan huaro;342.0;1432.0;21.1;9.9;5.5;62.2;;;1.27;;;;5.4;;;;;0.39;;
+A. CEREALES Y DERIVADOS;A100;Pan integral;340.0;1425.0;24.3;9.1;9.0;55.5;;;2.16;;;;5.16;;;;;0.4;;
+A. CEREALES Y DERIVADOS;A101;Pan mollete, chico;363.0;1554.0;22.4;9.8;18.4;48.0;46.1;1.9;1.49;;;;4.9;;;;0.41;0.26;4.09;
+A. CEREALES Y DERIVADOS;A102;Pan mollete, chico;317.0;1371.0;28.7;9.4;14.2;46.0;43.4;2.6;1.7;;;;4.72;;;;0.41;0.42;4.08;
+A. CEREALES Y DERIVADOS;A103;Pan vico;345.0;1443.0;24.3;9.3;9.1;56.1;;;1.25;;;;5.16;;;;;0.42;;
+A. CEREALES Y DERIVADOS;A104;Quinua, var. Real;331.0;1385.0;12.9;14.2;5.1;65.9;56.7;9.11;1.95;;;2.68;4.0;;;1.57;0.28;0.3;;
+A. CEREALES Y DERIVADOS;A105;Siete harinas;;;;;;;;;;;;;;;;;;;;
+A. CEREALES Y DERIVADOS;A106;Trigo, hojuela de;322.0;1346.0;16.0;10.0;2.5;70.2;;;1.36;;;2.23;2.1;;;;;;;
+A. CEREALES Y DERIVADOS;A107;Trigo, sin tostar (chaquepa);338.0;1416.0;11.9;7.0;2.2;77.9;;;0.93;;;1.71;2.43;;;;;;;
+A. CEREALES Y DERIVADOS;A108;Trigo, tostado (chaquepa);369.0;1545.0;3.9;7.6;2.5;84.9;;;1.14;;;1.44;1.73;;;;;;;
+B. VERDURAS, HORTALIZAS Y DERIVADOS;B11;Aj� dulce;17.0;71.0;91.0;0.9;0.5;7.1;3.1;4.0;0.6;10.0;43.0;0.25;0.38;;0.0;;0.04;0.17;0.89;98.05
+B. VERDURAS, HORTALIZAS Y DERIVADOS;B17;Apio, tallo sin hojas;;;;;;;;;;;;;;;;;;;;
+B. VERDURAS, HORTALIZAS Y DERIVADOS;B85;Zanahoria, sin c�scara;19.0;78.0;90.2;1.0;0.3;7.6;3.6;4.1;0.9;51.0;40.0;0.15;0.3;;1696.0;841.0;0.04;0.04;0.18;3.23
+B. VERDURAS, HORTALIZAS Y DERIVADOS;B88;Zapallo loche, parte comestible;58.0;242.0;79.8;2.6;0.2;16.2;13.9;2.3;1.1;38.0;30.0;0.4;0.33;;108.0;532.0;0.05;0.08;0.52;7.44
+B. VERDURAS, HORTALIZAS Y DERIVADOS;B90;Aj� charapita;78.0;326.0;76.3;3.9;0.8;17.4;;;1.6;;;;;;;;;;;5.66
+B. VERDURAS, HORTALIZAS Y DERIVADOS;B91;Ajo sin c�scara;115.0;482.0;59.4;6.2;0.3;32.6;27.2;5.4;1.5;;;0.85;0.57;;0.22;;0.13;0.07;0.09;12.3
+B. VERDURAS, HORTALIZAS Y DERIVADOS;B92;Ajo sin c�scara;115.0;482.0;58.6;7.7;0.3;31.8;26.4;5.4;1.6;;;0.82;0.4;;0.22;;0.13;0.07;0.09;12.3
+B. VERDURAS, HORTALIZAS Y DERIVADOS;B93;Cebolla de cabeza;22.0;91.0;91.1;1.4;0.4;6.9;4.4;2.5;0.3;20.0;35.0;0.15;0.21;;0.0;;0.04;0.02;0.59;9.84
+B. VERDURAS, HORTALIZAS Y DERIVADOS;B94;Cebolla de cabeza;28.0;117.0;89.3;1.4;0.4;8.5;6.0;2.5;0.4;20.0;35.0;0.23;0.22;;0.0;;0.04;0.02;0.59;9.84
+B. VERDURAS, HORTALIZAS Y DERIVADOS;B95;Culantro, con hojas y tallo;15.0;62.0;88.4;3.5;0.2;5.9;1.2;4.7;1.9;135.0;60.0;0.6;4.5;;;;;;;4.78
+B. VERDURAS, HORTALIZAS Y DERIVADOS;B96;Tomate redondo, con c�scara;18.0;75.0;93.9;0.7;0.3;4.7;4.0;0.7;0.5;24.0;20.0;0.1;0.45;;;25.0;139.0;;;10.18
+B. VERDURAS, HORTALIZAS Y DERIVADOS;B97;Zapallo criollo, parte comestible;;;;;;;;2.2;;28.0;0.0;1.6;0.4;;;6.0;140.0;;;0.1
+C. FRUTAS Y DERIVADOS;C12;Chirimoya;72.0;302.0;75.4;1.9;0.3;21.6;17.7;4.0;0.8;102.0;50.0;0.3;0.29;;0.0;0.0;0.09;0.16;1.62;10.36
+C. FRUTAS Y DERIVADOS;C30;Umar�, sin pepa y sin c�scara;163.0;682.0;62.1;1.6;8.1;27.4;25.0;2.4;0.9;5.0;30.0;0.5;0.72;;20.0;;0.03;0.74;1.5;0.21
+C. FRUTAS Y DERIVADOS;C70;Pl�tano de isla;75.0;314.0;74.2;1.2;0.1;21.6;19.5;2.2;2.9;9.0;20.0;0.13;0.3;;131.0;3.0;0.07;0.07;0.47;0.0
+C. FRUTAS Y DERIVADOS;C74;Pl�tano, harina de;302.0;1265.0;14.0;4.0;0.4;79.3;;;2.3;29.0;104.0;0.81;4.62;;100.0;;0.11;0.12;1.57;0.68
+C. FRUTAS Y DERIVADOS;C91;Tuna roja;36.0;150.0;86.2;1.3;0.2;12.1;8.3;3.8;0.2;136.0;20.0;0.26;0.17;;0.0;2.0;0.01;0.04;0.42;33.66
+C. FRUTAS Y DERIVADOS;C99;Zapote, parte comestible;73.0;305.0;79.7;0.9;0.3;18.8;;;0.7;10.0;20.0;0.15;0.24;;130.0;;0.02;0.09;1.42;0.21
+C. FRUTAS Y DERIVADOS;C100;Cocona, jugo de;0.3;1.0;;;;0.8;0.1;0.8;;9.0;0.0;;0.72;;;;;;;0.0
+C. FRUTAS Y DERIVADOS;C101;Kiwi, sin c�scara;39.0;161.0;85.6;2.9;0.3;10.6;7.3;3.2;0.6;51.0;30.0;0.17;0.37;;;;0.04;;0.6;86.76
+C. FRUTAS Y DERIVADOS;C102;Lim�n dulce, sin c�scara;25.0;106.0;90.7;1.4;0.4;7.1;4.8;2.3;0.4;30.0;0.0;0.31;0.17;;;;;;;29.46
+C. FRUTAS Y DERIVADOS;C103;Naranja, jugo de (difruta);15.0;64.0;;;;5.0;4.1;0.9;;10.0;0.0;;0.11;;;;;;;72.94
+C. FRUTAS Y DERIVADOS;C104;Naranja, n�ctar de (frugos);40.0;165.0;;;;12.3;10.7;1.6;;6.0;0.0;;0.38;;;;;;;17.92
+C. FRUTAS Y DERIVADOS;C105;Maracuya, jugo de (difruta);32.0;134.0;;;;10.0;8.7;1.4;;11.0;0.0;;0.2;;;;;;;0.0
+C. FRUTAS Y DERIVADOS;C106;Manzana, jugo de (difruta);40.0;166.0;;;;11.0;10.7;0.3;;13.0;20.0;;0.49;;;;;;;0.0
+C. FRUTAS Y DERIVADOS;C107;"Palta ""fuerte""";104.0;436.0;69.7;1.9;8.9;17.1;6.5;10.6;2.4;11.0;60.0;0.63;0.49;12.6;;;;;;3.82
+C. FRUTAS Y DERIVADOS;C108;"Pl�tano ""bellaco""";102.0;427.0;67.5;1.3;0.1;29.5;26.9;2.6;1.6;8.0;20.0;0.06;0.38;;;;0.05;;0.83;0.0
+C. FRUTAS Y DERIVADOS;C109;"Pl�tano ""moquicho""";100.0;419.0;67.4;1.2;0.1;29.7;26.5;3.2;1.7;7.0;20.0;0.1;0.47;;;;0.04;;0.77;0.0
+J. HUEVOS Y DERIVADOS;J3;Huevo de gallina entero, cocido (duro);145.0;605.0;75.6;12.8;9.9;;;;0.9;44.0;160.0;1.61;3.04;;;169.0;0.07;0.39;0.12;
+A. HUEVOS Y DERIVADOS;J4;Huevo de gallina entero, crudo;156.0;652.0;72.2;12.7;11.1;;;;1.1;29.0;140.0;1.49;2.6;;;;0.08;0.26;0.13;
+J. HUEVOS Y DERIVADOS;J10;Huevo de gallina, clara cocida;55.0;229.0;86.0;11.9;0.3;;;;0.8;;;;;;;;;;;
+J. HUEVOS Y DERIVADOS;J11;Huevo de gallina, yema cocida;360.0;1507.0;48.7;16.3;32.1;;;;1.9;120.0;500.0;4.62;8.25;;678.0;;0.24;0.71;0.14;
+J. HUEVOS Y DERIVADOS;J12;Huevo de codorniz, entero crudo;140.0;586.0;70.8;12.6;9.4;;;;1.2;;;;;;;;;;;
+J. HUEVOS Y DERIVADOS;J13;Huevo de codorniz, entero cocido;168.0;701.0;69.9;12.7;12.4;;;;1.1;;;;;;;;;;;
+J. HUEVOS Y DERIVADOS;J14;Huevo de codorniz, clara cocida (en agua);47.0;197.0;86.4;10.6;0.1;;;;0.8;;;;;;;;;;;
+J. HUEVOS Y DERIVADOS;J15;Huevo de codorniz, yema cocida (en agua);295.0;1234.0;50.2;13.5;26.2;;;;1.7;;;;;;;;;;;
+T. LEGUMINOSAS Y DERIVADOS;T7;Frijol bayo;244.0;1021.0;14.2;20.3;2.2;59.5;38.1;21.4;3.8;99.0;386.0;2.76;5.81;;;0.0;0.31;0.22;1.84;4.5
+T. LEGUMINOSAS Y DERIVADOS;T9;Frijol zarandaja;236.0;985.0;12.8;21.7;1.8;60.3;35.7;24.5;3.4;67.0;289.0;2.4;5.41;;;0.0;0.59;0.17;1.6;4.5
+T. LEGUMINOSAS Y DERIVADOS;T20;Frijol castilla;227.0;950.0;13.3;23.3;2.7;56.9;30.5;26.4;3.9;97.0;387.0;3.96;6.65;;1.0;;0.5;0.44;1.57;2.1
+T. LEGUMINOSAS Y DERIVADOS;T36;Frijol soya;369.0;1542.0;9.5;33.7;18.7;32.7;23.4;9.3;5.4;314.0;759.0;4.36;7.42;;5.0;0.0;0.73;0.41;2.6;6.0
+T. LEGUMINOSAS Y DERIVADOS;T41;Frijol vacapaleta;226.0;948.0;15.6;18.3;2.4;60.1;35.2;24.9;3.7;127.0;439.0;2.91;4.53;;1.0;;0.16;0.2;2.35;4.5
+T. LEGUMINOSAS Y DERIVADOS;T43;Garbanzo, cocido;127.0;530.0;61.9;6.9;2.5;27.8;20.2;7.6;1.0;54.0;60.0;1.41;1.9;;;1.0;0.0;0.04;0.49;0.0
+T. LEGUMINOSAS Y DERIVADOS;T44;Garbanzo;358.0;1499.0;10.8;17.6;5.4;63.3;9.0;17.4;3.1;120.0;370.0;3.06;5.95;;;3.0;0.38;0.38;2.8;5.4
+T. LEGUMINOSAS Y DERIVADOS;T51;Habas, harina de;310.0;1297.0;8.1;22.4;2.3;64.6;52.5;12.1;2.7;67.0;393.0;3.43;4.63;;1.0;2.5;0.36;0.27;2.84;4.7
+T. LEGUMINOSAS Y DERIVADOS;T58;Pallares cocido, con c�scara;122.0;513.0;68.1;7.7;0.8;21.9;14.9;7.0;1.47;28.0;34.0;0.93;1.28;;0.0;0.0;0.0;0.02;0.59;0.1
+T. LEGUMINOSAS Y DERIVADOS;T59;Arvejas, harina de;306.0;1280.0;8.2;19.9;2.4;67.0;53.3;13.7;2.5;;;2.98;4.36;;;;;;;
+T. LEGUMINOSAS Y DERIVADOS;T60;Frijol chiclayo marr�n;334.0;1396.0;13.5;22.6;2.1;58.4;;;3.5;;;4.56;4.49;;;;;;;
+T. LEGUMINOSAS Y DERIVADOS;T61;Frijol chiclayo pindayllo;343.0;1436.0;11.6;25.1;2.9;57.0;;;3.4;;;4.15;6.65;;;;;;;
+T. LEGUMINOSAS Y DERIVADOS;T62;Frijol chiclayo rojo;335.0;1403.0;13.5;21.8;2.5;58.8;;;3.5;;;4.4;4.56;;;;;;;
+T. LEGUMINOSAS Y DERIVADOS;T63;Frijol �u�a;271.0;1134.0;11.3;19.1;1.2;64.6;47.9;16.7;3.9;;;2.22;4.13;;;;;;;
+T. LEGUMINOSAS Y DERIVADOS;T64;Frijol soya cocido;176.0;735.0;62.8;15.3;9.2;11.1;;;1.49;;;1.72;1.87;;;;;;;
+T. LEGUMINOSAS Y DERIVADOS;T65;Frijol soya, harina integral;359.0;1503.0;8.0;37.4;23.0;26.4;9.2;17.2;5.3;;;4.4;6.3;;;;;;;
+T. LEGUMINOSAS Y DERIVADOS;T66;Frijol soya, harina integral tostada;433.0;1814.0;6.5;40.5;23.4;23.9;;;5.8;;;4.44;6.65;;;;;;;
+T. LEGUMINOSAS Y DERIVADOS;T67;Frijol ucayalino;334.0;1398.0;13.5;21.7;2.3;58.8;;;3.7;;;3.48;5.44;;;;;;;
+U. TUB�RCULOS, RA�CES Y DERIVADOS;U3;Camote amarillo sin c�scara;84.0;352.0;73.5;2.0;0.0;23.4;20.5;2.9;1.1;41.0;31.0;0.4;0.43;;19.0;709.0;0.14;0.03;0.67;22.46
+U. TUB�RCULOS, RA�CES Y DERIVADOS;U16;Mashua;32.0;135.0;88.0;0.7;0.1;10.6;7.7;2.9;0.5;;;0.28;0.37;;0.0;;0.02;0.03;0.82;42.06
+U. TUB�RCULOS, RA�CES Y DERIVADOS;U31;Betarraga, sin c�scara;18.0;76.0;91.3;2.0;0.3;5.4;2.7;2.7;1.0;24.0;30.0;0.32;0.31;;0.0;2.0;0.03;0.04;0.33;51.78
+U. TUB�RCULOS, RA�CES Y DERIVADOS;U36;Yuca blanca fresca sin c�scara;115.0;480.0;65.8;0.7;0.5;31.8;28.3;3.5;1.3;25.0;52.0;0.63;0.19;;0.0;1.0;0.05;0.41;0.98;19.08
+U. TUB�RCULOS, RA�CES Y DERIVADOS;U38;Yuca, harina de;333.0;1393.0;17.1;0.3;0.1;82.2;82.1;0.1;0.4;155.0;110.0;0.06;1.31;;0.0;;0.08;0.07;1.6;13.6
+U. TUB�RCULOS, RA�CES Y DERIVADOS;U39;Maca, harina de;328.0;1374.0;6.6;8.7;4.1;78.9;70.3;8.6;1.7;61.0;250.0;2.0;7.97;;;;;;;
+U. TUB�RCULOS, RA�CES Y DERIVADOS;U40;Oca sin c�scara;53.0;221.0;83.0;0.7;0.0;15.6;13.1;2.4;0.7;;;0.14;0.47;;0.0;;0.01;0.06;0.61;23.92
+U. TUB�RCULOS, RA�CES Y DERIVADOS;U41;Papa, sin c�scara;64.0;269.0;81.7;2.1;0.1;15.4;14.4;1.1;0.8;;;0.26;0.79;;0.0;;0.0;0.0;1.2;0.0
+U. TUB�RCULOS, RA�CES Y DERIVADOS;U42;Papa, chu�o negro, harina de;322.0;1347.0;15.3;5.8;0.1;75.6;;;3.2;;;0.94;23.01;;;;;;;
+U. TUB�RCULOS, RA�CES Y DERIVADOS;U43;Papa, sin c�scara;84.0;350.0;75.8;2.1;0.2;21.1;19.1;1.9;0.9;;;0.31;0.51;;0.0;;0.0;0.0;1.0;0.0
+U. TUB�RCULOS, RA�CES Y DERIVADOS;U44;Papa, moraya, harina de;332.0;1390.0;16.5;2.3;0.1;80.6;;;0.5;;;0.59;15.63;;;;;;;
+U. TUB�RCULOS, RA�CES Y DERIVADOS;U45;Papa, sin c�scara;86.0;360.0;75.5;2.0;0.1;21.5;19.8;1.7;1.0;;;0.28;0.36;;0.0;;0.0;0.0;1.2;0.0
+U. TUB�RCULOS, RA�CES Y DERIVADOS;U46;Papa, sin c�scara;77.0;320.0;77.8;2.3;0.2;19.0;17.1;1.9;0.7;;;0.32;0.46;;0.0;;0.0;0.0;0.7;0.0
+U. TUB�RCULOS, RA�CES Y DERIVADOS;U47;Papa, sin c�scara;86.0;360.0;77.1;2.1;0.1;19.9;;;0.9;;;0.25;0.45;;;;;;;6.2
