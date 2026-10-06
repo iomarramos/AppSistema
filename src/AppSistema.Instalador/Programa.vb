@@ -44,9 +44,11 @@ Public Module Programa
 
     Public Function Main(args As String()) As Integer
         Console.OutputEncoding = Encoding.UTF8
-        If args.Length = 0 OrElse args(0) = "-h" OrElse args(0) = "--ayuda" Then
+        ' Sin argumentos: el asistente de instalación (pregunta cada dato y muestra los valores por defecto).
+        If args.Length = 0 Then Return AsistenteInstalacion.Ejecutar()
+        If args(0) = "-h" OrElse args(0) = "--ayuda" Then
             Ayuda()
-            Return If(args.Length = 0, 1, 0)
+            Return 0
         End If
         Try
             Select Case args(0)

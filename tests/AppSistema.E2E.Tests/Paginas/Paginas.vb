@@ -37,9 +37,16 @@ Public NotInheritable Class PaginaPrincipal
     End Sub
 
     ''' <summary>Texto de la barra de estado (empresa, operación, usuario y "DUENO DEL SISTEMA").</summary>
+    ''' <summary>Texto de la barra de estado. Espera a que tenga contenido: el texto se pinta después de que aparece la ventana.</summary>
     Public Function Estado() As String
         Dim barra = _app.Esperar("barraEstado")
-        Return String.Join(" | ", barra.FindAllDescendants().Select(Function(e) e.Name).Where(Function(t) Not String.IsNullOrWhiteSpace(t)))
+        Dim texto As String = ""
+        For intento = 1 To 50
+            texto = String.Join(" | ", barra.FindAllDescendants().Select(Function(e) e.Name).Where(Function(t) Not String.IsNullOrWhiteSpace(t)))
+            If texto <> "" Then Exit For
+            Threading.Thread.Sleep(200)
+        Next
+        Return texto
     End Function
 
     Public Function MenuVisible(menuId As String) As Boolean
