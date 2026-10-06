@@ -8,7 +8,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="ClosedXML" Version="0.105.1" />
     <PackageReference Include="Npgsql" Version="8.0.5" />
+    <PackageReference Include="QuestPDF" Version="2026.9.1" />
   </ItemGroup>
 
   <!-- Las migraciones viajan dentro de la biblioteca: el instalador no depende de psql. -->

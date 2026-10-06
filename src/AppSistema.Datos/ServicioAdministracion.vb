@@ -173,6 +173,26 @@ Public NotInheritable Class ServicioAdministracion
             End Function)
     End Sub
 
+    ''' <summary>
+    ''' Cambia el nombre y el estado (activo o desactivado) de un usuario. Reactiva a un usuario desactivado; no permite
+    ''' desactivarse a sí mismo, ni que alguien que no es dueño modifique a un dueño, ni dejar la empresa sin administrador.
+    ''' </summary>
+    Public Sub EditarUsuario(usuarioId As Long, nombre As String, activo As Boolean)
+        If Not activo AndAlso usuarioId = Sesion.UsuarioId Then Throw New ReglaNegocioException("OPERACION_NO_PERMITIDA", "No puede desactivar su propio usuario.")
+        EnTransaccion(Permisos.UsuariosAdministrar,
+            Function(u)
+                If Not Sesion.EsDueno AndAlso CBool(If(u.Escalar("SELECT es_dueno FROM usuario WHERE id = @u", "u", usuarioId), False)) Then
+                    Throw New ReglaNegocioException("SOLO_DUENO", "Solo el dueno del sistema puede modificar a otro dueno.")
+                End If
+                If u.Ejecutar("UPDATE usuario SET nombre = @n, activo = CASE WHEN @a THEN 1 ELSE 0 END WHERE id = @u",
+                              "n", Requerido(nombre, "nombre"), "a", activo, "u", usuarioId) = 0 Then
+                    Throw New ReglaNegocioException("NO_ENCONTRADO", "El usuario no existe.")
+                End If
+                ExigirAdministrador(u)
+                Return 0
+            End Function)
+    End Sub
+
     Public Function ListarUsuarios() As List(Of UsuarioResumen)
         Return EnTransaccion(Permisos.UsuariosAdministrar,
             Function(u) u.Consultar(
@@ -352,5 +372,22 @@ Public NotInheritable Class ServicioAdministracion
         If String.IsNullOrWhiteSpace(valor) Then Throw New ReglaNegocioException("DATO_OBLIGATORIO", $"El campo {campo} es obligatorio.")
         Return valor.Trim()
     End Function
+
+    ''' <summary>
+    ''' Reinicia la clave de un usuario de la empresa. La nueva clave cumple la política (PoliticaClave) y el cambio queda
+    ''' auditado por la tabla de usuarios. Solo quien administra usuarios puede hacerlo.
+    ''' </summary>
+    Public Sub ReiniciarClave(usuarioId As Long, claveNueva As String)
+        PoliticaClave.Validar(claveNueva)
+        Dim hash = ClaveSegura.Crear(claveNueva)
+        EnTransaccion(Permisos.UsuariosAdministrar,
+            Function(u)
+                If u.Escalar("SELECT 1 FROM usuario WHERE id = @u AND empresa_id = @e", "u", usuarioId, "e", Sesion.EmpresaId) Is Nothing Then
+                    Throw New ReglaNegocioException("OPERACION_AJENA", "El usuario no pertenece a la empresa.")
+                End If
+                u.Ejecutar("UPDATE usuario SET password_hash = @h WHERE id = @u", "h", hash, "u", usuarioId)
+                Return 0
+            End Function)
+    End Sub
 
 End Class

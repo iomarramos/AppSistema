@@ -28,6 +28,20 @@ Public NotInheritable Class LineaResultadoDto
     Public Property MargenPorcentajeU6 As Long?
     ''' <summary>Gastos proyectados (presupuesto) del servicio en el mes.</summary>
     Public Property PresupuestoGastosU6 As Long
+    ''' <summary>Presupuesto por rubro (gastos proyectados): personal, operación y otros (administración incluida).</summary>
+    Public Property PresupuestoPersonalU6 As Long
+    Public Property PresupuestoOperacionU6 As Long
+    Public Property PresupuestoOtrosU6 As Long
+End Class
+
+''' <summary>Una fila de la comparación presupuesto, mes anterior y acumulado del año (importes en unidad U6).</summary>
+Public NotInheritable Class FilaComparacionDto
+    Public Property Concepto As String
+    ''' <summary>Texto del presupuesto: importe, o "-" cuando el concepto no tiene presupuesto (ingresos, costos, margen).</summary>
+    Public Property PresupuestoTexto As String
+    Public Property ValorRealU6 As Long
+    Public Property ValorMesAnteriorU6 As Long
+    Public Property ValorAcumuladoU6 As Long
 End Class
 
 Public NotInheritable Class ResultadoMensualDto
@@ -126,6 +140,9 @@ Public NotInheritable Class ServicioResultados
                     "WHERE pm.operacion_id = @o AND pm.anio = @a AND pm.mes = @m",
                     Function(rd) (rd.GetInt64(0), rd.GetString(1)), "o", o, "a", anio, "m", mes).ToDictionary(Function(x) x.Item1, Function(x) x.Item2)
 
+                Dim presupuesto = Function(servicioId As Long?, rubro As Func(Of String, Boolean)) As Long
+                                      Return gastos.Where(Function(g) Nullable.Equals(g.Servicio, servicioId) AndAlso g.Proyectado AndAlso rubro(g.Categoria)).Sum(Function(g) g.Importe)
+                                  End Function
                 Dim armar = Function(nombre As String, servicioId As Long?, ingreso As Long, alimentos As Long, otrosExtra As Long, fuente As String)
                                 Dim reales = gastos.Where(Function(g) Nullable.Equals(g.Servicio, servicioId) AndAlso Not g.Proyectado).ToList()
                                 Dim calc As New ResultadoServicio With {
@@ -137,7 +154,10 @@ Public NotInheritable Class ServicioResultados
                                     .Servicio = nombre, .IngresoU6 = ingreso, .FuenteIngreso = fuente, .CostoAlimentosU6 = alimentos,
                                     .GastosPersonalU6 = calc.GastosPersonalU6, .GastosOperacionU6 = calc.GastosOperacionU6, .OtrosGastosU6 = calc.OtrosGastosU6,
                                     .TotalGastosU6 = calc.TotalGastosU6, .MargenU6 = calc.MargenU6, .MargenPorcentajeU6 = calc.MargenPorcentajeU6,
-                                    .PresupuestoGastosU6 = gastos.Where(Function(g) Nullable.Equals(g.Servicio, servicioId) AndAlso g.Proyectado).Sum(Function(g) g.Importe)}
+                                    .PresupuestoGastosU6 = gastos.Where(Function(g) Nullable.Equals(g.Servicio, servicioId) AndAlso g.Proyectado).Sum(Function(g) g.Importe),
+                                    .PresupuestoPersonalU6 = presupuesto(servicioId, Function(c) c = "personal"),
+                                    .PresupuestoOperacionU6 = presupuesto(servicioId, Function(c) c = "operacion"),
+                                    .PresupuestoOtrosU6 = presupuesto(servicioId, Function(c) c <> "personal" AndAlso c <> "operacion")}
                             End Function
 
                 For Each s In rep.Servicios
@@ -154,13 +174,15 @@ Public NotInheritable Class ServicioResultados
                 r.Total = New LineaResultadoDto With {
                     .Servicio = "TOTAL", .IngresoU6 = t.IngresoU6, .CostoAlimentosU6 = t.CostoAlimentosU6, .GastosPersonalU6 = t.GastosPersonalU6,
                     .GastosOperacionU6 = t.GastosOperacionU6, .OtrosGastosU6 = t.OtrosGastosU6, .TotalGastosU6 = t.TotalGastosU6, .MargenU6 = t.MargenU6,
-                    .MargenPorcentajeU6 = t.MargenPorcentajeU6, .PresupuestoGastosU6 = r.Lineas.Sum(Function(l) l.PresupuestoGastosU6)}
+                    .MargenPorcentajeU6 = t.MargenPorcentajeU6, .PresupuestoGastosU6 = r.Lineas.Sum(Function(l) l.PresupuestoGastosU6),
+                    .PresupuestoPersonalU6 = r.Lineas.Sum(Function(l) l.PresupuestoPersonalU6), .PresupuestoOperacionU6 = r.Lineas.Sum(Function(l) l.PresupuestoOperacionU6),
+                    .PresupuestoOtrosU6 = r.Lineas.Sum(Function(l) l.PresupuestoOtrosU6)}
                 Return r
             End Function)
     End Function
 
     ''' <summary>
-    ''' Exportación para sistemas contables (contrato de datos en docs/INTEGRACION_RESULTADOS.md): CSV con punto y coma,
+    ''' Exportación para sistemas contables (contrato de datos en docs/04_ARQUITECTURA_Y_DATOS/INTEGRACION_RESULTADOS.md): CSV con punto y coma,
     ''' UTF-8, importes con punto decimal y 2 decimales, una fila por servicio más "No asignado" y TOTAL.
     ''' </summary>
     Public Function ExportarCsv(anio As Integer, mes As Integer) As String
@@ -179,6 +201,39 @@ Public NotInheritable Class ServicioResultados
 
     Private Shared Function Limpio(texto As String) As String
         Return texto.Replace(";", ",").Replace(vbCr, " ").Replace(vbLf, " ")
+    End Function
+
+    ''' <summary>
+    ''' Comparación del mes con su presupuesto por rubro, con el mes anterior y con el acumulado del año (de enero al mes
+    ''' elegido). Son los importes totales de la operación; el presupuesto solo existe para los gastos.
+    ''' </summary>
+    Public Function Comparacion(anio As Integer, mes As Integer) As List(Of FilaComparacionDto)
+        Dim actual = ResultadoMensual(anio, mes).Total
+        Dim anterior = If(mes = 1, ResultadoMensual(anio - 1, 12).Total, ResultadoMensual(anio, mes - 1).Total)
+        Dim acumulado As New LineaResultadoDto()
+        For m = 1 To mes
+            Dim t = ResultadoMensual(anio, m).Total
+            acumulado.IngresoU6 += t.IngresoU6
+            acumulado.CostoAlimentosU6 += t.CostoAlimentosU6
+            acumulado.GastosPersonalU6 += t.GastosPersonalU6
+            acumulado.GastosOperacionU6 += t.GastosOperacionU6
+            acumulado.OtrosGastosU6 += t.OtrosGastosU6
+            acumulado.TotalGastosU6 += t.TotalGastosU6
+            acumulado.MargenU6 += t.MargenU6
+        Next
+        Const sinPresupuesto As String = "-"
+        Dim importe = Function(v As Long) EscalaU6.ADecimal(v).ToString("0.00", CultureInfo.InvariantCulture)
+        Dim fila = Function(concepto As String, presupuestoTexto As String, real As Long, ant As Long, acum As Long) _
+            New FilaComparacionDto With {.Concepto = concepto, .PresupuestoTexto = presupuestoTexto, .ValorRealU6 = real,
+                                         .ValorMesAnteriorU6 = ant, .ValorAcumuladoU6 = acum}
+        Return New List(Of FilaComparacionDto) From {
+            fila("Ingreso", sinPresupuesto, actual.IngresoU6, anterior.IngresoU6, acumulado.IngresoU6),
+            fila("Costo de alimentos", sinPresupuesto, actual.CostoAlimentosU6, anterior.CostoAlimentosU6, acumulado.CostoAlimentosU6),
+            fila("Gastos de personal", importe(actual.PresupuestoPersonalU6), actual.GastosPersonalU6, anterior.GastosPersonalU6, acumulado.GastosPersonalU6),
+            fila("Gastos de operacion", importe(actual.PresupuestoOperacionU6), actual.GastosOperacionU6, anterior.GastosOperacionU6, acumulado.GastosOperacionU6),
+            fila("Otros gastos (incluye administracion)", importe(actual.PresupuestoOtrosU6), actual.OtrosGastosU6, anterior.OtrosGastosU6, acumulado.OtrosGastosU6),
+            fila("Total gastos", importe(actual.PresupuestoGastosU6), actual.TotalGastosU6, anterior.TotalGastosU6, acumulado.TotalGastosU6),
+            fila("Margen", sinPresupuesto, actual.MargenU6, anterior.MargenU6, acumulado.MargenU6)}
     End Function
 
 End Class

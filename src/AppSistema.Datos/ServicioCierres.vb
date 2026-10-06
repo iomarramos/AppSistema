@@ -1,3 +1,4 @@
+Imports System.Collections.Generic
 Imports AppSistema.Dominio
 Imports AppSistema.Dominio.Calculos
 Imports AppSistema.Dominio.Numerico
@@ -111,7 +112,11 @@ Public NotInheritable Class ServicioCierres
                                "e", Sesion.EmpresaId, "c", id, "cod", p.Codigo, "res", If(p.Bloqueante, "error", "advertencia"), "d", p.Detalle)
                 Next
                 If r.Pendientes.Any(Function(p) p.Bloqueante) Then Return r
-                u.Ejecutar("UPDATE cierre_diario SET estado = 'cerrado', usuario_cierre_id = @u, fecha_cierre = now() WHERE id = @c", "u", Sesion.UsuarioId, "c", id)
+                ' Foto de los movimientos del día: el cierre tiene el bloqueo de los almacenes, así que nada entra después (T38).
+                u.Ejecutar("UPDATE cierre_diario SET estado = 'cerrado', usuario_cierre_id = @u, fecha_cierre = now(), " &
+                           "movimientos_al_cerrar = (SELECT count(*) FROM movimiento_stock m JOIN almacen a ON a.id = m.almacen_id WHERE a.operacion_id = @o AND m.fecha = @f), " &
+                           "valor_al_cerrar_u6 = (SELECT COALESCE(sum(m.valor_u6), 0) FROM movimiento_stock m JOIN almacen a ON a.id = m.almacen_id WHERE a.operacion_id = @o AND m.fecha = @f) " &
+                           "WHERE id = @c", "u", Sesion.UsuarioId, "c", id, "o", o, "f", fecha.Date)
                 r.Cerrado = True
                 Return r
             End Function)
@@ -121,6 +126,13 @@ Public NotInheritable Class ServicioCierres
         Dim o = Op
         Return EnTransaccion(Permisos.ReportesVer,
             Function(u) u.Escalar("SELECT 1 FROM cierre_diario WHERE operacion_id = @o AND fecha = @f AND estado = 'cerrado'", "o", o, "f", fecha.Date) IsNot Nothing)
+    End Function
+
+    ''' <summary>Último día cerrado de la operación (Nothing si todavía no hay cierres).</summary>
+    Public Function UltimoDiaCerrado() As Date?
+        Dim o = Op
+        Return EnTransaccion(Permisos.ReportesVer,
+            Function(u) CType(u.Escalar("SELECT max(fecha) FROM cierre_diario WHERE operacion_id = @o AND estado = 'cerrado'", "o", o), Date?))
     End Function
 
     ''' <summary>Estado de la cola de envío a la central (distingue confirmado localmente de sincronizado).</summary>
@@ -277,6 +289,9 @@ Public NotInheritable Class ServicioCierres
         agregar("RECEPCION_BORRADOR", True,
             "SELECT 'Recepcion ' || r.numero || ' en borrador' FROM recepcion r JOIN almacen a ON a.id = r.almacen_id " &
             "WHERE a.operacion_id = @o AND r.fecha_recepcion BETWEEN @d AND @h AND r.estado = 'borrador'")
+        agregar("TRANSITO_PENDIENTE", True,
+            "SELECT 'Traspaso ' || t.numero || ' enviado el ' || to_char(t.fecha_envio, 'DD/MM/YYYY') || ' sin recibir' FROM traspaso_transito t " &
+            "WHERE t.operacion_id = @o AND t.fecha_envio BETWEEN @d AND @h AND t.estado = 'enviado' ORDER BY t.fecha_envio, t.numero")
         agregar("INVENTARIO_ABIERTO", True,
             "SELECT 'Inventario ' || i.numero || ' (' || i.estado || ') con diferencias sin tratar' FROM inventario i JOIN almacen a ON a.id = i.almacen_id " &
             "WHERE a.operacion_id = @o AND i.fecha_corte <= @h AND i.estado <> 'cerrado'")
@@ -287,6 +302,113 @@ Public NotInheritable Class ServicioCierres
             "SELECT 'Pedido ' || p.numero || ' con entrega vencida y saldo pendiente' FROM pedido_compra p JOIN almacen a ON a.id = p.almacen_id " &
             "WHERE a.operacion_id = @o AND p.estado IN ('aprobado','enviado','parcial') AND EXISTS (SELECT 1 FROM pedido_detalle d WHERE d.pedido_id = p.id AND d.fecha_entrega <= @h)")
         Return p
+    End Function
+
+    ' ---------- Sprint 5: checklist con "Ir a", calendario del mes y cierre mensual en 8 pasos ----------
+
+    ''' <summary>Dónde se resuelve cada pendiente en la aplicación (columna "Ir a").</summary>
+    Public Shared ReadOnly Property DestinoPendiente As IReadOnlyDictionary(Of String, String) = New Dictionary(Of String, String) From {
+        {"MINUTA_SIN_APROBAR", "Menus > Minutas y necesidades"},
+        {"PRODUCCION_SIN_REGISTRAR", "Menus > Produccion > Registrar produccion"},
+        {"REQUERIMIENTO_PENDIENTE", "Menus > Produccion > Entregar (almacen)"},
+        {"DOCUMENTO_BORRADOR", "Almacen > Stock e inventario inicial"},
+        {"RECEPCION_BORRADOR", "Almacen > Stock e inventario inicial > Recibir pedido"},
+        {"TRANSITO_PENDIENTE", "Almacen > Stock e inventario inicial > Recibir traspaso"},
+        {"INVENTARIO_ABIERTO", "Almacen > Inventario fisico"},
+        {"CONCILIACION", "Almacen > Stock e inventario inicial"},
+        {"PEDIDO_VENCIDO", "Abastecimiento > Prevision y pedidos"}}
+
+    Private Shared ReadOnly NombreControl As IReadOnlyDictionary(Of String, String) = New Dictionary(Of String, String) From {
+        {"MINUTA_SIN_APROBAR", "Minutas aprobadas"},
+        {"PRODUCCION_SIN_REGISTRAR", "Produccion registrada"},
+        {"REQUERIMIENTO_PENDIENTE", "Requerimientos entregados"},
+        {"DOCUMENTO_BORRADOR", "Documentos de stock confirmados"},
+        {"RECEPCION_BORRADOR", "Recepciones confirmadas"},
+        {"TRANSITO_PENDIENTE", "Traspasos enviados sin recibir"},
+        {"INVENTARIO_ABIERTO", "Inventarios cerrados"},
+        {"CONCILIACION", "Saldo concilia con movimientos"},
+        {"PEDIDO_VENCIDO", "Pedidos sin entrega vencida"}}
+
+    ''' <summary>Checklist del día: un control por cada tipo de pendiente, con estado, cantidad y "Ir a".</summary>
+    Public Function ChecklistDia(fecha As Date) As List(Of ControlCierreDto)
+        Dim lista = Pendientes(fecha)
+        Return DestinoPendiente.Keys.Select(Function(codigo)
+                                                Dim cuantos = lista.Where(Function(p) p.Codigo = codigo).ToList()
+                                                Return New ControlCierreDto With {
+                                                    .Control = NombreControl(codigo),
+                                                    .Estado = If(cuantos.Count = 0, "OK", If(cuantos.Any(Function(p) p.Bloqueante), "ERROR", "AVISO")),
+                                                    .Cantidad = cuantos.Count,
+                                                    .Detalle = If(cuantos.Count = 0, "Sin pendientes", cuantos(0).Detalle),
+                                                    .IrA = DestinoPendiente(codigo)}
+                                            End Function).ToList()
+    End Function
+
+    ''' <summary>Estado de cada día del mes: Cerrado, Con pendientes (impide cerrar), Listo o Abierto (día futuro).</summary>
+    Public Function CalendarioMes(anio As Integer, mes As Integer) As List(Of DiaCalendarioDto)
+        Dim dias As New List(Of DiaCalendarioDto)
+        Dim primero As New Date(anio, mes, 1)
+        For i = 0 To primero.AddMonths(1).AddDays(-1).Day - 1
+            Dim fecha = primero.AddDays(i)
+            Dim estado As String
+            If DiaCerrado(fecha) Then
+                estado = "Cerrado"
+            ElseIf fecha > Date.Today Then
+                estado = "Abierto"
+            ElseIf Pendientes(fecha).Any(Function(p) p.Bloqueante) Then
+                estado = "Con pendientes"
+            Else
+                estado = "Listo"
+            End If
+            dias.Add(New DiaCalendarioDto With {.Fecha = fecha, .Estado = estado})
+        Next
+        Return dias
+    End Function
+
+    ''' <summary>El mismo calendario en semanas (lunes a domingo): cada celda muestra el día y su estado. Fuera del mes, vacía.</summary>
+    Public Function CalendarioSemanal(anio As Integer, mes As Integer) As List(Of SemanaCalendarioDto)
+        Dim dias = CalendarioMes(anio, mes)
+        Dim primero As New Date(anio, mes, 1)
+        Dim ultimo = primero.AddMonths(1).AddDays(-1)
+        Dim semanas As New List(Of SemanaCalendarioDto)
+        Dim inicio = primero.AddDays(-((CInt(primero.DayOfWeek) + 6) Mod 7))
+        While inicio <= ultimo
+            Dim semana As New SemanaCalendarioDto With {.Semana = $"{inicio:dd/MM} al {inicio.AddDays(6):dd/MM}"}
+            For d = 0 To 6
+                Dim f = inicio.AddDays(d)
+                If f.Month = mes AndAlso f.Year = anio Then semana.Asignar(d, $"{f.Day} {dias(f.Day - 1).Estado}")
+            Next
+            semanas.Add(semana)
+            inicio = inicio.AddDays(7)
+        End While
+        Return semanas
+    End Function
+
+    ''' <summary>Cierre mensual en 8 pasos: documentos, día final, gastos, inventario, ajustes, resultado, integración y cierre.</summary>
+    Public Function ChecklistMes(anio As Integer, mes As Integer) As List(Of PasoCierreDto)
+        Dim o = Op
+        Dim desde As New Date(anio, mes, 1)
+        Dim hasta = desde.AddMonths(1).AddDays(-1)
+        Dim pendientes As List(Of PendienteDto) = EnTransaccion(Permisos.ReportesVer, Function(u) LeerPendientes(u, o, desde, hasta))
+        Dim dias = CalendarioMes(anio, mes)
+        Dim pasadosSinCerrar = dias.Where(Function(d) d.Fecha <= Date.Today AndAlso d.Estado <> "Cerrado").Count()
+        Dim resultado As ReporteMensualDto = EnTransaccion(Permisos.ReportesVer, Function(u) LeerReporte(u, o, anio, mes))
+        Dim cuantos = Function(codigo As String) pendientes.Where(Function(p) p.Codigo = codigo).Count()
+        Dim pasos As New List(Of PasoCierreDto) From {
+            New PasoCierreDto With {.Paso = 1, .Nombre = "Documentos", .Estado = If(cuantos("DOCUMENTO_BORRADOR") + cuantos("RECEPCION_BORRADOR") + cuantos("REQUERIMIENTO_PENDIENTE") = 0, "OK", "PENDIENTE"),
+                                    .Detalle = $"{cuantos("DOCUMENTO_BORRADOR") + cuantos("RECEPCION_BORRADOR") + cuantos("REQUERIMIENTO_PENDIENTE")} documentos en borrador"},
+            New PasoCierreDto With {.Paso = 2, .Nombre = "Dia final", .Estado = If(pasadosSinCerrar = 0, "OK", "PENDIENTE"),
+                                    .Detalle = $"{pasadosSinCerrar} dias pasados sin cerrar"},
+            New PasoCierreDto With {.Paso = 3, .Nombre = "Gastos", .Estado = "INFO", .Detalle = "Revisar gastos del mes en Contratos y resultados"},
+            New PasoCierreDto With {.Paso = 4, .Nombre = "Inventario", .Estado = If(cuantos("INVENTARIO_ABIERTO") = 0, "OK", "PENDIENTE"),
+                                    .Detalle = $"{cuantos("INVENTARIO_ABIERTO")} inventarios sin cerrar"},
+            New PasoCierreDto With {.Paso = 5, .Nombre = "Ajustes", .Estado = If(cuantos("CONCILIACION") = 0, "OK", "PENDIENTE"),
+                                    .Detalle = $"{cuantos("CONCILIACION")} diferencias de conciliacion"},
+            New PasoCierreDto With {.Paso = 6, .Nombre = "Resultado", .Estado = If(resultado.Estado = "cerrado", "OK", "INFO"),
+                                    .Detalle = $"Periodo {resultado.Estado}"},
+            New PasoCierreDto With {.Paso = 7, .Nombre = "Integracion", .Estado = "INFO", .Detalle = "Envio a la central: ver Continuidad"},
+            New PasoCierreDto With {.Paso = 8, .Nombre = "Cierre del mes", .Estado = If(resultado.Estado = "cerrado", "OK", "PENDIENTE"),
+                                    .Detalle = If(resultado.Estado = "cerrado", "Mes cerrado", "Cerrar cuando los pasos 1, 2, 4 y 5 esten en OK")}}
+        Return pasos
     End Function
 
     Friend Shared Function LeerReporte(u As UnidadDeTrabajo, o As Long, anio As Integer, mes As Integer) As ReporteMensualDto
@@ -348,4 +470,52 @@ Public NotInheritable Class ServicioCierres
         End If
     End Sub
 
+End Class
+
+''' <summary>Un control del checklist del día: estado (OK, AVISO o ERROR), cantidad, detalle y dónde resolverlo.</summary>
+Public NotInheritable Class ControlCierreDto
+    Public Property Control As String
+    Public Property Estado As String
+    Public Property Cantidad As Long
+    Public Property Detalle As String
+    Public Property IrA As String
+End Class
+
+''' <summary>Día del calendario del mes con su estado.</summary>
+''' <summary>Una semana del calendario mensual: una celda por día (lunes a domingo).</summary>
+Public NotInheritable Class SemanaCalendarioDto
+    Public Property Semana As String
+    Public Property Lunes As String = ""
+    Public Property Martes As String = ""
+    Public Property Miercoles As String = ""
+    Public Property Jueves As String = ""
+    Public Property Viernes As String = ""
+    Public Property Sabado As String = ""
+    Public Property Domingo As String = ""
+
+    ''' <summary>Pone el texto del día: 0 = lunes ... 6 = domingo.</summary>
+    Public Sub Asignar(indice As Integer, texto As String)
+        Select Case indice
+            Case 0 : Lunes = texto
+            Case 1 : Martes = texto
+            Case 2 : Miercoles = texto
+            Case 3 : Jueves = texto
+            Case 4 : Viernes = texto
+            Case 5 : Sabado = texto
+            Case Else : Domingo = texto
+        End Select
+    End Sub
+End Class
+
+Public NotInheritable Class DiaCalendarioDto
+    Public Property Fecha As Date
+    Public Property Estado As String
+End Class
+
+''' <summary>Paso del cierre mensual (OK, PENDIENTE o INFO).</summary>
+Public NotInheritable Class PasoCierreDto
+    Public Property Paso As Integer
+    Public Property Nombre As String
+    Public Property Estado As String
+    Public Property Detalle As String
 End Class

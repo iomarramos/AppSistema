@@ -133,6 +133,54 @@ Public NotInheritable Class ServicioMinutas
     End Function
 
     ''' <summary>
+    ''' <summary>
+    ''' El chef ajusta las raciones operativas de un plato de una minuta aprobada. No cambia el plan teórico ni el snapshot.
+    ''' Regla por defecto: solo mientras la minuta no tenga un requerimiento atendido; después, el cambio se pide como adicional.
+    ''' </summary>
+    Public Sub AjustarRacionesOperativas(platoId As Long, racionesOperativas As Long, motivo As String)
+        If racionesOperativas < 0 Then Throw New ReglaNegocioException("CANTIDAD_INVALIDA", "Las raciones operativas no pueden ser negativas.")
+        Dim motivoLimpio = ServicioAdministracion.Requerido(motivo, "motivo del ajuste de raciones")
+        Dim op = OperacionId
+        EnTransaccion(Permisos.ProduccionEditar,
+            Function(u)
+                Dim minutaId = u.EscalarLong("SELECT minuta_id FROM minuta_detalle WHERE id = @d", "d", platoId)
+                ExigirMinutaDeOperacion(u, minutaId, op, soloBorrador:=False)
+                If u.Escalar("SELECT estado FROM minuta WHERE id = @m", "m", minutaId).ToString() = "borrador" Then
+                    Throw New ReglaNegocioException("MINUTA_NO_APROBADA", "El ajuste operativo es del plan aprobado; la minuta todavia esta en borrador.")
+                End If
+                If u.EscalarLong("SELECT count(*) FROM requerimiento WHERE minuta_id = @m AND estado = 'atendido'", "m", minutaId) > 0 Then
+                    Throw New ReglaNegocioException("DESPACHADA", "La minuta ya tiene despacho. El cambio se pide como requerimiento adicional.")
+                End If
+                u.Ejecutar("INSERT INTO minuta_ajuste_operativo(empresa_id, minuta_detalle_id, raciones_operativas, motivo, usuario_id) " &
+                           "VALUES (@e, @d, @r, @mo, @u) " &
+                           "ON CONFLICT (empresa_id, minuta_detalle_id) DO UPDATE SET raciones_operativas = EXCLUDED.raciones_operativas, " &
+                           "motivo = EXCLUDED.motivo, usuario_id = EXCLUDED.usuario_id, actualizado_en = now()",
+                           "e", Sesion.EmpresaId, "d", platoId, "r", racionesOperativas, "mo", motivoLimpio, "u", Sesion.UsuarioId)
+                Return 0
+            End Function)
+    End Sub
+
+    ''' <summary>
+    ''' El chef sustituye la receta de un plato por otra receta aprobada (cambiar plato por otro permitido). Política por
+    ''' defecto: solo en minutas en borrador (las aprobadas no cambian) y solo por una versión aprobada.
+    ''' </summary>
+    Public Sub SustituirReceta(platoId As Long, recetaVersionId As Long)
+        Dim op = OperacionId
+        EnTransaccion(Permisos.MinutasEditar,
+            Function(u)
+                Dim minutaId = u.EscalarLong("SELECT minuta_id FROM minuta_detalle WHERE id = @d", "d", platoId)
+                ExigirMinutaDeOperacion(u, minutaId, op)
+                If u.EscalarLong("SELECT count(*) FROM receta_version WHERE id = @v AND estado = 'aprobada'", "v", recetaVersionId) = 0 Then
+                    Throw New ReglaNegocioException("RECETA_NO_APROBADA", "Solo se sustituye un plato por una receta aprobada.")
+                End If
+                Dim repetido = u.EscalarLong("SELECT count(*) FROM minuta_detalle x JOIN minuta_detalle p ON p.id = @d " &
+                                             "WHERE x.minuta_id = p.minuta_id AND x.estructura_id = p.estructura_id AND x.receta_version_id = @v", "d", platoId, "v", recetaVersionId)
+                If repetido > 0 Then Throw New ReglaNegocioException("PLATO_REPETIDO", "La estructura ya tiene un plato con esa receta en esta minuta.")
+                u.Ejecutar("UPDATE minuta_detalle SET receta_version_id = @v WHERE id = @d", "v", recetaVersionId, "d", platoId)
+                Return 0
+            End Function)
+    End Sub
+
     ''' Agrega la alternativa con raciones = comensales × factor del componente × reparto (p. ej. jugo A 50 % y jugo B 50 %).
     ''' El factor es el de la operación si lo ajustó; si no, el teórico de la estructura. Se guardan factor y reparto.
     ''' </summary>
@@ -171,6 +219,9 @@ Public NotInheritable Class ServicioMinutas
         EnTransaccion(Permisos.MinutasEditar,
             Function(u)
                 ExigirMinutaDeOperacion(u, minutaId, op)
+                If u.EscalarLong("SELECT CASE WHEN estado = 'borrador' THEN 0 ELSE 1 END FROM minuta WHERE id = @m", "m", minutaId) = 1 Then
+                    Throw New ReglaNegocioException("MINUTA_APROBADA", "La minuta esta aprobada: sus comensales ya no se cambian.")
+                End If
                 u.Ejecutar("UPDATE minuta SET comensales = @c WHERE id = @m", "c", comensales, "m", minutaId)
                 For Each p In u.Consultar("SELECT id, factor_consumo_bp, reparto_bp FROM minuta_detalle WHERE minuta_id = @m AND factor_consumo_bp IS NOT NULL",
                                           Function(rd) (rd.GetInt64(0), rd.GetInt64(1), rd.GetInt64(2)), "m", minutaId)
@@ -218,6 +269,17 @@ Public NotInheritable Class ServicioMinutas
             Function(u)
                 ExigirMinutaDeOperacion(u, u.EscalarLong("SELECT minuta_id FROM minuta_detalle WHERE id = @d", "d", platoId), op)
                 Return ServicioRecetas.ExigirFila(u.Ejecutar("DELETE FROM minuta_detalle WHERE id = @d", "d", platoId))
+            End Function)
+    End Sub
+
+    ''' <summary>Cambia las raciones planificadas de un plato de una minuta en borrador (la planilla del menú).</summary>
+    Public Sub FijarRaciones(platoId As Long, raciones As Long)
+        If raciones <= 0 Then Throw New ReglaNegocioException("CANTIDAD_INVALIDA", "Las raciones deben ser mayores que cero.")
+        Dim op = OperacionId
+        EnTransaccion(Permisos.MinutasEditar,
+            Function(u)
+                ExigirMinutaDeOperacion(u, u.EscalarLong("SELECT minuta_id FROM minuta_detalle WHERE id = @d", "d", platoId), op)
+                Return ServicioRecetas.ExigirFila(u.Ejecutar("UPDATE minuta_detalle SET raciones = @r WHERE id = @d", "r", raciones, "d", platoId))
             End Function)
     End Sub
 

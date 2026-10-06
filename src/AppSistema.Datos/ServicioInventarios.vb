@@ -1,3 +1,5 @@
+Imports System.Collections.Generic
+Imports AppSistema.Dominio.Inventario
 Imports AppSistema.Dominio
 Imports AppSistema.Dominio.Importacion
 Imports AppSistema.Dominio.Numerico
@@ -170,8 +172,44 @@ Public NotInheritable Class ServicioInventarios
     ''' Autoriza y aplica el ajuste: sobrantes como ajuste positivo al costo del corte; faltantes como ajuste negativo
     ''' al costo vigente. Un documento por signo; cada línea se ajusta una sola vez. Quien autoriza no puede haber contado.
     ''' </summary>
+    ''' <summary>Clase ABC de los productos con saldo en el almacén, según su consumo (salidas a producción y bajas) del periodo.</summary>
+    Public Function ClasificarAbc(almacenId As Long, desde As Date, hasta As Date) As List(Of ClaseAbcDto)
+        Return EnTransaccion(Permisos.InventarioVer,
+            Function(u)
+                If u.Escalar("SELECT 1 FROM almacen WHERE id = @a AND operacion_id = @o", "a", almacenId, "o", Sesion.Operacion.Id) Is Nothing Then
+                    Throw New ReglaNegocioException("OPERACION_AJENA", "El almacen no pertenece a la operacion seleccionada.")
+                End If
+                Dim filas = u.Consultar(
+                    "SELECT v.id, v.descripcion_comercial, COALESCE(c.valor, 0)::bigint " &
+                    "FROM saldo_stock s JOIN variante_producto v ON v.id = s.variante_id " &
+                    "LEFT JOIN (SELECT l.variante_id, sum(l.valor_u6)::bigint AS valor FROM documento_stock d " &
+                    "           JOIN documento_stock_detalle l ON l.documento_id = d.id " &
+                    "           WHERE d.almacen_id = @a AND d.estado = 'confirmado' AND d.tipo IN ('salida_produccion', 'baja') " &
+                    "             AND d.fecha BETWEEN @d AND @h GROUP BY l.variante_id) c ON c.variante_id = v.id " &
+                    "WHERE s.almacen_id = @a ORDER BY v.descripcion_comercial",
+                    Function(rd) (Id:=rd.GetInt64(0), Descripcion:=rd.GetString(1), Consumo:=rd.GetInt64(2)),
+                    "a", almacenId, "d", desde.Date, "h", hasta.Date)
+                Dim clases = ClasificacionAbc.Clasificar(filas.Select(Function(f) New KeyValuePair(Of Long, Long)(f.Id, f.Consumo)))
+                Return filas.Select(Function(f) New ClaseAbcDto With {.VarianteId = f.Id, .Descripcion = f.Descripcion, .ConsumoU6 = f.Consumo,
+                                                                      .Clase = clases(f.Id)}).ToList()
+            End Function)
+    End Function
+
+    ''' <summary>Ajuste con motivo libre (queda como OTRO con ese texto). Para el motivo normalizado, AutorizarAjusteNormalizado.</summary>
     Public Function AutorizarAjuste(inventarioId As Long, fecha As Date, motivo As String) As ResumenInventario
-        Dim m = ServicioAdministracion.Requerido(motivo, "motivo del ajuste")
+        Return AutorizarAjusteNormalizado(inventarioId, fecha, MotivosAjuste.Otro, motivo, Nothing)
+    End Function
+
+    ''' <summary>
+    ''' Autoriza el ajuste con un motivo de la lista normalizada, una explicación obligatoria y, si hay, el documento
+    ''' de soporte. Lo guarda por línea (código, texto, explicación y documento) para la boleta y la explicación de ajustes.
+    ''' </summary>
+    Public Function AutorizarAjusteNormalizado(inventarioId As Long, fecha As Date, motivoCodigo As String, explicacion As String,
+                                               documentoSoporte As String) As ResumenInventario
+        Dim texto = MotivosAjuste.Texto(motivoCodigo)
+        Dim expl = ServicioAdministracion.Requerido(explicacion, "explicacion del ajuste")
+        Dim soporte = If(String.IsNullOrWhiteSpace(documentoSoporte), Nothing, documentoSoporte.Trim())
+        Dim m = texto & ": " & expl
         Return EnTransaccion(Permisos.InventarioAprobar,
             Function(u)
                 Dim inv = ExigirInventario(u, inventarioId, "revisado")
@@ -188,8 +226,9 @@ Public NotInheritable Class ServicioInventarios
                     Dim doc = stock.ContabilizarEn(u, New DocumentoStockNuevo(inv.Almacen, g.Tipo, fecha, $"{inv.Numero}-AJ{g.Sufijo}",
                         delGrupo.Select(Function(l) New LineaDocumentoStock(l.Variante, Math.Abs(l.Dif), l.Costo))) With {.Motivo = m})
                     For Each l In delGrupo
-                        u.Ejecutar("INSERT INTO inventario_ajuste(empresa_id, inventario_detalle_id, documento_stock_id, autorizador_id, motivo) VALUES (@e, @d, @doc, @u, @m)",
-                                   "e", Sesion.EmpresaId, "d", l.Id, "doc", doc, "u", Sesion.UsuarioId, "m", m)
+                        u.Ejecutar("INSERT INTO inventario_ajuste(empresa_id, inventario_detalle_id, documento_stock_id, autorizador_id, motivo, motivo_codigo, explicacion, documento_soporte) " &
+                                   "VALUES (@e, @d, @doc, @u, @m, @c, @x, @s)",
+                                   "e", Sesion.EmpresaId, "d", l.Id, "doc", doc, "u", Sesion.UsuarioId, "m", m, "c", motivoCodigo, "x", expl, "s", soporte)
                     Next
                 Next
                 u.Ejecutar("UPDATE inventario SET estado = 'cerrado', autorizador_id = @u WHERE id = @i", "u", Sesion.UsuarioId, "i", inventarioId)
@@ -198,7 +237,7 @@ Public NotInheritable Class ServicioInventarios
     End Function
 
     Public Function Resumen(inventarioId As Long) As ResumenInventario
-        Return EnTransaccion(Permisos.InventarioContar,
+        Return EnTransaccion(Permisos.InventarioVer,
             Function(u)
                 ExigirInventario(u, inventarioId, Nothing)
                 Return LeerResumen(u, inventarioId)
@@ -206,7 +245,7 @@ Public NotInheritable Class ServicioInventarios
     End Function
 
     Public Function Listar(almacenId As Long) As List(Of InventarioDto)
-        Return EnTransaccion(Permisos.InventarioContar,
+        Return EnTransaccion(Permisos.InventarioVer,
             Function(u) u.Consultar("SELECT i.id, i.numero, i.tipo, i.fecha_corte, i.estado FROM inventario i JOIN almacen a ON a.id = i.almacen_id " &
                                     "WHERE i.almacen_id = @a AND a.operacion_id = @o ORDER BY i.id DESC",
                 Function(rd) New InventarioDto With {.Id = rd.GetInt64(0), .Numero = rd.GetString(1), .Tipo = rd.GetString(2), .FechaCorte = rd.GetDateTime(3), .Estado = rd.GetString(4)},
@@ -252,4 +291,12 @@ Public NotInheritable Class ServicioInventarios
                                                      .FaltanteValorU6 = rd.GetInt64(3), .SobranteValorU6 = rd.GetInt64(4)}, "i", inventarioId).Single()
     End Function
 
+End Class
+
+''' <summary>Producto con su clase ABC (A, B o C) y el consumo del periodo que la determina.</summary>
+Public NotInheritable Class ClaseAbcDto
+    Public Property VarianteId As Long
+    Public Property Descripcion As String
+    Public Property ConsumoU6 As Long
+    Public Property Clase As String
 End Class

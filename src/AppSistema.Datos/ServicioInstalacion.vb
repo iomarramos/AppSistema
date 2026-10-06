@@ -15,6 +15,15 @@ Public NotInheritable Class DatosInstalacion
     Public Property AdminClave As String
 End Class
 
+''' <summary>Resultado de un perfil de prueba: la clave solo viene cuando la cuenta se creó en esta ejecución.</summary>
+Public NotInheritable Class PerfilPruebaDto
+    Public Property Login As String
+    Public Property Nombre As String
+    Public Property Rol As String
+    Public Property Creado As Boolean
+    Public Property Clave As String
+End Class
+
 Public NotInheritable Class ResultadoInstalacion
     Public Property EmpresaId As Long
     Public Property OperacionId As Long
@@ -78,6 +87,77 @@ Public NotInheritable Class ServicioInstalacion
             End Using
         Catch ex As PostgresException
             Throw ErroresBD.Traducir(ex)
+        End Try
+    End Function
+
+    ''' <summary>
+    ''' Perfiles de prueba: una cuenta por rol de la operación, para probar cada menú con sus permisos. La clave se genera
+    ''' y se devuelve una sola vez. Las cuentas que ya existen no se tocan (la ejecución es repetible).
+    ''' </summary>
+    Public Function CrearPerfilesPrueba(empresaCodigo As String, operacionCodigo As String) As List(Of PerfilPruebaDto)
+        Dim resultado As New List(Of PerfilPruebaDto)()
+        Try
+            Using u As New UnidadDeTrabajo(_cadenaPropietario, Nothing, Nothing)
+                Dim empresa = u.Escalar("SELECT id FROM empresa WHERE codigo = @c", "c", empresaCodigo.Trim())
+                If empresa Is Nothing Then Throw New ReglaNegocioException("DATO_INVALIDO", $"La empresa '{empresaCodigo}' no existe.")
+                If u.Escalar("SELECT 1 FROM operacion WHERE empresa_id = @e AND codigo = @o", "e", empresa, "o", operacionCodigo.Trim()) Is Nothing Then
+                    Throw New ReglaNegocioException("DATO_INVALIDO", $"La operacion '{operacionCodigo}' no existe en la empresa.")
+                End If
+                For Each perfil In PerfilesDePrueba
+                    If u.Escalar("SELECT 1 FROM rol WHERE empresa_id = @e AND codigo = @r", "e", empresa, "r", perfil.Rol) Is Nothing Then
+                        Throw New ReglaNegocioException("ROL_NO_ENCONTRADO", $"No existe el rol {perfil.Rol} en la empresa.")
+                    End If
+                Next
+                For Each perfil In PerfilesDePrueba
+                    If u.Escalar("SELECT 1 FROM usuario WHERE empresa_id = @e AND login = @l", "e", empresa, "l", perfil.Login) IsNot Nothing Then
+                        resultado.Add(New PerfilPruebaDto With {.Login = perfil.Login, .Nombre = perfil.Nombre, .Rol = perfil.Rol, .Creado = False})
+                        Continue For
+                    End If
+                    Dim clave = GenerarClavePrueba()
+                    Dim usuarioId = u.EscalarLong(
+                        "INSERT INTO usuario(empresa_id, nombre, login, password_hash) VALUES (@e, @n, @l, @h) RETURNING id",
+                        "e", empresa, "n", perfil.Nombre, "l", perfil.Login, "h", ClaveSegura.Crear(clave))
+                    u.Ejecutar("INSERT INTO usuario_operacion_rol(empresa_id, usuario_id, operacion_id, rol_id) " &
+                               "SELECT @e, @u, o.id, r.id FROM operacion o, rol r " &
+                               "WHERE o.empresa_id = @e AND o.codigo = @oc AND r.empresa_id = @e AND r.codigo = @rc",
+                               "e", empresa, "u", usuarioId, "oc", operacionCodigo.Trim(), "rc", perfil.Rol)
+                    resultado.Add(New PerfilPruebaDto With {.Login = perfil.Login, .Nombre = perfil.Nombre, .Rol = perfil.Rol, .Creado = True, .Clave = clave})
+                Next
+                u.Confirmar()
+            End Using
+        Catch ex As PostgresException
+            Throw ErroresBD.Traducir(ex)
+        End Try
+        Return resultado
+    End Function
+
+    Private Shared ReadOnly PerfilesDePrueba As (Login As String, Nombre As String, Rol As String)() = {
+        ("chef_prueba", "Chef de prueba", "CHEF"),
+        ("almacen_prueba", "Almacenero de prueba", "ALMACEN"),
+        ("jefe_almacen_prueba", "Jefe de almacen de prueba", "JEFE_ALMACEN"),
+        ("operaciones_prueba", "Jefe de operacion de prueba", "OPERACIONES"),
+        ("planificacion_prueba", "Planificador de prueba", "PLANIFICADOR_CENTRAL"),
+        ("compras_prueba", "Compras de prueba", "COMPRAS_CENTRAL")}
+
+    ''' <summary>Clave aleatoria que cumple la política de claves (mayúscula, minúscula y número).</summary>
+    Private Shared Function GenerarClavePrueba() As String
+        Const alfabeto As String = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789"
+        Do
+            Dim chars(13) As Char
+            For i = 0 To chars.Length - 1
+                chars(i) = alfabeto(Security.Cryptography.RandomNumberGenerator.GetInt32(alfabeto.Length))
+            Next
+            Dim clave = New String(chars)
+            If ClaveCumple(clave) Then Return clave
+        Loop
+    End Function
+
+    Private Shared Function ClaveCumple(clave As String) As Boolean
+        Try
+            PoliticaClave.Validar(clave)
+            Return True
+        Catch ex As ReglaNegocioException
+            Return False
         End Try
     End Function
 

@@ -3,6 +3,18 @@ Imports AppSistema.Dominio.Numerico
 Imports AppSistema.Dominio.Seguridad
 Imports AppSistema.Dominio.Stock
 
+''' <summary>Solicitud de devolución que hizo la cocina y espera la atención del almacén.</summary>
+Public NotInheritable Class SolicitudDevolucionDto
+    Public Property Id As Long
+    Public Property DocumentoOrigenId As Long
+    Public Property NumeroEntrega As String
+    Public Property VarianteId As Long
+    Public Property Producto As String
+    Public Property CantidadU6 As Long
+    Public Property Motivo As String
+    Public Property SolicitadoEn As Date
+End Class
+
 Public NotInheritable Class LineaPendienteDto
     Public Property PedidoDetalleId As Long
     Public Property EmpaqueId As Long
@@ -49,6 +61,19 @@ Public NotInheritable Class KardexDto
     Public Property SaldoCantidadU6 As Long
     Public Property SaldoValorU6 As Long
     Public Property CostoPromedioU6 As Long
+End Class
+
+''' <summary>Un traspaso entre almacenes de la operación: enviado (en tránsito) o recibido.</summary>
+Public NotInheritable Class TraspasoTransitoDto
+    Public Property Id As Long
+    Public Property Numero As String
+    Public Property AlmacenOrigen As String
+    Public Property AlmacenDestino As String
+    Public Property AlmacenDestinoId As Long
+    Public Property FechaEnvio As Date
+    Public Property Estado As String
+    Public Property FechaRecepcion As Date?
+    Public Property ValorU6 As Long
 End Class
 
 ''' <summary>
@@ -174,9 +199,42 @@ Public NotInheritable Class ServicioAlmacen
     ''' </summary>
     Public Function DevolucionProduccion(salidaDocumentoId As Long, fecha As Date, lineas As IEnumerable(Of LineaSalida)) As Long
         Dim copia = lineas.ToList()
+        Return EnTransaccion(Permisos.StockContabilizar, Function(u) DevolverEn(u, salidaDocumentoId, fecha, copia))
+    End Function
+
+    ''' <summary>Cocina pide devolver: el almacén lo atiende y recién ahí hay movimiento (DevolucionProduccion).</summary>
+    Public Function ListarDevolucionesPendientes(almacenId As Long) As List(Of SolicitudDevolucionDto)
+        Return EnTransaccion(Permisos.StockContabilizar,
+            Function(u) u.Consultar("SELECT q.id, q.documento_origen_id, d.numero, q.variante_id, v.descripcion_comercial, q.cantidad_base_u6, q.motivo, q.solicitado_en " &
+                                    "FROM devolucion_solicitud q JOIN almacen a ON a.id = q.almacen_id " &
+                                    "JOIN documento_stock d ON d.id = q.documento_origen_id " &
+                                    "JOIN variante_producto v ON v.id = q.variante_id " &
+                                    "WHERE q.almacen_id = @a AND q.estado = 'pendiente' AND a.operacion_id = @o ORDER BY q.id",
+                Function(rd) New SolicitudDevolucionDto With {.Id = rd.GetInt64(0), .DocumentoOrigenId = rd.GetInt64(1), .NumeroEntrega = rd.GetString(2),
+                    .VarianteId = rd.GetInt64(3), .Producto = rd.GetString(4), .CantidadU6 = rd.GetInt64(5),
+                    .Motivo = If(rd.IsDBNull(6), "", rd.GetString(6)), .SolicitadoEn = rd.GetDateTime(7)},
+                "a", almacenId, "o", Sesion.Operacion.Id))
+    End Function
+
+    ''' <summary>Atiende una solicitud de cocina: devolución de producción por la cantidad pedida, al costo de la entrega.</summary>
+    Public Function AtenderDevolucion(solicitudId As Long, fecha As Date) As Long
         Return EnTransaccion(Permisos.StockContabilizar,
             Function(u)
-                Dim sal = u.Consultar("SELECT d.almacen_id, d.tipo, d.requerimiento_id, d.operacion_servicio_id FROM documento_stock d JOIN almacen a ON a.id = d.almacen_id " &
+                Dim s = u.Consultar("SELECT q.documento_origen_id, q.variante_id, q.cantidad_base_u6 FROM devolucion_solicitud q JOIN almacen a ON a.id = q.almacen_id " &
+                                    "WHERE q.id = @s AND q.estado = 'pendiente' AND a.operacion_id = @o FOR UPDATE OF q",
+                                    Function(rd) (Origen:=rd.GetInt64(0), Variante:=rd.GetInt64(1), Cantidad:=rd.GetInt64(2)),
+                                    "s", solicitudId, "o", Sesion.Operacion.Id).SingleOrDefault()
+                If s.Origen = 0 Then Throw New ReglaNegocioException("SOLICITUD_NO_PENDIENTE", "La solicitud no esta pendiente en esta operacion.")
+                Dim lineas As New List(Of LineaSalida) From {New LineaSalida With {.VarianteId = s.Variante, .CantidadBaseU6 = s.Cantidad}}
+                Dim documentoId = DevolverEn(u, s.Origen, fecha, lineas)
+                u.Ejecutar("UPDATE devolucion_solicitud SET estado = 'atendida', documento_devolucion_id = @d, atendido_por = @u, atendido_en = now() WHERE id = @s",
+                           "d", documentoId, "u", Sesion.UsuarioId, "s", solicitudId)
+                Return documentoId
+            End Function)
+    End Function
+
+    Private Function DevolverEn(u As UnidadDeTrabajo, salidaDocumentoId As Long, fecha As Date, copia As List(Of LineaSalida)) As Long
+        Dim sal = u.Consultar("SELECT d.almacen_id, d.tipo, d.requerimiento_id, d.operacion_servicio_id FROM documento_stock d JOIN almacen a ON a.id = d.almacen_id " &
                                       "WHERE d.id = @d AND a.operacion_id = @o FOR UPDATE OF d",
                                       Function(rd) (Almacen:=rd.GetInt64(0), Tipo:=rd.GetString(1), Req:=If(rd.IsDBNull(2), CType(Nothing, Long?), rd.GetInt64(2)),
                                                     Servicio:=If(rd.IsDBNull(3), CType(Nothing, Long?), rd.GetInt64(3))), "d", salidaDocumentoId, "o", Sesion.Operacion.Id).SingleOrDefault()
@@ -203,10 +261,12 @@ Public NotInheritable Class ServicioAlmacen
                 Next
                 Return Stock().ContabilizarEn(u, New DocumentoStockNuevo(sal.Almacen, TipoDocumentoStock.DevolucionProduccion, fecha, SiguienteNumero(u, "DV"), lineasStock) _
                                                  With {.DocumentoOrigenId = salidaDocumentoId, .RequerimientoId = sal.Req, .OperacionServicioId = sal.Servicio})
-            End Function)
     End Function
 
-    ''' <summary>Traspaso entre almacenes de la operación: salida al costo vigente y entrada en destino por el mismo valor.</summary>
+    ''' <summary>
+    ''' Envía un traspaso entre almacenes de la operación: sale el stock del origen al costo vigente y queda en tránsito
+    ''' hasta que el destino lo reciba (<see cref="Recibir"/>). Devuelve el id del tránsito.
+    ''' </summary>
     Public Function Traspasar(origenId As Long, destinoId As Long, fecha As Date, lineas As IEnumerable(Of LineaSalida)) As Long
         If origenId = destinoId Then Throw New ReglaNegocioException("DATO_INVALIDO", "El almacen de destino debe ser distinto del de origen.")
         Dim copia = lineas.ToList()
@@ -215,11 +275,49 @@ Public NotInheritable Class ServicioAlmacen
                 Dim numero = SiguienteNumero(u, "TR")
                 Dim salidaId = Stock().ContabilizarEn(u, New DocumentoStockNuevo(origenId, TipoDocumentoStock.TraspasoSalida, fecha, numero & "-S",
                                                           copia.Select(Function(l) New LineaDocumentoStock(l.VarianteId, l.CantidadBaseU6, 0))) With {.AlmacenDestinoId = destinoId})
-                Dim salidas = u.Consultar("SELECT variante_id, cantidad_base_u6, costo_unitario_base_u6, valor_u6 FROM documento_stock_detalle WHERE documento_id = @d ORDER BY id",
-                                          Function(rd) New LineaDocumentoStock(rd.GetInt64(0), rd.GetInt64(1), rd.GetInt64(2), rd.GetInt64(3)), "d", salidaId)
-                Stock().ContabilizarEn(u, New DocumentoStockNuevo(destinoId, TipoDocumentoStock.TraspasoEntrada, fecha, numero & "-E", salidas) With {.DocumentoOrigenId = salidaId})
-                Return salidaId
+                Dim valor = u.EscalarLong("SELECT COALESCE(sum(valor_u6), 0)::bigint FROM documento_stock_detalle WHERE documento_id = @d", "d", salidaId)
+                Return u.EscalarLong("INSERT INTO traspaso_transito(empresa_id, operacion_id, numero, almacen_origen_id, almacen_destino_id, documento_salida_id, fecha_envio, valor_u6) " &
+                                     "VALUES (@e, @o, @n, @ori, @des, @s, @f, @v) RETURNING id",
+                                     "e", Sesion.EmpresaId, "o", Sesion.Operacion.Id, "n", numero, "ori", origenId, "des", destinoId,
+                                     "s", salidaId, "f", fecha.Date, "v", valor)
             End Function)
+    End Function
+
+    ''' <summary>
+    ''' Recibe en el destino un traspaso enviado: entra el mismo stock y valor que salió del origen. Es todo o nada y solo
+    ''' se recibe una vez (TRASPASO_RECIBIDO si ya estaba recibido). Devuelve el id del documento de entrada.
+    ''' </summary>
+    Public Function Recibir(transitoId As Long, fecha As Date) As Long
+        Return EnTransaccion(Permisos.StockContabilizar,
+            Function(u)
+                Dim t = u.Consultar("SELECT numero, almacen_destino_id, documento_salida_id, estado FROM traspaso_transito WHERE id = @t AND operacion_id = @o FOR UPDATE",
+                                    Function(rd) (Numero:=rd.GetString(0), Destino:=rd.GetInt64(1), Salida:=rd.GetInt64(2), Estado:=rd.GetString(3)),
+                                    "t", transitoId, "o", Sesion.Operacion.Id)
+                If t.Count = 0 Then Throw New ReglaNegocioException("NO_ENCONTRADO", "El traspaso no existe en esta operacion.")
+                If t(0).Estado <> "enviado" Then Throw New ReglaNegocioException("TRASPASO_RECIBIDO", "Este traspaso ya fue recibido.")
+                Dim salidas = u.Consultar("SELECT variante_id, cantidad_base_u6, costo_unitario_base_u6, valor_u6 FROM documento_stock_detalle WHERE documento_id = @d ORDER BY id",
+                                          Function(rd) New LineaDocumentoStock(rd.GetInt64(0), rd.GetInt64(1), rd.GetInt64(2), rd.GetInt64(3)), "d", t(0).Salida)
+                Dim entradaId = Stock().ContabilizarEn(u, New DocumentoStockNuevo(t(0).Destino, TipoDocumentoStock.TraspasoEntrada, fecha, t(0).Numero & "-E", salidas) _
+                                                          With {.DocumentoOrigenId = t(0).Salida})
+                u.Ejecutar("UPDATE traspaso_transito SET estado = 'recibido', documento_entrada_id = @e, fecha_recepcion = @f, recibido_por = @u " &
+                           "WHERE id = @t AND estado = 'enviado'", "e", entradaId, "f", fecha.Date, "u", Sesion.UsuarioId, "t", transitoId)
+                Return entradaId
+            End Function)
+    End Function
+
+    ''' <summary>Traspasos de la operación; con soloEnviados, los que siguen en tránsito.</summary>
+    Public Function ListarTransitos(soloEnviados As Boolean) As List(Of TraspasoTransitoDto)
+        Return EnTransaccion(Permisos.CatalogoVer,
+            Function(u) u.Consultar(
+                "SELECT t.id, t.numero, ao.codigo || ' ' || ao.nombre, ad.codigo || ' ' || ad.nombre, t.almacen_destino_id, t.fecha_envio, t.estado, " &
+                "       t.fecha_recepcion, t.valor_u6 " &
+                "FROM traspaso_transito t JOIN almacen ao ON ao.id = t.almacen_origen_id JOIN almacen ad ON ad.id = t.almacen_destino_id " &
+                "WHERE t.operacion_id = @o AND (NOT @s OR t.estado = 'enviado') ORDER BY t.fecha_envio, t.id",
+                Function(rd) New TraspasoTransitoDto With {
+                    .Id = rd.GetInt64(0), .Numero = rd.GetString(1), .AlmacenOrigen = rd.GetString(2), .AlmacenDestino = rd.GetString(3),
+                    .AlmacenDestinoId = rd.GetInt64(4), .FechaEnvio = rd.GetDateTime(5), .Estado = rd.GetString(6),
+                    .FechaRecepcion = If(rd.IsDBNull(7), CType(Nothing, Date?), rd.GetDateTime(7)), .ValorU6 = rd.GetInt64(8)},
+                "o", Sesion.Operacion.Id, "s", soloEnviados))
     End Function
 
     ' ---------- Consultas ----------

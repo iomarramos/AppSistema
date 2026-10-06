@@ -30,6 +30,8 @@ Namespace Seguridad
         Public Const ResultadosVer As String = "RESULTADOS_VER"
         Public Const ComprasConsolidar As String = "COMPRAS_CONSOLIDAR"
         Public Const FactoresEditar As String = "FACTORES_EDITAR"
+        Public Const AdicionalAprobar As String = "ADICIONAL_APROBAR"
+        Public Const InventarioVer As String = "INVENTARIO_VER"
 
         Public ReadOnly Property Todos As IReadOnlyList(Of String) = New String() {
             CatalogoVer, CatalogoEditar, CatalogoImportar, ProveedoresEditar, PreciosEditar,
@@ -37,7 +39,7 @@ Namespace Seguridad
             MenusVer, MenusConfigurar, RecetasEditar, RecetasAprobar, MinutasEditar, MinutasAprobar,
             ComprasVer, ComprasEditar, ComprasAprobar, ProduccionEditar,
             InventarioContar, InventarioAprobar, ReportesVer, CierreEjecutar,
-            ContratosVer, ContratosEditar, GastosEditar, ResultadosVer, ComprasConsolidar, FactoresEditar}
+            ContratosVer, ContratosEditar, GastosEditar, ResultadosVer, ComprasConsolidar, FactoresEditar, AdicionalAprobar, InventarioVer}
 
         Public Function Descripcion(codigo As String) As String
             Select Case codigo
@@ -69,6 +71,8 @@ Namespace Seguridad
                 Case ResultadosVer : Return "Consultar el resultado mensual (ingresos, alimentos, gastos y margen)"
                 Case ComprasConsolidar : Return "Consolidar las compras de todas las operaciones por periodo"
                 Case FactoresEditar : Return "Cambiar el factor de consumo de la operacion"
+                Case AdicionalAprobar : Return "Aprobar los requerimientos adicionales antes de entregarlos"
+                Case InventarioVer : Return "Consultar los inventarios fisicos y sus diferencias"
                 Case Else : Return codigo
             End Select
         End Function
@@ -100,11 +104,11 @@ Namespace Seguridad
                 Case Permisos.CatalogoVer, Permisos.CatalogoEditar, Permisos.CatalogoImportar : Return Catalogo
                 Case Permisos.MenusVer, Permisos.MenusConfigurar, Permisos.RecetasEditar, Permisos.RecetasAprobar,
                      Permisos.MinutasEditar, Permisos.MinutasAprobar : Return Planificacion
-                Case Permisos.ProduccionEditar, Permisos.FactoresEditar : Return Produccion
+                Case Permisos.ProduccionEditar, Permisos.FactoresEditar, Permisos.AdicionalAprobar : Return Produccion
                 Case Permisos.ProveedoresEditar, Permisos.PreciosEditar, Permisos.ComprasVer, Permisos.ComprasEditar,
                      Permisos.ComprasAprobar, Permisos.ComprasConsolidar : Return Abastecimiento
                 Case Permisos.StockContabilizar : Return Almacen
-                Case Permisos.InventarioContar, Permisos.InventarioAprobar : Return Inventario
+                Case Permisos.InventarioContar, Permisos.InventarioAprobar, Permisos.InventarioVer : Return Inventario
                 Case Permisos.ReportesVer, Permisos.CierreEjecutar : Return Cierres
                 Case Permisos.ContratosVer, Permisos.ContratosEditar, Permisos.GastosEditar, Permisos.ResultadosVer : Return Resultados
                 Case Else : Return Administracion
@@ -114,9 +118,9 @@ Namespace Seguridad
         Public Function NivelDe(permiso As String) As String
             Select Case permiso
                 Case Permisos.CatalogoVer, Permisos.MenusVer, Permisos.ComprasVer, Permisos.ReportesVer, Permisos.ContratosVer,
-                     Permisos.ResultadosVer, Permisos.AuditoriaVer : Return "Ver"
+                     Permisos.ResultadosVer, Permisos.AuditoriaVer, Permisos.InventarioVer : Return "Ver"
                 Case Permisos.RecetasAprobar, Permisos.MinutasAprobar, Permisos.ComprasAprobar, Permisos.InventarioAprobar,
-                     Permisos.CierreEjecutar, Permisos.ComprasConsolidar : Return "Aprobar"
+                     Permisos.CierreEjecutar, Permisos.ComprasConsolidar, Permisos.AdicionalAprobar : Return "Aprobar"
                 Case Permisos.UsuariosAdministrar, Permisos.MenusConfigurar, Permisos.CatalogoImportar : Return "Administrar"
                 Case Else : Return "Editar"
             End Select
@@ -153,8 +157,9 @@ Namespace Seguridad
                 Case Permisos.ComprasVer, Permisos.ComprasEditar, Permisos.ComprasAprobar : Return "Prevision y pedidos de compra"
                 Case Permisos.ComprasConsolidar : Return "Consolidado de compras"
                 Case Permisos.ProduccionEditar : Return "Produccion y requerimientos"
+                Case Permisos.AdicionalAprobar : Return "Requerimientos adicionales"
                 Case Permisos.FactoresEditar : Return "Factores de la operacion"
-                Case Permisos.InventarioContar, Permisos.InventarioAprobar : Return "Inventario fisico"
+                Case Permisos.InventarioContar, Permisos.InventarioAprobar, Permisos.InventarioVer : Return "Inventario fisico"
                 Case Permisos.ReportesVer : Return "Reportes y Food Cost"
                 Case Permisos.CierreEjecutar : Return "Cierres de dia y mes"
                 Case Permisos.ContratosVer, Permisos.ContratosEditar : Return "Clientes y contratos"
@@ -168,7 +173,7 @@ Namespace Seguridad
             Select Case permiso
                 Case Permisos.CatalogoImportar, Permisos.InventarioContar : Return "CREAR"
                 Case Permisos.RecetasAprobar, Permisos.MinutasAprobar, Permisos.ComprasAprobar, Permisos.InventarioAprobar,
-                     Permisos.CierreEjecutar, Permisos.StockContabilizar : Return "APROBAR"
+                     Permisos.AdicionalAprobar, Permisos.CierreEjecutar, Permisos.StockContabilizar : Return "APROBAR"
                 Case Permisos.UsuariosAdministrar, Permisos.MenusConfigurar : Return "CONFIGURAR"
                 Case Permisos.ComprasConsolidar : Return "EXPORTAR"
                 Case Else
@@ -226,11 +231,22 @@ Namespace Seguridad
         Public Const ComprasCentral As String = "COMPRAS_CENTRAL"
         Public Const Operaciones As String = "OPERACIONES"
         Public Const Chef As String = "CHEF"
+        Public Const Almacenero As String = "ALMACEN"
+        Public Const JefeAlmacen As String = "JEFE_ALMACEN"
 
+        ''' <summary>
+        ''' Perfiles de la operación (pedido del usuario, 2026-10-05). Los códigos se conservan porque las asignaciones y las
+        ''' pruebas los usan; lo que cambia es el nombre que se muestra. ALMACEN es el almacenero que ejecuta; JEFE_ALMACEN
+        ''' hace lo mismo y además aprueba inventarios y ajustes; OPERACIONES es el jefe de operación que aprueba y cierra.
+        ''' </summary>
         Public ReadOnly Property Todos As IReadOnlyList(Of RolBase) = New RolBase() {
             New RolBase(Administrador, "Administrador", Permisos.Todos),
             New RolBase("SUPERVISOR", "Supervisor", Permisos.Todos.Where(Function(p) p <> Permisos.UsuariosAdministrar)),
-            New RolBase("ALMACEN", "Almacen", {Permisos.CatalogoVer, Permisos.StockContabilizar, Permisos.MenusVer, Permisos.ComprasVer, Permisos.ComprasEditar, Permisos.InventarioContar}),
+            New RolBase(Almacenero, "Almacenero (recepcion, despacho, conteo; sin pedidos ni aprobaciones)",
+                        {Permisos.CatalogoVer, Permisos.StockContabilizar, Permisos.MenusVer, Permisos.ComprasVer, Permisos.InventarioContar, Permisos.InventarioVer}),
+            New RolBase(JefeAlmacen, "Jefe de almacen (aprueba inventarios y ajustes; reportes)",
+                        {Permisos.CatalogoVer, Permisos.StockContabilizar, Permisos.MenusVer, Permisos.ComprasVer,
+                         Permisos.InventarioContar, Permisos.InventarioVer, Permisos.InventarioAprobar, Permisos.ReportesVer}),
             New RolBase("COCINA", "Cocina", {Permisos.CatalogoVer, Permisos.MenusVer, Permisos.RecetasEditar, Permisos.MinutasEditar, Permisos.ProduccionEditar}),
             New RolBase("FINANZAS", "Finanzas y contratos", {Permisos.ReportesVer, Permisos.ContratosVer, Permisos.ContratosEditar, Permisos.GastosEditar, Permisos.ResultadosVer}),
             New RolBase(Planificacion, "Planificacion (menu, factores, costo y pax)",
@@ -245,10 +261,11 @@ Namespace Seguridad
             New RolBase(ComprasCentral, "Compras central (demanda consolidada, proveedores, precios y pedidos)",
                         {Permisos.CatalogoVer, Permisos.CatalogoEditar, Permisos.ProveedoresEditar, Permisos.PreciosEditar, Permisos.MenusVer,
                          Permisos.ComprasVer, Permisos.ComprasEditar, Permisos.ComprasAprobar, Permisos.ComprasConsolidar, Permisos.ReportesVer}),
-            New RolBase(Operaciones, "Operaciones / supervisor de sede (plan operativo, comensales, factores, Food Cost)",
-                        {Permisos.CatalogoVer, Permisos.MenusVer, Permisos.MinutasEditar, Permisos.FactoresEditar, Permisos.ProduccionEditar,
-                         Permisos.ComprasVer, Permisos.ReportesVer}),
-            New RolBase(Chef, "Chef (programacion del dia, factores del dia, produccion)",
+            New RolBase(Operaciones, "Jefe de operacion (aprueba planificacion, adicionales, cierres, Food Cost y resultados; sin stock)",
+                        {Permisos.CatalogoVer, Permisos.MenusVer, Permisos.MinutasEditar, Permisos.MinutasAprobar, Permisos.FactoresEditar,
+                         Permisos.ProduccionEditar, Permisos.AdicionalAprobar, Permisos.ComprasVer, Permisos.InventarioVer, Permisos.ReportesVer,
+                         Permisos.ResultadosVer, Permisos.CierreEjecutar}),
+            New RolBase(Chef, "Chef operativo (programacion del dia, factores del dia, produccion; sin precios ni stock)",
                         {Permisos.CatalogoVer, Permisos.MenusVer, Permisos.MinutasEditar, Permisos.FactoresEditar, Permisos.ProduccionEditar})}
 
         ''' <summary>True si el código es de un rol que crea el sistema (no se modifica desde la aplicación).</summary>

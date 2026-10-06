@@ -4,6 +4,15 @@ Imports AppSistema.Dominio.Numerico
 Imports AppSistema.Dominio.Seguridad
 Imports AppSistema.Dominio.Stock
 
+''' <summary>Entrega de la minuta que la cocina puede devolver: una presentación y lo que todavía queda por devolver.</summary>
+Public NotInheritable Class EntregaDevolubleDto
+    Public Property DocumentoId As Long
+    Public Property Numero As String
+    Public Property VarianteId As Long
+    Public Property Producto As String
+    Public Property DisponibleU6 As Long
+End Class
+
 Public NotInheritable Class RequerimientoDto
     Public Property Id As Long
     Public Property Numero As String
@@ -105,11 +114,12 @@ Public NotInheritable Class ServicioProduccion
     End Function
 
     ''' <summary>Requerimiento adicional (solicitud manual) para la misma minuta.</summary>
-    Public Function RequerimientoAdicional(minutaId As Long, almacenId As Long) As Long
+    Public Function RequerimientoAdicional(minutaId As Long, almacenId As Long, motivo As String) As Long
+        Dim motivoLimpio = ServicioAdministracion.Requerido(motivo, "motivo del requerimiento adicional")
         Return EnTransaccion(Permisos.ProduccionEditar,
             Function(u)
                 Dim m = DatosMinuta(u, minutaId, almacenId)
-                Return Insertar(u, almacenId, minutaId, m.Servicio, m.Fecha, "adicional")
+                Return Insertar(u, almacenId, minutaId, m.Servicio, m.Fecha, "adicional", motivoLimpio)
             End Function)
     End Function
 
@@ -139,7 +149,10 @@ Public NotInheritable Class ServicioProduccion
         Return EnTransaccion(Permisos.StockContabilizar,
             Function(u)
                 Sesion.Exigir(Permisos.StockContabilizar)
-                Dim req = ExigirRequerimiento(u, requerimientoId)
+                Dim req = ExigirRequerimiento(u, requerimientoId, aceptarAprobado:=True)
+                If req.Tipo = "adicional" AndAlso req.Estado <> "aprobado" Then
+                    Throw New ReglaNegocioException("ADICIONAL_NO_APROBADO", "El requerimiento adicional debe ser aprobado por el jefe de operacion antes de entregarse.")
+                End If
                 Dim lineas = LeerLineas(u, requerimientoId).Where(Function(l) l.SolicitadoU6 > 0).ToList()
                 If lineas.Count = 0 Then Throw New ReglaNegocioException("DOCUMENTO_VACIO", "El requerimiento no tiene cantidades solicitadas.")
                 Dim disponibles = u.Consultar(
@@ -180,6 +193,82 @@ Public NotInheritable Class ServicioProduccion
                 Return r
             End Function)
     End Function
+
+    ''' <summary>El jefe de operación aprueba un requerimiento adicional (borrador → aprobado). La base vuelve a exigir el permiso.</summary>
+    Public Sub AprobarAdicional(requerimientoId As Long)
+        EnTransaccion(Permisos.AdicionalAprobar,
+            Function(u)
+                Dim req = ExigirRequerimiento(u, requerimientoId)
+                If req.Tipo <> "adicional" Then
+                    Throw New ReglaNegocioException("SOLO_ADICIONAL", "Solo el requerimiento adicional se aprueba; el calculado se entrega directamente.")
+                End If
+                Return u.Ejecutar("UPDATE requerimiento SET estado = 'aprobado' WHERE id = @r", "r", requerimientoId)
+            End Function)
+    End Sub
+
+    ''' <summary>
+    ''' Cocina pide devolver parte de una entrega a producción. No mueve stock: lo atiende el almacén
+    ''' (ServicioAlmacen.AtenderDevolucion). No supera lo entregado menos lo ya devuelto o ya pedido.
+    ''' </summary>
+    Public Function SolicitarDevolucion(salidaDocumentoId As Long, varianteId As Long, cantidadU6 As Long, motivo As String) As Long
+        If cantidadU6 <= 0 Then Throw New ReglaNegocioException("DATO_INVALIDO", "La cantidad a devolver debe ser mayor que cero.")
+        Dim motivoLimpio = ServicioAdministracion.Requerido(motivo, "motivo de la devolucion")
+        Return EnTransaccion(Permisos.ProduccionEditar,
+            Function(u)
+                Dim sal = u.Consultar("SELECT d.almacen_id, d.tipo FROM documento_stock d JOIN almacen a ON a.id = d.almacen_id " &
+                                      "WHERE d.id = @d AND a.operacion_id = @o",
+                                      Function(rd) (Almacen:=rd.GetInt64(0), Tipo:=rd.GetString(1)), "d", salidaDocumentoId, "o", Sesion.Operacion.Id).SingleOrDefault()
+                If sal.Almacen = 0 Then Throw New ReglaNegocioException("OPERACION_AJENA", "La entrega no pertenece a la operacion seleccionada.")
+                If sal.Tipo <> "salida_produccion" Then Throw New ReglaNegocioException("ORIGEN_REQUERIDO", "Solo se devuelve sobre una entrega a produccion.")
+                Dim entregado = u.EscalarLong("SELECT COALESCE(sum(l.cantidad_base_u6), 0)::bigint FROM documento_stock_detalle l " &
+                                              "WHERE l.documento_id = @d AND l.variante_id = @v", "d", salidaDocumentoId, "v", varianteId)
+                If entregado = 0 Then Throw New ReglaNegocioException("DEVOLUCION_EXCEDIDA", "La presentacion no estaba en la entrega.")
+                Dim devuelto = u.EscalarLong("SELECT COALESCE(sum(x.cantidad_base_u6), 0)::bigint FROM documento_stock_detalle x " &
+                                             "JOIN documento_stock dv ON dv.id = x.documento_id " &
+                                             "WHERE dv.documento_origen_id = @d AND dv.tipo = 'devolucion_produccion' AND x.variante_id = @v", "d", salidaDocumentoId, "v", varianteId)
+                Dim pedido = u.EscalarLong("SELECT COALESCE(sum(q.cantidad_base_u6), 0)::bigint FROM devolucion_solicitud q " &
+                                           "WHERE q.documento_origen_id = @d AND q.variante_id = @v AND q.estado = 'pendiente'", "d", salidaDocumentoId, "v", varianteId)
+                If cantidadU6 > entregado - devuelto - pedido Then
+                    Throw New ReglaNegocioException("DEVOLUCION_EXCEDIDA",
+                        $"Se entregaron {EscalaU6.ADecimal(entregado)}, ya se devolvieron o pidieron {EscalaU6.ADecimal(devuelto + pedido)} y se pide devolver {EscalaU6.ADecimal(cantidadU6)}.")
+                End If
+                Return u.EscalarLong("INSERT INTO devolucion_solicitud(empresa_id, almacen_id, documento_origen_id, variante_id, cantidad_base_u6, motivo, solicitado_por) " &
+                                     "SELECT @e, d.almacen_id, d.id, @v, @c, @m, @u FROM documento_stock d WHERE d.id = @d RETURNING id",
+                                     "e", Sesion.EmpresaId, "v", varianteId, "c", cantidadU6, "m", motivoLimpio, "u", Sesion.UsuarioId, "d", salidaDocumentoId)
+            End Function)
+    End Function
+
+    ''' <summary>Líneas entregadas de la minuta que todavía se pueden devolver (entregado − devuelto − ya pedido).</summary>
+    Public Function ListarEntregasDevolubles(minutaId As Long) As List(Of EntregaDevolubleDto)
+        Return EnTransaccion(Permisos.MenusVer,
+            Function(u) u.Consultar(
+                "SELECT d.id, d.numero, v.id, v.descripcion_comercial, " &
+                "       l.entregado - COALESCE(dev.x, 0) - COALESCE(pen.x, 0) " &
+                "FROM (SELECT documento_id, variante_id, sum(cantidad_base_u6)::bigint AS entregado FROM documento_stock_detalle GROUP BY documento_id, variante_id) l " &
+                "JOIN documento_stock d ON d.id = l.documento_id " &
+                "JOIN variante_producto v ON v.id = l.variante_id " &
+                "JOIN requerimiento q ON q.id = d.requerimiento_id " &
+                "JOIN almacen a ON a.id = d.almacen_id " &
+                "LEFT JOIN LATERAL (SELECT sum(x.cantidad_base_u6)::bigint AS x FROM documento_stock_detalle x JOIN documento_stock dv ON dv.id = x.documento_id " &
+                "                   WHERE dv.documento_origen_id = d.id AND dv.tipo = 'devolucion_produccion' AND x.variante_id = l.variante_id) dev ON true " &
+                "LEFT JOIN LATERAL (SELECT sum(s.cantidad_base_u6)::bigint AS x FROM devolucion_solicitud s " &
+                "                   WHERE s.documento_origen_id = d.id AND s.variante_id = l.variante_id AND s.estado = 'pendiente') pen ON true " &
+                "WHERE q.minuta_id = @m AND a.operacion_id = @o AND d.tipo = 'salida_produccion' AND d.estado = 'confirmado' " &
+                "ORDER BY d.id, v.descripcion_comercial",
+                Function(rd) New EntregaDevolubleDto With {.DocumentoId = rd.GetInt64(0), .Numero = rd.GetString(1), .VarianteId = rd.GetInt64(2),
+                    .Producto = rd.GetString(3), .DisponibleU6 = rd.GetInt64(4)},
+                "m", minutaId, "o", Sesion.Operacion.Id).Where(Function(x) x.DisponibleU6 > 0).ToList())
+    End Function
+
+    ''' <summary>Cocina anula su solicitud mientras el almacén no la haya atendido.</summary>
+    Public Sub AnularDevolucion(solicitudId As Long)
+        EnTransaccion(Permisos.ProduccionEditar,
+            Function(u)
+                Return u.Ejecutar("UPDATE devolucion_solicitud q SET estado = 'anulada' FROM almacen a " &
+                                  "WHERE q.id = @s AND q.estado = 'pendiente' AND a.id = q.almacen_id AND a.operacion_id = @o",
+                                  "s", solicitudId, "o", Sesion.Operacion.Id)
+            End Function)
+    End Sub
 
     Public Sub Anular(requerimientoId As Long)
         EnTransaccion(Permisos.ProduccionEditar,
@@ -318,23 +407,28 @@ Public NotInheritable Class ServicioProduccion
         Return m
     End Function
 
-    Private Function Insertar(u As UnidadDeTrabajo, almacenId As Long, minutaId As Long, servicio As Long, fecha As Date, tipo As String) As Long
+    Private Function Insertar(u As UnidadDeTrabajo, almacenId As Long, minutaId As Long, servicio As Long, fecha As Date, tipo As String,
+                              Optional motivo As String = Nothing) As Long
         u.Ejecutar("SELECT pg_advisory_xact_lock(hashtext('requerimiento'), @e::int)", "e", Sesion.EmpresaId)
         Dim base = $"RQ-{Date.Today.Year}-"
         Dim n = u.EscalarLong("SELECT COALESCE(max(substring(numero from 9 for 5)::bigint), 0) + 1 FROM requerimiento WHERE numero LIKE @b", "b", base & "%")
-        Return u.EscalarLong("INSERT INTO requerimiento(empresa_id, almacen_id, minuta_id, operacion_servicio_id, fecha, numero, usuario_id, tipo) " &
-                             "VALUES (@e, @a, @m, @os, @f, @n, @u, @t) RETURNING id",
-                             "e", Sesion.EmpresaId, "a", almacenId, "m", minutaId, "os", servicio, "f", fecha, "n", $"{base}{n:00000}", "u", Sesion.UsuarioId, "t", tipo)
+        Return u.EscalarLong("INSERT INTO requerimiento(empresa_id, almacen_id, minuta_id, operacion_servicio_id, fecha, numero, usuario_id, tipo, motivo) " &
+                             "VALUES (@e, @a, @m, @os, @f, @n, @u, @t, @mo) RETURNING id",
+                             "e", Sesion.EmpresaId, "a", almacenId, "m", minutaId, "os", servicio, "f", fecha, "n", $"{base}{n:00000}", "u", Sesion.UsuarioId,
+                             "t", tipo, "mo", motivo)
     End Function
 
-    Private Function ExigirRequerimiento(u As UnidadDeTrabajo, requerimientoId As Long) As (Almacen As Long, Servicio As Long, Numero As String)
-        Dim r = u.Consultar("SELECT q.almacen_id, q.operacion_servicio_id, q.numero, q.estado FROM requerimiento q JOIN almacen a ON a.id = q.almacen_id " &
+    Private Function ExigirRequerimiento(u As UnidadDeTrabajo, requerimientoId As Long, Optional aceptarAprobado As Boolean = False) _
+        As (Almacen As Long, Servicio As Long, Numero As String, Tipo As String, Estado As String)
+        Dim r = u.Consultar("SELECT q.almacen_id, q.operacion_servicio_id, q.numero, q.estado, q.tipo FROM requerimiento q JOIN almacen a ON a.id = q.almacen_id " &
                             "WHERE q.id = @r AND a.operacion_id = @o FOR UPDATE OF q",
-                            Function(rd) (Almacen:=rd.GetInt64(0), Servicio:=rd.GetInt64(1), Numero:=rd.GetString(2), Estado:=rd.GetString(3)),
+                            Function(rd) (Almacen:=rd.GetInt64(0), Servicio:=rd.GetInt64(1), Numero:=rd.GetString(2), Estado:=rd.GetString(3), Tipo:=rd.GetString(4)),
                             "r", requerimientoId, "o", Sesion.Operacion.Id).SingleOrDefault()
         If r.Almacen = 0 Then Throw New ReglaNegocioException("OPERACION_AJENA", "El requerimiento no pertenece a la operacion seleccionada.")
-        If r.Estado <> "borrador" Then Throw New ReglaNegocioException("REQUERIMIENTO_ATENDIDO", $"El requerimiento esta {r.Estado}.")
-        Return (r.Almacen, r.Servicio, r.Numero)
+        If r.Estado <> "borrador" AndAlso Not (aceptarAprobado AndAlso r.Estado = "aprobado") Then
+            Throw New ReglaNegocioException("REQUERIMIENTO_ATENDIDO", $"El requerimiento esta {r.Estado}.")
+        End If
+        Return (r.Almacen, r.Servicio, r.Numero, r.Tipo, r.Estado)
     End Function
 
     Private Shared Function LeerLineas(u As UnidadDeTrabajo, requerimientoId As Long) As List(Of RequerimientoLineaDto)
