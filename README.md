@@ -54,7 +54,7 @@ En **Menús > Servicios y estructuras** cada componente del servicio (bebida, ju
 
 ### Contratos, gastos y resultado (opcional)
 
-En **Cierres > Contratos y clientes** se registran clientes y contratos con el importe mensual de cada servicio; un cambio de tarifa se registra como *ajuste* desde una fecha. *Generar ingresos del mes* calcula el ingreso de cada servicio (prorrateado por días) sin reemplazar un ingreso registrado a mano. En **Cierres > Gastos y resultado mensual** se registran gastos (personal, operación, administración, otros) y se ve el margen por servicio; *Exportar CSV* entrega el resultado con el formato de [`docs/INTEGRACION_RESULTADOS.md`](docs/INTEGRACION_RESULTADOS.md). El administrador puede crear roles propios en **Administración > Usuarios y roles**.
+En **Cierres > Contratos y clientes** se registran clientes y contratos con el importe mensual de cada servicio; un cambio de tarifa se registra como *ajuste* desde una fecha. *Generar ingresos del mes* calcula el ingreso de cada servicio (prorrateado por días) sin reemplazar un ingreso registrado a mano. En **Cierres > Gastos y resultado mensual** se registran gastos (personal, operación, administración, otros) y se ve el margen por servicio; *Exportar CSV* entrega el resultado con el formato de [`docs/04_ARQUITECTURA_Y_DATOS/INTEGRACION_RESULTADOS.md`](docs/04_ARQUITECTURA_Y_DATOS/INTEGRACION_RESULTADOS.md). El administrador puede crear roles propios en **Administración > Usuarios y roles**.
 
 Para actualizar a una versión nueva: `AppSistema.Instalador actualizar D:\respaldos\antes_de_actualizar.dump` (respalda, migra y comprueba que saldos e historia no cambiaron). En el servidor de sede, `herramientas\windows\programar_sede.ps1` programa el envío a la central y el respaldo diario.
 
@@ -85,7 +85,7 @@ Para no interferir, no use el mouse ni el teclado mientras corren.
 
 ## Documentación
 
-- Estado real y pendientes: [`docs/SEGUIMIENTO.md`](docs/SEGUIMIENTO.md)
-- Requerimientos: [`docs/REQUERIMIENTOS.md`](docs/REQUERIMIENTOS.md)
-- Plan y reglas de construcción: [`docs/guia_construccion/`](docs/guia_construccion/)
-- Ramas: [`docs/FLUJO_DE_RAMAS.md`](docs/FLUJO_DE_RAMAS.md)
+- Estado real y pendientes: [`docs/03_ESTADO/SEGUIMIENTO.md`](docs/03_ESTADO/SEGUIMIENTO.md)
+- Requerimientos: [`docs/02_REQUERIMIENTOS/REQUERIMIENTOS.md`](docs/02_REQUERIMIENTOS/REQUERIMIENTOS.md)
+- Plan y reglas de construcción: [`docs/06_GUIA_DE_CONSTRUCCION/`](docs/06_GUIA_DE_CONSTRUCCION/)
+- Ramas: [`docs/05_OPERACION/FLUJO_DE_RAMAS.md`](docs/05_OPERACION/FLUJO_DE_RAMAS.md)

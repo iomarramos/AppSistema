@@ -7,7 +7,7 @@
 | Fuente | *Manual SGP Local – Para Operaciones* (Sodexo Perú, V006, 01/07/2013, 92 pp.) |
 | Estado | Borrador: requiere validación del negocio (ver §12 Preguntas abiertas) |
 
-> **Vigencia.** Este documento recoge el alcance corporativo del manual SGP. La *Guía de construcción modular* (`docs/guia_construccion/`) redefine la primera etapa como producto comercial para pymes (sin ADS/SGO/SAP, sin Consumo Alternativo automático, ingreso mensual por servicio) y prevalece donde haya contradicción. Estado real de la construcción: `docs/SEGUIMIENTO.md`.
+> **Vigencia.** Este documento recoge el alcance corporativo del manual SGP. La *Guía de construcción modular* (`docs/06_GUIA_DE_CONSTRUCCION/`) redefine la primera etapa como producto comercial para pymes (sin ADS/SGO/SAP, sin Consumo Alternativo automático, ingreso mensual por servicio) y prevalece donde haya contradicción. Estado real de la construcción: `docs/03_ESTADO/SEGUIMIENTO.md`.
 >
 > Las referencias `[p.N]` apuntan a la página del manual. Los requisitos nuevos que **no** salen del manual están marcados como **(propuesto)**.
 
@@ -399,7 +399,7 @@ Pedido propuesto = (+) Necesidad según minuta teórica (NT)
 | RNF-12.1 | **Equipos soportados (confirmado, 02/10/2026): Windows 10 o superior.** No se soportan Windows XP/7/8 ni Mac/Linux. Permite usar .NET 8 y Npgsql 8 |
 | RNF-12.2 | **.NET 8 (LTS)** fijado en los proyectos; el instalador debe incluir o verificar el runtime **(propuesto)** |
 | RNF-15 | **Interfaz (confirmado, 02/10/2026): WinForms** sobre .NET 8, orientada a captura rápida con teclado. Las reglas viven en las capas de dominio y datos, no en los formularios |
-| RNF-16 | **Control de versiones:** `main` (estable) ← `develop` (integración) ← `feature/etapa-N-*` (una rama por etapa del plan). Ver `docs/FLUJO_DE_RAMAS.md` |
+| RNF-16 | **Control de versiones:** `main` (estable) ← `develop` (integración) ← `feature/etapa-N-*` (una rama por etapa del plan). Ver `docs/05_OPERACION/FLUJO_DE_RAMAS.md` |
 | RNF-12.3 | Instalación y actualización simples en cada PC, con número de versión visible **(propuesto)** |
 
 ---

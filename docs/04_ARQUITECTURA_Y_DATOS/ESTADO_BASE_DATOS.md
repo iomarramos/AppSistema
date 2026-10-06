@@ -1,6 +1,6 @@
 # Estado de la base de datos con los datos reales
 
-Las llaves primarias y foráneas de cada tabla, con un diagrama por área, están en `docs/RELACIONES_BASE_DATOS.md`.
+Las llaves primarias y foráneas de cada tabla, con un diagrama por área, están en `docs/04_ARQUITECTURA_Y_DATOS/RELACIONES_BASE_DATOS.md`.
 
 Actualizado: 2026-10-03. Es el resultado de cargar todo `datos/real/` en una base nueva con los pasos de `datos/real/LEEME.md` (migraciones V001–V019, 71 tablas).
 

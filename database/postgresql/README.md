@@ -65,5 +65,5 @@ transacción con `set_config('app.empresa_id', ...)`. Sin ese contexto no ven na
 ## Limitaciones conocidas
 
 - Valoración (D01), impuestos (D03) y ajustes de inventario (D06) siguen abiertos; las pruebas usan un costo fijo de S/8/L.
-- No hay aún: idempotencia de comandos, UUID/secuencia de sincronización, política de valoración versionada (ver `docs/guia_construccion/03`).
+- No hay aún: idempotencia de comandos, UUID/secuencia de sincronización, política de valoración versionada (ver `docs/06_GUIA_DE_CONSTRUCCION/03`).
 - Los `CHECK` de estados nuevos de la guía requieren migraciones futuras.

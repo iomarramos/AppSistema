@@ -25,7 +25,8 @@ Del manual *SGP Local – Para Operaciones* (Sodexo Perú, V006) se toma la estr
 * **Tablas de datos:**
   * números a la derecha para comparar por la coma decimal;
   * filas alternas con poco contraste;
-  * filas de 28 px (densidad "condensada");
+  * filas de 32 px, con más espacio de lectura;
+  * encabezados multilínea y un ancho mínimo por columna para evitar texto comprimido;
   * estados como etiquetas.
 * **ERP, documento con cabecera y líneas:** la cabecera lleva quién, cuándo y por qué; las líneas, qué, cuánto y a qué precio. Las acciones del documento van en una barra arriba y los totales al pie.
 * **.NET 8 WinForms:** las ventanas se arman en código a 96 ppp y se escalan con `AutoScaleMode.Dpi`. Así se ven bien en pantallas al 125 % o al 150 %.
@@ -41,6 +42,22 @@ Del manual *SGP Local – Para Operaciones* (Sodexo Perú, V006) se toma la estr
   * los botones que empiezan por Aprobar, Autorizar, Entregar, Cerrar, Guardar, Aceptar, Importar o Ingresar van en azul;
   * los que empiezan por Anular, Eliminar, Quitar, Desactivar o Retirar van en rojo;
   * los estados que se colorean (aprobada, borrador, faltante, etc.) están en `Tonos`.
+
+### Usabilidad compartida (2026-10-04)
+
+El tema conserva Segoe UI y el acento azul, con superficies de gris azulado. Los botones tienen un mínimo de 34 px; Entrar recibe el mismo estilo principal que Aceptar. Las franjas de ayuda y los totales crecen cuando el texto necesita más líneas. El encabezado divide su ancho entre pantalla y operación, con puntos suspensivos si el espacio se agota.
+
+Las tablas reservan más ancho a descripciones, productos y conceptos. Una lista vacía muestra orientación; los estados conservan su texto y el foco de teclado. Los diálogos asignan un orden de tabulación y enfocan el primer campo, manteniendo Enter/Escape y el contenido literal de las claves. Los botones creados con `Ui.Boton` se deshabilitan durante su acción para impedir que se repita mientras sigue abierto un diálogo.
+
+En **Ventanas**, Ctrl+K permite elegir una pantalla disponible según los permisos existentes; usa la misma acción del menú para reutilizar una ventana ya abierta. El menú también lista las ventanas abiertas, organiza en cascada o lado a lado y cierra la activa con Ctrl+F4.
+
+Las pruebas de controles se ejecutan en Windows sin base de datos:
+
+```powershell
+dotnet test tests/AppSistema.E2E.Tests -c Release --filter FullyQualifiedName~UsabilidadTests
+```
+
+Para guardar capturas de los controles de prueba, definir `APPSISTEMA_UI_CAPTURAS=1`; se guardan en `artifacts/screenshots/ui-*.png`. Estas capturas no sustituyen el recorrido E2E autenticado ni la comprobación en distintas escalas DPI.
 
 ### Editar una pantalla en Visual Studio (Diseñador)
 

@@ -19,7 +19,7 @@
 
 1. No se trabaja directamente sobre `main` ni `develop`.
 2. Cada rama de etapa nace de `develop` actualizado; las tareas pequeñas pueden crear sub-ramas (`feature/etapa-1-importador`).
-3. Antes de integrar: `./ejecutar_pruebas.sh` sin fallos, migraciones nuevas numeradas (`V005__...`) y `docs/SEGUIMIENTO.md` actualizado.
+3. Antes de integrar: `./ejecutar_pruebas.sh` sin fallos, migraciones nuevas numeradas (`V005__...`) y `docs/03_ESTADO/SEGUIMIENTO.md` actualizado.
 4. Nunca editar una migración ya integrada en `develop`; se corrige con una nueva.
 5. Conflictos: leer ambos cambios y su intención; no elegir "ours/theirs" a ciegas; repetir pruebas (guía, doc. 08).
 6. Sin secretos ni bases reales en Git.

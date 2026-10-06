@@ -237,7 +237,10 @@ Se mantienen ADMIN, SUPERVISOR, COCINA, FINANZAS, PLANIFICACION y ABASTECIMIENTO
 | Migración | Fase | Contenido |
 |---|---|---|
 | V021 | 1 | `pantalla`, permisos con pantalla y acción, alcance, `usuario_permiso`, `fn_tiene_permiso`, roles nuevos |
-| V022 | 2 | `planificacion`, `planificacion_version`, `planificacion_estado`, `planificacion_servicio`, `planificacion_plato`, `planificacion_producto`, trigger de inmutabilidad |
+| V022 | 1b | Siete perfiles de la operación: JEFE_ALMACEN y nombres de ALMACEN, OPERACIONES y CHEF (hecho) |
+| V023 | 1c | Almacén sin pedidos; ADICIONAL_APROBAR y aprobación validada en la base; INVENTARIO_VER (hecho) |
+| V024 | 1d | `devolucion_solicitud`: la cocina pide, el almacén atiende (hecho) |
+| V025 | 2 | `planificacion`, `planificacion_version`, `planificacion_estado`, `planificacion_servicio`, `planificacion_plato`, `planificacion_producto`, trigger de inmutabilidad |
 | V023 | 3 | `liberacion_planificacion`; referencias de origen y estado de ejecución en `minuta` y `minuta_detalle` |
 | V024 | 4–5 | `minuta_cambio`; triggers de factor y comensales por permiso y antes o después de la entrega |
 | V025 | 6 | `ejecucion_servicio`, `ejecucion_producto` (foto inmutable de lo real) |

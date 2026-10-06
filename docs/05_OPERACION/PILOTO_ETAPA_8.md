@@ -24,7 +24,7 @@ Objetivo: demostrar en una sede real que se opera sin internet, que lo enviado l
 ## Operación (semanas 2–4)
 
 - Revisión diaria: `estado-sincronizacion` (sede) y `reporte-central` (central), o la pantalla Administración > Sincronización y respaldo (TI): pendientes, errores, retenidos, conflictos y fecha de última sincronización.
-- Toda incidencia se anota con fecha, paso, mensaje y solución en `docs/SEGUIMIENTO.md`.
+- Toda incidencia se anota con fecha, paso, mensaje y solución en `docs/03_ESTADO/SEGUIMIENTO.md`.
 
 ## Criterio de aceptación
 
