@@ -17,18 +17,14 @@ Partial Public Class FormStock
     Private ReadOnly _compras As ServicioCompras
     Private ReadOnly _reportes As ServicioReportes
     Private ReadOnly _listaAlmacenes As New List(Of AlmacenResumen)
-    Private ReadOnly _almacen As New ComboBox With {.DropDownStyle = ComboBoxStyle.DropDownList, .Width = 220}
-    Private ReadOnly _buscar As New TextBox With {.Width = 200}
-    Private ReadOnly _saldos As DataGridView = Ui.NuevaGrilla()
-    Private ReadOnly _total As New Label With {.Dock = DockStyle.Bottom, .Height = 28, .Padding = New Padding(6)}
-
     Public Sub New()
         InitializeComponent()
+        Ui.Configurar(gridSaldos)
     End Sub
 
     Public Sub New(cadena As String, sesion As SesionUsuario)
         InitializeComponent()
-        Controls.Clear()
+        Ui.Configurar(gridSaldos)
         _stock = New ServicioStock(cadena, sesion)
         _apertura = New ServicioInventarioInicial(cadena, sesion)
         _almacenes = New ServicioAlmacen(cadena, sesion)
@@ -37,39 +33,41 @@ Partial Public Class FormStock
         Dim admin As New ServicioAdministracion(cadena, sesion)
         Text = "Stock - " & sesion.Operacion.Nombre
         Dim mueve = sesion.Tiene(Permisos.StockContabilizar)
-        Dim acciones = Ui.BarraBotones(Ui.Boton("Recibir pedido...", AddressOf RecibirPedido), Ui.Boton("Salida a cocina...", Sub() Salida(False)),
-                                       Ui.Boton("Baja...", Sub() Salida(True)), Ui.Boton("Traspaso...", AddressOf Traspaso),
-                                       Ui.Boton("Devolucion de cocina...", AddressOf Devolucion), Ui.Boton("Inventario inicial...", AddressOf InventarioInicial))
-        acciones.Visible = mueve
-        Controls.Add(_saldos)
-        Controls.Add(_total)
-        Controls.Add(acciones)
-        Controls.Add(Ui.BarraBotones(New Label With {.Text = "Almacen", .AutoSize = True, .Margin = New Padding(3, 9, 3, 3)}, _almacen,
-                                     New Label With {.Text = "Buscar", .AutoSize = True, .Margin = New Padding(3, 9, 3, 3)}, _buscar,
-                                     Ui.Boton("Ver", AddressOf Cargar), Ui.Boton("Kardex...", AddressOf Kardex), Ui.Boton("Documentos...", AddressOf Documentos),
-                                     Ui.Boton("Imprimir stock...", AddressOf ImprimirStock),
-                                     Ui.Boton("Registro SUNAT 13.1...", AddressOf RegistroSunat)))
-        AddHandler _almacen.SelectedIndexChanged, Sub() Cargar()
-        AddHandler _buscar.KeyDown, Sub(s, e) If e.KeyCode = Keys.Enter Then Cargar()
+        barraAcciones.Controls.Add(Ui.Boton("Recibir pedido...", AddressOf RecibirPedido))
+        barraAcciones.Controls.Add(Ui.Boton("Salida a cocina...", Sub() Salida(False)))
+        barraAcciones.Controls.Add(Ui.Boton("Baja...", Sub() Salida(True)))
+        barraAcciones.Controls.Add(Ui.Boton("Traspaso...", AddressOf Traspaso))
+        barraAcciones.Controls.Add(Ui.Boton("Recibir traspaso...", AddressOf RecibirTraspaso))
+        barraAcciones.Controls.Add(Ui.Boton("Devolucion de cocina...", AddressOf Devolucion))
+        barraAcciones.Controls.Add(Ui.BotonSi(mueve, "Atender devoluciones pedidas por cocina...", AddressOf AtenderDevoluciones))
+        barraAcciones.Controls.Add(Ui.Boton("Inventario inicial...", AddressOf InventarioInicial))
+        barraAcciones.Visible = mueve
+        barraFiltros.Controls.Add(Ui.Boton("Ver", AddressOf Cargar))
+        barraFiltros.Controls.Add(Ui.Boton("Kardex...", AddressOf Kardex))
+        barraFiltros.Controls.Add(Ui.Boton("Documentos...", AddressOf Documentos))
+        barraFiltros.Controls.Add(Ui.Boton("Imprimir stock...", AddressOf ImprimirStock))
+        barraFiltros.Controls.Add(Ui.Boton("Registro SUNAT 13.1...", AddressOf RegistroSunat))
+        AddHandler cmbAlmacen.SelectedIndexChanged, Sub() Cargar()
+        AddHandler txtBuscar.KeyDown, Sub(s, e) If e.KeyCode = Keys.Enter Then Cargar()
         AddHandler Load, Sub() Ui.Ejecutar(Me,
                                     Sub()
                                         _listaAlmacenes.AddRange(admin.ListarAlmacenes())
                                         For Each a In _listaAlmacenes
-                                            _almacen.Items.Add(New Opcion(Of AlmacenResumen)(a, $"{a.Codigo} - {a.Nombre}"))
+                                            cmbAlmacen.Items.Add(New Opcion(Of AlmacenResumen)(a, $"{a.Codigo} - {a.Nombre}"))
                                         Next
-                                        If _almacen.Items.Count > 0 Then _almacen.SelectedIndex = 0
+                                        If cmbAlmacen.Items.Count > 0 Then cmbAlmacen.SelectedIndex = 0
                                     End Sub)
     End Sub
 
     Private ReadOnly Property Almacen As AlmacenResumen
         Get
-            Return TryCast(_almacen.SelectedItem, Opcion(Of AlmacenResumen))?.Valor
+            Return TryCast(cmbAlmacen.SelectedItem, Opcion(Of AlmacenResumen))?.Valor
         End Get
     End Property
 
     Private ReadOnly Property Saldo As SaldoStockDto
         Get
-            Return Ui.Seleccionado(Of SaldoStockDto)(_saldos)
+            Return Ui.Seleccionado(Of SaldoStockDto)(gridSaldos)
         End Get
     End Property
 
@@ -77,10 +75,10 @@ Partial Public Class FormStock
         If Almacen Is Nothing Then Return
         Ui.Ejecutar(Me,
             Sub()
-                Dim saldos = _stock.ConsultarSaldos(Almacen.Id, _buscar.Text)
-                Ui.Mostrar(_saldos, saldos, "ProductoDescripcion|Producto", "VarianteDescripcion|Presentacion comercial", "CantidadBaseU6|Cantidad",
+                Dim saldos = _stock.ConsultarSaldos(Almacen.Id, txtBuscar.Text)
+                Ui.Mostrar(gridSaldos, saldos, "ProductoDescripcion|Producto", "VarianteDescripcion|Presentacion comercial", "CantidadBaseU6|Cantidad",
                            "Unidad|Unidad", "ValorU6|Valor", "CostoPromedioU6|Costo promedio")
-                _total.Text = $"{saldos.Count} variantes con stock; valor total {Ui.Dinero(saldos.Sum(Function(x) x.ValorU6))}"
+                lblTotal.Text = $"{saldos.Count} variantes con stock; valor total {Ui.Dinero(saldos.Sum(Function(x) x.ValorU6))}"
             End Sub)
     End Sub
 
@@ -149,8 +147,27 @@ Partial Public Class FormStock
             d.Opciones("destino", "Almacen destino", destinos.Select(Function(a) CObj(New Opcion(Of AlmacenResumen)(a, $"{a.Codigo} - {a.Nombre}")))) _
              .Fecha("fecha", "Fecha", Date.Today).Texto("cantidad", $"Cantidad ({s.Unidad})")
             If d.ShowDialog(Me) <> DialogResult.OK Then Return
-            Ui.Ejecutar(Me, Sub() _almacenes.Traspasar(Almacen.Id, d.Elegido(Of Opcion(Of AlmacenResumen))("destino").Valor.Id, d.FechaElegida("fecha").Value,
-                                                       {New LineaSalida With {.VarianteId = s.VarianteId, .CantidadBaseU6 = Ui.LeerU6(d.Valor("cantidad"), "cantidad")}}))
+            If Ui.Ejecutar(Me, Sub() _almacenes.Traspasar(Almacen.Id, d.Elegido(Of Opcion(Of AlmacenResumen))("destino").Valor.Id, d.FechaElegida("fecha").Value,
+                                                       {New LineaSalida With {.VarianteId = s.VarianteId, .CantidadBaseU6 = Ui.LeerU6(d.Valor("cantidad"), "cantidad")}})) Then Ui.Informar(Me, "Traspaso enviado. Queda en transito hasta que el almacen destino lo reciba (boton Recibir traspaso).")
+        End Using
+        Cargar()
+    End Sub
+
+    ''' <summary>Recibe en este almacén un traspaso que venía en tránsito: entra el mismo stock y valor que salió del origen.</summary>
+    Private Sub RecibirTraspaso()
+        If Almacen Is Nothing Then Return
+        Dim enviados As List(Of TraspasoTransitoDto) = Nothing
+        If Not Ui.Ejecutar(Me, Sub() enviados = _almacenes.ListarTransitos(True).Where(Function(t) t.AlmacenDestinoId = Almacen.Id).ToList()) Then Return
+        If enviados.Count = 0 Then Ui.Informar(Me, "No hay traspasos en transito para este almacen.") : Return
+        Using d As New DialogoCampos("Recibir traspaso en " & Almacen.Nombre)
+            d.Opciones("t", "Traspaso enviado", enviados.Select(Function(t) CObj(New Opcion(Of TraspasoTransitoDto)(t,
+                $"{t.Numero} desde {t.AlmacenOrigen}, enviado el {t.FechaEnvio:dd/MM/yyyy} ({Ui.Dinero(t.ValorU6)})")))) _
+             .Fecha("fecha", "Fecha de recepcion", Date.Today)
+            If d.ShowDialog(Me) <> DialogResult.OK Then Return
+            Dim elegido = d.Elegido(Of Opcion(Of TraspasoTransitoDto))("t").Valor
+            Dim fecha = d.FechaElegida("fecha").Value
+            If Not Ui.Ejecutar(Me, Sub() _almacenes.Recibir(elegido.Id, fecha)) Then Return
+            Ui.Informar(Me, $"Traspaso {elegido.Numero} recibido. El stock ya esta en este almacen.")
         End Using
         Cargar()
     End Sub
@@ -169,6 +186,25 @@ Partial Public Class FormStock
                     If d.ShowDialog(Me) <> DialogResult.OK Then Return
                     _almacenes.DevolucionProduccion(d.Elegido(Of Opcion(Of DocumentoStockDto))("salida").Valor.Id, d.FechaElegida("fecha").Value,
                                                     {New LineaSalida With {.VarianteId = s.VarianteId, .CantidadBaseU6 = Ui.LeerU6(d.Valor("cantidad"), "cantidad")}})
+                End Using
+            End Sub)
+        Cargar()
+    End Sub
+
+    ''' <summary>Atiende lo que cocina pidió devolver: sale del stock recién cuando el almacén lo confirma.</summary>
+    Private Sub AtenderDevoluciones()
+        If Almacen Is Nothing Then Return
+        Ui.Ejecutar(Me,
+            Sub()
+                Dim pendientes = _almacenes.ListarDevolucionesPendientes(Almacen.Id)
+                If pendientes.Count = 0 Then Ui.Informar(Me, "No hay devoluciones de cocina pendientes en este almacen.") : Return
+                Using d As New DialogoCampos("Atender devolucion de cocina")
+                    d.Opciones("solicitud", "Solicitud", pendientes.Select(Function(x) CObj(New Opcion(Of SolicitudDevolucionDto)(x,
+                        $"{x.Producto} - {EscalaU6.ADecimal(x.CantidadU6)} de la entrega {x.NumeroEntrega} ({x.Motivo})")))) _
+                     .Fecha("fecha", "Fecha de la devolucion", Date.Today)
+                    If d.ShowDialog(Me) <> DialogResult.OK Then Return
+                    Dim s = d.Elegido(Of Opcion(Of SolicitudDevolucionDto))("solicitud").Valor
+                    _almacenes.AtenderDevolucion(s.Id, d.FechaElegida("fecha").Value)
                 End Using
             End Sub)
         Cargar()

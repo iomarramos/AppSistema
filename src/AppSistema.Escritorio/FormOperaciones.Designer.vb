@@ -12,50 +12,84 @@ Partial Class FormOperaciones
     End Sub
     <System.Diagnostics.DebuggerStepThrough()>
     Private Sub InitializeComponent()
-        Me.tabla = New System.Windows.Forms.TableLayoutPanel()
-        Me.lblTituloDiseno = New System.Windows.Forms.Label()
-        Me.grp1 = New System.Windows.Forms.GroupBox()
-        Me.grp1.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.grp1.Text = "Operaciones / sedes"
-        Me.grp1.Name = "grp1"
-        Me.grp2 = New System.Windows.Forms.GroupBox()
-        Me.grp2.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.grp2.Text = "Zona o región"
-        Me.grp2.Name = "grp2"
-        Me.grp3 = New System.Windows.Forms.GroupBox()
-        Me.grp3.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.grp3.Text = "Almacenes de la operación"
-        Me.grp3.Name = "grp3"
+        Me.lblDescripcion = New System.Windows.Forms.Label()
+        Me.divide = New System.Windows.Forms.SplitContainer()
+        Me.gridOperaciones = New System.Windows.Forms.DataGridView()
+        Me.barraOperaciones = New System.Windows.Forms.FlowLayoutPanel()
+        Me.gridAlmacenes = New System.Windows.Forms.DataGridView()
+        Me.barraAlmacenes = New System.Windows.Forms.FlowLayoutPanel()
+        CType(Me.divide, System.ComponentModel.ISupportInitialize).BeginInit()
+        Me.divide.Panel1.SuspendLayout()
+        Me.divide.Panel2.SuspendLayout()
+        Me.divide.SuspendLayout()
+        CType(Me.gridOperaciones, System.ComponentModel.ISupportInitialize).BeginInit()
+        CType(Me.gridAlmacenes, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.SuspendLayout()
-        Me.tabla.ColumnCount = 1
-        Me.tabla.ColumnStyles.Add(New System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100.0!))
-        Me.tabla.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.tabla.Padding = New System.Windows.Forms.Padding(12)
-        Me.tabla.RowCount = 4
-        Me.tabla.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 48.0!))
-        Me.tabla.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 33.33!))
-        Me.tabla.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 33.33!))
-        Me.tabla.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 33.33!))
-        Me.lblTituloDiseno.AutoSize = True
-        Me.lblTituloDiseno.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.lblTituloDiseno.Font = New System.Drawing.Font("Segoe UI", 14.0!, System.Drawing.FontStyle.Bold)
-        Me.lblTituloDiseno.Text = "Operaciones y almacenes"
-        Me.lblTituloDiseno.TextAlign = System.Drawing.ContentAlignment.MiddleLeft
-        Me.tabla.Controls.Add(Me.lblTituloDiseno, 0, 0)
-        Me.tabla.Controls.Add(Me.grp1, 0, 1)
-        Me.tabla.Controls.Add(Me.grp2, 0, 2)
-        Me.tabla.Controls.Add(Me.grp3, 0, 3)
-        Me.AutoScaleDimensions = New System.Drawing.SizeF(96.0!, 96.0!)
-        Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi
+        '
+        'lblDescripcion
+        '
+        Me.lblDescripcion.Dock = System.Windows.Forms.DockStyle.Top
+        Me.lblDescripcion.Height = 34
+        Me.lblDescripcion.Name = "lblDescripcion"
+        Me.lblDescripcion.Padding = New System.Windows.Forms.Padding(4)
+        Me.lblDescripcion.Text = "Una operacion es una sede o unidad de servicio. Despues de crearla, asigne usuarios con rol en esa operacion (Usuarios y roles) para que puedan entrar a ella."
+        '
+        'divide
+        '
+        Me.divide.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.divide.Name = "divide"
+        Me.divide.Panel1.Controls.Add(Me.gridOperaciones)
+        Me.divide.Panel1.Controls.Add(Me.barraOperaciones)
+        Me.divide.Panel2.Controls.Add(Me.gridAlmacenes)
+        Me.divide.Panel2.Controls.Add(Me.barraAlmacenes)
+        '
+        'gridOperaciones
+        '
+        Me.gridOperaciones.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.gridOperaciones.Name = "gridOperaciones"
+        Me.gridOperaciones.AccessibleName = "Operaciones"
+        '
+        'barraOperaciones
+        '
+        Me.barraOperaciones.AutoSize = True
+        Me.barraOperaciones.Dock = System.Windows.Forms.DockStyle.Top
+        Me.barraOperaciones.Name = "barraOperaciones"
+        '
+        'gridAlmacenes
+        '
+        Me.gridAlmacenes.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.gridAlmacenes.Name = "gridAlmacenes"
+        Me.gridAlmacenes.AccessibleName = "Almacenes"
+        '
+        'barraAlmacenes
+        '
+        Me.barraAlmacenes.AutoSize = True
+        Me.barraAlmacenes.Dock = System.Windows.Forms.DockStyle.Top
+        Me.barraAlmacenes.Name = "barraAlmacenes"
+        '
+        'FormOperaciones
+        '
+        Me.AutoScaleDimensions = New System.Drawing.SizeF(7.0!, 15.0!)
+        Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
         Me.ClientSize = New System.Drawing.Size(1100, 720)
-        Me.Controls.Add(Me.tabla)
+        Me.Controls.Add(Me.divide)
+        Me.Controls.Add(Me.lblDescripcion)
         Me.Name = "FormOperaciones"
         Me.Text = "Operaciones y almacenes"
+        Me.divide.Panel1.ResumeLayout(False)
+        Me.divide.Panel1.PerformLayout()
+        Me.divide.Panel2.ResumeLayout(False)
+        Me.divide.Panel2.PerformLayout()
+        CType(Me.divide, System.ComponentModel.ISupportInitialize).EndInit()
+        Me.divide.ResumeLayout(False)
+        CType(Me.gridOperaciones, System.ComponentModel.ISupportInitialize).EndInit()
+        CType(Me.gridAlmacenes, System.ComponentModel.ISupportInitialize).EndInit()
         Me.ResumeLayout(False)
     End Sub
-    Friend WithEvents tabla As System.Windows.Forms.TableLayoutPanel
-    Friend WithEvents lblTituloDiseno As System.Windows.Forms.Label
-    Friend WithEvents grp1 As System.Windows.Forms.GroupBox
-    Friend WithEvents grp2 As System.Windows.Forms.GroupBox
-    Friend WithEvents grp3 As System.Windows.Forms.GroupBox
+    Friend WithEvents lblDescripcion As System.Windows.Forms.Label
+    Friend WithEvents divide As System.Windows.Forms.SplitContainer
+    Friend WithEvents gridOperaciones As System.Windows.Forms.DataGridView
+    Friend WithEvents barraOperaciones As System.Windows.Forms.FlowLayoutPanel
+    Friend WithEvents gridAlmacenes As System.Windows.Forms.DataGridView
+    Friend WithEvents barraAlmacenes As System.Windows.Forms.FlowLayoutPanel
 End Class

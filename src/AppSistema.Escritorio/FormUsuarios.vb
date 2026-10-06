@@ -10,32 +10,36 @@ Partial Public Class FormUsuarios
 
     Private ReadOnly _servicio As ServicioAdministracion
     Private ReadOnly _sesion As SesionUsuario
-    Private ReadOnly _usuarios As DataGridView = Ui.NuevaGrilla()
-
     Public Sub New()
         InitializeComponent()
+        Ui.Configurar(gridUsuarios)
     End Sub
 
     Public Sub New(cadena As String, sesion As SesionUsuario)
         InitializeComponent()
-        Controls.Clear()
+        Ui.Configurar(gridUsuarios)
         _servicio = New ServicioAdministracion(cadena, sesion)
         _sesion = sesion
         Text = "Usuarios y roles"
-        Controls.Add(_usuarios)
-        Controls.Add(Ui.BarraBotones(Ui.Boton("Nuevo usuario", AddressOf NuevoUsuario), Ui.Boton("Asignar rol", AddressOf AsignarRol),
-                                     Ui.Boton("Quitar rol", AddressOf QuitarRol), Ui.Boton("Desactivar", AddressOf Desactivar),
-                                     Ui.Boton("Roles y permisos", AddressOf VerRoles), Ui.Boton("Rol propio...", AddressOf EditarRol),
-                                     Ui.Boton("Accesos por modulo", AddressOf VerAccesos),
-                                     Ui.Boton("Asignaciones y alcance", AddressOf VerAsignaciones),
-                                     Ui.BotonSi(sesion.EsDueno, "Alcance...", AddressOf CambiarAlcance),
-                                     Ui.BotonSi(sesion.EsDueno, "Dar rango de dueno", Sub() Dueno(True)),
-                                     Ui.BotonSi(sesion.EsDueno, "Quitar rango de dueno", Sub() Dueno(False))))
+        barraAcciones.Controls.Add(Ui.Boton("Nuevo usuario", AddressOf NuevoUsuario))
+        barraAcciones.Controls.Add(Ui.Boton("Asignar rol", AddressOf AsignarRol))
+        barraAcciones.Controls.Add(Ui.Boton("Quitar rol", AddressOf QuitarRol))
+        barraAcciones.Controls.Add(Ui.Boton("Desactivar", AddressOf Desactivar))
+        barraAcciones.Controls.Add(Ui.Boton("Editar datos...", AddressOf EditarDatos))
+        barraAcciones.Controls.Add(Ui.Boton("Roles y permisos", AddressOf VerRoles))
+        barraAcciones.Controls.Add(Ui.Boton("Rol propio...", AddressOf EditarRol))
+        barraAcciones.Controls.Add(Ui.Boton("Accesos por modulo", AddressOf VerAccesos))
+        barraAcciones.Controls.Add(Ui.BotonSi(sesion.Tiene(Permisos.UsuariosAdministrar), "Reiniciar clave...", AddressOf ReiniciarClave))
+        barraAcciones.Controls.Add(Ui.Boton("Asignaciones y alcance", AddressOf VerAsignaciones))
+        barraAcciones.Controls.Add(Ui.BotonSi(sesion.EsDueno, "Alcance...", AddressOf CambiarAlcance))
+        barraAcciones.Controls.Add(Ui.BotonSi(sesion.EsDueno, "Dar rango de dueno", Sub() Dueno(True)))
+        barraAcciones.Controls.Add(Ui.BotonSi(sesion.EsDueno, "Quitar rango de dueno", Sub() Dueno(False)))
+        AddHandler gridUsuarios.SelectionChanged, Sub() MostrarDetalle()
         AddHandler Load, Sub() Cargar()
     End Sub
 
     Private Sub Cargar()
-        Ui.Ejecutar(Me, Sub() Ui.Mostrar(_usuarios, _servicio.ListarUsuarios(), "Login|Usuario", "Nombre|Nombre", "EsDueno|Dueno del sistema", "Roles|Operacion:rol", "Activo|Activo"))
+        Ui.Ejecutar(Me, Sub() Ui.Mostrar(gridUsuarios, _servicio.ListarUsuarios(), "Login|Usuario", "Nombre|Nombre", "EsDueno|Dueno del sistema", "Roles|Operacion:rol", "Activo|Activo"))
     End Sub
 
     ''' <summary>Roles de la empresa (base y propios) leídos de la base.</summary>
@@ -78,7 +82,7 @@ Partial Public Class FormUsuarios
 
     ''' <summary>Solo el superusuario amplía el alcance de una asignación (por zona o a todas las operaciones).</summary>
     Private Sub CambiarAlcance()
-        Dim u = Ui.Seleccionado(Of UsuarioResumen)(_usuarios)
+        Dim u = Ui.Seleccionado(Of UsuarioResumen)(gridUsuarios)
         If u Is Nothing Then Return
         Using d As New DialogoCampos($"Alcance de un rol de {u.Login}")
             Dim ops = OpcionesOperaciones().ToList()
@@ -93,7 +97,7 @@ Partial Public Class FormUsuarios
     End Sub
 
     Private Sub Dueno(darRango As Boolean)
-        Dim u = Ui.Seleccionado(Of UsuarioResumen)(_usuarios)
+        Dim u = Ui.Seleccionado(Of UsuarioResumen)(gridUsuarios)
         If u Is Nothing Then Return
         Dim texto = If(darRango, $"Dar a {u.Login} el rango de DUENO DEL SISTEMA? Tendra todos los permisos en todas las operaciones.",
                                  $"Quitar a {u.Login} el rango de dueno del sistema? Quedara solo con sus roles.")
@@ -116,7 +120,7 @@ Partial Public Class FormUsuarios
     End Sub
 
     Private Sub QuitarRol()
-        Dim u = Ui.Seleccionado(Of UsuarioResumen)(_usuarios)
+        Dim u = Ui.Seleccionado(Of UsuarioResumen)(gridUsuarios)
         If u Is Nothing Then Return
         Using d As New DialogoCampos($"Quitar rol a {u.Login} en {_sesion.Operacion}")
             d.Opciones("rol", "Rol", OpcionesRoles())
@@ -139,7 +143,7 @@ Partial Public Class FormUsuarios
     End Sub
 
     Private Sub AsignarRol()
-        Dim u = Ui.Seleccionado(Of UsuarioResumen)(_usuarios)
+        Dim u = Ui.Seleccionado(Of UsuarioResumen)(gridUsuarios)
         If u Is Nothing Then Return
         Using d As New DialogoCampos($"Asignar rol a {u.Login}")
             Dim ops = OpcionesOperaciones().ToList()
@@ -151,8 +155,46 @@ Partial Public Class FormUsuarios
         Cargar()
     End Sub
 
+    ''' <summary>
+    ''' Reinicia la clave del usuario elegido. La nueva clave cumple la política; el cambio queda en la auditoría.
+    ''' </summary>
+    Private Sub ReiniciarClave()
+        Dim u = Ui.Seleccionado(Of UsuarioResumen)(gridUsuarios)
+        If u Is Nothing Then Return
+        Using d As New DialogoCampos($"Nueva clave de {u.Login}")
+            d.Texto("clave", "Nueva clave (minimo 10 caracteres, letras y numeros)")
+            If d.ShowDialog(Me) <> DialogResult.OK Then Return
+            Dim clave = d.Valor("clave")
+            If Not Ui.Ejecutar(Me, Sub() _servicio.ReiniciarClave(u.Id, clave)) Then Return
+            Ui.Informar(Me, $"Clave de {u.Login} reiniciada. Queda registrado en la auditoria.")
+        End Using
+    End Sub
+
+    ''' <summary>Detalle del usuario elegido: login, nombre, roles y estado.</summary>
+    Private Sub MostrarDetalle()
+        Dim u = Ui.Seleccionado(Of UsuarioResumen)(gridUsuarios)
+        lblDetalle.Text = If(u Is Nothing, "Elija un usuario.",
+                           $"Login: {u.Login}   Nombre: {u.Nombre}   Estado: {If(u.Activo, "activo", "desactivado")}" & vbCrLf &
+                           $"Roles: {If(String.IsNullOrWhiteSpace(u.Roles), "sin roles", u.Roles)}" &
+                           If(u.EsDueno, "   Dueno del sistema", ""))
+    End Sub
+
+    ''' <summary>Nombre y estado del usuario elegido. Desmarcar "Activo" lo desactiva; marcarlo de nuevo lo reactiva.</summary>
+    Private Sub EditarDatos()
+        Dim u = Ui.Seleccionado(Of UsuarioResumen)(gridUsuarios)
+        If u Is Nothing Then Ui.Informar(Me, "Elija un usuario.") : Return
+        Using d As New DialogoCampos($"Datos de {u.Login}")
+            d.Texto("nombre", "Nombre completo", u.Nombre).Marca("activo", "Activo (desmarcado = no puede iniciar sesion)", u.Activo)
+            If d.ShowDialog(Me) <> DialogResult.OK Then Return
+            Dim nombre = d.Valor("nombre")
+            Dim activo = d.Marcado("activo")
+            If Not Ui.Ejecutar(Me, Sub() _servicio.EditarUsuario(u.Id, nombre, activo)) Then Return
+        End Using
+        Cargar()
+    End Sub
+
     Private Sub Desactivar()
-        Dim u = Ui.Seleccionado(Of UsuarioResumen)(_usuarios)
+        Dim u = Ui.Seleccionado(Of UsuarioResumen)(gridUsuarios)
         If u Is Nothing OrElse Not Ui.Confirmar(Me, $"Desactivar al usuario {u.Login}? No podra iniciar sesion.") Then Return
         Ui.Ejecutar(Me, Sub() _servicio.DesactivarUsuario(u.Id))
         Cargar()

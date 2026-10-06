@@ -8,7 +8,7 @@ Imports System.Windows.Forms
 ''' <list type="bullet">
 ''' <item>Segoe UI 9,75 pt para el texto y seminegrita para títulos y encabezados de columna;</item>
 ''' <item>superficies claras, un solo color de acento y bordes suaves;</item>
-''' <item>grillas sin cabecera de fila, filas de 28 px alternadas, números a la derecha y estados como etiquetas de color;</item>
+''' <item>grillas sin cabecera de fila, filas de 32 px alternadas, números a la derecha y estados como etiquetas de color;</item>
 ''' <item>botones planos; los que confirman (aprobar, autorizar, entregar, cerrar) en el color de acento y los que anulan en rojo;</item>
 ''' <item>escala por DPI: los tamaños fijos en píxeles se ajustan a 125 %, 150 %… (AutoScaleMode.Dpi).</item>
 ''' </list>
@@ -23,8 +23,8 @@ Public Module Tema
     Public ReadOnly Texto As Color = Color.FromArgb(36, 36, 36)           ' #242424
     Public ReadOnly TextoSecundario As Color = Color.FromArgb(97, 97, 97) ' #616161
     Public ReadOnly Fondo As Color = Color.White
-    Public ReadOnly Superficie As Color = Color.FromArgb(250, 250, 250)   ' barras de acciones
-    Public ReadOnly SuperficieFuerte As Color = Color.FromArgb(240, 240, 240)
+    Public ReadOnly Superficie As Color = Color.FromArgb(246, 248, 251)   ' barras de acciones
+    Public ReadOnly SuperficieFuerte As Color = Color.FromArgb(234, 239, 245)
     Public ReadOnly Borde As Color = Color.FromArgb(224, 224, 224)
     Public ReadOnly FilaAlterna As Color = Color.FromArgb(248, 249, 251)
     Public ReadOnly Seleccion As Color = Color.FromArgb(207, 228, 250)    ' #CFE4FA
@@ -93,13 +93,22 @@ Public Module Tema
         Dim titulo = If(f.Text, "")
         Dim guion = titulo.LastIndexOf(" - ", StringComparison.Ordinal)
         If guion > 0 Then titulo = titulo.Substring(0, guion)
-        Dim franja As New Panel With {.Dock = DockStyle.Top, .Height = 44, .BackColor = Fondo, .Padding = New Padding(14, 0, 14, 0)}
-        Dim nombre As New Label With {.Text = titulo, .Dock = DockStyle.Left, .AutoSize = True, .Font = FuenteTitulo, .ForeColor = Texto,
-                                      .TextAlign = ContentAlignment.MiddleLeft, .Padding = New Padding(0, 10, 0, 0)}
-        Dim donde As New Label With {.Text = operacion, .Dock = DockStyle.Right, .AutoSize = True, .ForeColor = TextoSecundario,
-                                     .TextAlign = ContentAlignment.MiddleRight, .Padding = New Padding(0, 14, 0, 0)}
-        Dim linea As New Panel With {.Dock = DockStyle.Bottom, .Height = 2, .BackColor = Acento}
-        franja.Controls.Add(nombre) : franja.Controls.Add(donde) : franja.Controls.Add(linea)
+        Dim franja As New TableLayoutPanel With {.Name = "barraContexto", .Dock = DockStyle.Top, .Height = 52,
+            .BackColor = Fondo, .Padding = New Padding(14, 0, 14, 0), .ColumnCount = 2, .RowCount = 1}
+        franja.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 65))
+        franja.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 35))
+        Dim nombre As New Label With {.Name = "lblPantalla", .Text = titulo, .Dock = DockStyle.Fill, .AutoSize = False,
+            .AutoEllipsis = True, .Font = FuenteTitulo, .ForeColor = Texto, .TextAlign = ContentAlignment.MiddleLeft}
+        Dim donde As New Label With {.Name = "lblOperacion", .Text = operacion, .Dock = DockStyle.Fill, .AutoSize = False,
+            .AutoEllipsis = True, .ForeColor = TextoSecundario, .TextAlign = ContentAlignment.MiddleRight}
+        Dim linea As New Panel With {.Dock = DockStyle.Fill, .Height = 2, .Margin = Padding.Empty, .BackColor = Acento}
+        franja.Controls.Add(nombre, 0, 0) : franja.Controls.Add(donde, 1, 0)
+        ' Una fila propia evita que la línea invada el título o la operación.
+        franja.Controls.Add(linea, 0, 1)
+        franja.SetColumnSpan(linea, 2)
+        franja.RowCount = 2
+        franja.RowStyles.Add(New RowStyle(SizeType.Percent, 100))
+        franja.RowStyles.Add(New RowStyle(SizeType.Absolute, 2))
         f.Controls.Add(franja)   ' agregada al final: se acopla primero y queda arriba de todo
         Aplicar(f)
     End Sub
@@ -128,19 +137,43 @@ Public Module Tema
             Select Case True
                 Case TypeOf c Is DataGridView   ' ya tiene el estilo desde Ui.NuevaGrilla
                 Case TypeOf c Is Button : Boton(DirectCast(c, Button))
-                Case TypeOf c Is FlowLayoutPanel AndAlso c.Dock = DockStyle.Top
+                Case TypeOf c Is FlowLayoutPanel AndAlso (c.Dock = DockStyle.Top OrElse c.Dock = DockStyle.Bottom)
                     c.BackColor = Superficie
                     c.Padding = New Padding(8, 6, 8, 6)
+                    DirectCast(c, FlowLayoutPanel).WrapContents = True
+                Case TypeOf c Is MenuStrip
+                    Dim menu = DirectCast(c, MenuStrip)
+                    menu.BackColor = Fondo
+                    menu.Padding = New Padding(8, 6, 8, 6)
+                    EstiloMenu(menu.Items)
+                Case TypeOf c Is StatusStrip
+                    c.BackColor = SuperficieFuerte
+                    c.Padding = New Padding(8, 4, 8, 4)
+                Case TypeOf c Is MdiClient
+                    c.BackColor = Superficie
+                Case TypeOf c Is GroupBox
+                    c.ForeColor = Texto
+                    c.Padding = New Padding(10)
+                Case TypeOf c Is TabControl
+                    DirectCast(c, TabControl).Padding = New Point(14, 7)
+                Case TypeOf c Is ComboBox
+                    Dim combo = DirectCast(c, ComboBox)
+                    combo.IntegralHeight = False
+                    combo.DropDownHeight = 240
+                Case TypeOf c Is CheckBox OrElse TypeOf c Is RadioButton
+                    c.Margin = New Padding(6)
                 Case TypeOf c Is Label AndAlso Not c.AutoSize AndAlso c.Dock = DockStyle.Top
                     ' Franja de ayuda de la pantalla.
                     c.BackColor = AvisoFondo
                     c.ForeColor = AvisoTexto
                     c.Padding = New Padding(12, 6, 12, 6)
+                    EtiquetaAdaptable(DirectCast(c, Label))
                 Case TypeOf c Is Label AndAlso Not c.AutoSize AndAlso c.Dock = DockStyle.Bottom
                     ' Totales y resúmenes al pie, como en el SGP.
                     c.BackColor = SuperficieFuerte
                     c.Font = FuenteSemibold
                     c.Padding = New Padding(12, 6, 12, 6)
+                    EtiquetaAdaptable(DirectCast(c, Label))
                 Case TypeOf c Is SplitContainer
                     Dim s = DirectCast(c, SplitContainer)
                     s.BackColor = Borde
@@ -154,6 +187,30 @@ Public Module Tema
         Next
     End Sub
 
+    Private Sub EtiquetaAdaptable(etiqueta As Label)
+        Dim ajustar As Action = Sub()
+                                    Dim ancho = etiqueta.ClientSize.Width - etiqueta.Padding.Horizontal
+                                    If ancho <= 0 Then Return
+                                    Dim medida = TextRenderer.MeasureText(etiqueta.Text, etiqueta.Font,
+                                        New Size(ancho, Integer.MaxValue), TextFormatFlags.WordBreak Or TextFormatFlags.NoPrefix)
+                                    Dim alto = Math.Max(CInt(32 * etiqueta.DeviceDpi / 96.0), medida.Height + etiqueta.Padding.Vertical)
+                                    If etiqueta.Height <> alto Then etiqueta.Height = alto
+                                End Sub
+        AddHandler etiqueta.SizeChanged, Sub() ajustar()
+        AddHandler etiqueta.TextChanged, Sub() ajustar()
+        ajustar()
+    End Sub
+
+    Private Sub EstiloMenu(items As ToolStripItemCollection)
+        For Each item As ToolStripItem In items
+            item.ForeColor = Texto
+            Dim opcion = TryCast(item, ToolStripMenuItem)
+            If opcion Is Nothing Then Continue For
+            opcion.Padding = New Padding(8, 5, 8, 5)
+            EstiloMenu(opcion.DropDownItems)
+        Next
+    End Sub
+
     Private Sub Boton(b As Button)
         b.FlatStyle = FlatStyle.Flat
         b.FlatAppearance.BorderColor = Color.FromArgb(209, 209, 209)
@@ -162,10 +219,10 @@ Public Module Tema
         b.BackColor = Fondo
         b.ForeColor = Texto
         b.Padding = New Padding(8, 2, 8, 2)
-        b.MinimumSize = New Size(0, 30)
+        b.MinimumSize = New Size(b.MinimumSize.Width, Math.Max(b.MinimumSize.Height, 34))
         b.Cursor = Cursors.Hand
         Dim primera = b.Text.Split(" "c)(0).TrimEnd("."c)
-        If {"Aprobar", "Autorizar", "Entregar", "Cerrar", "Guardar", "Aceptar", "Importar", "Ingresar"}.Contains(primera) AndAlso
+        If {"Aprobar", "Autorizar", "Entregar", "Cerrar", "Guardar", "Aceptar", "Importar", "Ingresar", "Entrar"}.Contains(primera) AndAlso
            Not b.Text.StartsWith("Cerrar vigencia", StringComparison.Ordinal) Then
             ' Acción que confirma: color de acento, como el botón principal de Fluent.
             b.BackColor = Acento
@@ -186,8 +243,8 @@ Public Module Tema
         g.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal
         g.EnableHeadersVisualStyles = False
         g.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None
-        g.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing
-        g.ColumnHeadersHeight = 34
+        g.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize
+        g.ColumnHeadersHeight = 38
         With g.ColumnHeadersDefaultCellStyle
             .BackColor = SuperficieFuerte
             .ForeColor = Texto
@@ -195,7 +252,7 @@ Public Module Tema
             .SelectionBackColor = SuperficieFuerte
             .SelectionForeColor = Texto
             .Padding = New Padding(6, 0, 6, 0)
-            .WrapMode = DataGridViewTriState.False
+            .WrapMode = DataGridViewTriState.True
         End With
         With g.DefaultCellStyle
             .Font = Fuente
@@ -206,10 +263,18 @@ Public Module Tema
             .Padding = New Padding(6, 0, 6, 0)
         End With
         g.AlternatingRowsDefaultCellStyle.BackColor = FilaAlterna
-        g.RowTemplate.Height = 28
+        g.RowTemplate.Height = 32
         g.RowHeadersVisible = False
+        g.ShowCellToolTips = True
         AddHandler g.DataBindingComplete, Sub() AlinearNumeros(g)
         AddHandler g.CellPainting, Sub(s, e) PintarEstado(g, e)
+        AddHandler g.Paint, Sub(s, e)
+                                If g.Rows.Count > 0 Then Return
+                                Dim area As New Rectangle(16, g.ColumnHeadersHeight + 24,
+                                    Math.Max(0, g.ClientSize.Width - 32), Math.Max(0, g.ClientSize.Height - g.ColumnHeadersHeight - 24))
+                                TextRenderer.DrawText(e.Graphics, "Sin registros para mostrar. Revise los filtros o seleccione un elemento en la lista anterior.",
+                                    Fuente, area, TextoSecundario, TextFormatFlags.HorizontalCenter Or TextFormatFlags.WordBreak)
+                            End Sub
         AlinearNumeros(g)
     End Sub
 
@@ -232,6 +297,7 @@ Public Module Tema
         Dim texto = If(e.FormattedValue, "").ToString()
         Dim t = Tono(texto)
         If t = TonoEstado.Ninguno Then Return
+        If e.CellBounds.Width < 28 OrElse e.CellBounds.Height < 20 Then Return
         e.Paint(e.CellBounds, DataGridViewPaintParts.Background Or DataGridViewPaintParts.Border Or DataGridViewPaintParts.SelectionBackground)
         Dim colores = ColoresEstado(t)
         Dim medida = TextRenderer.MeasureText(texto, Fuente)
@@ -242,6 +308,8 @@ Public Module Tema
             e.Graphics.FillPath(pincel, camino)
         End Using
         TextRenderer.DrawText(e.Graphics, texto, Fuente, r, colores.Texto, TextFormatFlags.HorizontalCenter Or TextFormatFlags.VerticalCenter Or TextFormatFlags.EndEllipsis)
+        ' Mantener visible el foco de teclado incluso en las celdas pintadas a mano.
+        e.Paint(e.CellBounds, DataGridViewPaintParts.Focus)
         e.Handled = True
     End Sub
 

@@ -1,5 +1,6 @@
 Imports System.Windows.Forms
 Imports AppSistema.Datos
+Imports AppSistema.Dominio.Numerico
 Imports AppSistema.Dominio.Seguridad
 
 ''' <summary>
@@ -14,18 +15,19 @@ Partial Public Class FormProduccion
     Private ReadOnly _catalogo As ServicioCatalogo
     Private ReadOnly _reportes As ServicioReportes
     Private ReadOnly _almacenes As New List(Of AlmacenResumen)
-    Private ReadOnly _fecha As New DateTimePicker With {.Format = DateTimePickerFormat.Short, .Width = 110}
-    Private ReadOnly _gMinutas As DataGridView = Ui.NuevaGrilla()
-    Private ReadOnly _gRequerimientos As DataGridView = Ui.NuevaGrilla()
-    Private ReadOnly _gLineas As DataGridView = Ui.NuevaGrilla()
 
     Public Sub New()
         InitializeComponent()
+        Ui.Configurar(gridMinutas)
+        Ui.Configurar(gridRequerimientos)
+        Ui.Configurar(gridLineas)
     End Sub
 
     Public Sub New(cadena As String, sesion As SesionUsuario)
         InitializeComponent()
-        Controls.Clear()
+        Ui.Configurar(gridMinutas)
+        Ui.Configurar(gridRequerimientos)
+        Ui.Configurar(gridLineas)
         _produccion = New ServicioProduccion(cadena, sesion)
         _comparativo = New ServicioComparativo(cadena, sesion)
         _minutas = New ServicioMinutas(cadena, sesion)
@@ -34,31 +36,24 @@ Partial Public Class FormProduccion
         Dim admin As New ServicioAdministracion(cadena, sesion)
         Text = "Produccion - " & sesion.Operacion.Nombre
         Dim cocina = sesion.Tiene(Permisos.ProduccionEditar)
-        Dim barra = Ui.BarraBotones(New Label With {.Text = "Fecha", .AutoSize = True, .Margin = New Padding(3, 9, 3, 3)}, _fecha,
-                                    Ui.Boton("Ver", AddressOf CargarMinutas), Ui.BotonSi(cocina, "Calcular requerimiento", AddressOf Calcular),
-                                    Ui.BotonSi(cocina, "Requerimiento adicional...", AddressOf Adicional), Ui.BotonSi(cocina, "Cambiar cantidad...", AddressOf CambiarCantidad),
-                                    Ui.BotonSi(cocina, "Anular requerimiento", AddressOf AnularRequerimiento),
-                                    Ui.BotonSi(sesion.Tiene(Permisos.StockContabilizar), "Entregar (almacen)", AddressOf Atender),
-                                    Ui.BotonSi(cocina, "Registrar produccion...", AddressOf RegistrarProduccion), Ui.BotonSi(cocina, "Merma...", AddressOf Merma),
-                                    Ui.Boton("Imprimir requerimiento...", AddressOf ImprimirRequerimiento))
-        Dim barraReal = Ui.BarraBotones(New Label With {.Text = "Real del servicio:", .AutoSize = True, .Margin = New Padding(3, 9, 3, 3)},
-                                        Ui.BotonSi(cocina, "Venta real...", AddressOf VentaReal), Ui.BotonSi(cocina, "Consumo por componente...", AddressOf ConsumoComponente),
-                                        Ui.Boton("Teorico vs real", Sub() Comparar(False)), Ui.Boton("Teorico vs real del mes", Sub() Comparar(True)))
+        barraFecha.Controls.Add(Ui.Boton("Ver", AddressOf CargarMinutas))
+        barraFecha.Controls.Add(Ui.BotonSi(cocina, "Calcular requerimiento", AddressOf Calcular))
+        barraFecha.Controls.Add(Ui.BotonSi(cocina, "Requerimiento adicional...", AddressOf Adicional))
+        barraFecha.Controls.Add(Ui.BotonSi(cocina, "Cambiar cantidad...", AddressOf CambiarCantidad))
+        barraFecha.Controls.Add(Ui.BotonSi(cocina, "Anular requerimiento", AddressOf AnularRequerimiento))
+        barraFecha.Controls.Add(Ui.BotonSi(sesion.Tiene(Permisos.AdicionalAprobar), "Aprobar adicional", AddressOf AprobarAdicional))
+        barraFecha.Controls.Add(Ui.BotonSi(sesion.Tiene(Permisos.StockContabilizar), "Entregar (almacen)", AddressOf Atender))
+        barraFecha.Controls.Add(Ui.BotonSi(cocina, "Registrar produccion...", AddressOf RegistrarProduccion))
+        barraFecha.Controls.Add(Ui.BotonSi(cocina, "Merma...", AddressOf Merma))
+        barraFecha.Controls.Add(Ui.BotonSi(cocina, "Pedir devolucion a almacen...", AddressOf SolicitarDevolucion))
+        barraFecha.Controls.Add(Ui.Boton("Imprimir requerimiento...", AddressOf ImprimirRequerimiento))
+        barraReal.Controls.Add(Ui.BotonSi(cocina, "Venta real...", AddressOf VentaReal))
+        barraReal.Controls.Add(Ui.BotonSi(cocina, "Consumo por componente...", AddressOf ConsumoComponente))
+        barraReal.Controls.Add(Ui.Boton("Teorico vs real", Sub() Comparar(False)))
+        barraReal.Controls.Add(Ui.Boton("Teorico vs real del mes", Sub() Comparar(True)))
 
-        Dim abajo As New SplitContainer With {.Dock = DockStyle.Fill}
-        abajo.Panel1.Controls.Add(_gRequerimientos)
-        abajo.Panel2.Controls.Add(_gLineas)
-        Dim division As New SplitContainer With {.Dock = DockStyle.Fill, .Orientation = Orientation.Horizontal}
-        division.Panel1.Controls.Add(_gMinutas)
-        division.Panel2.Controls.Add(abajo)
-        Controls.Add(division)
-        Controls.Add(New Label With {.Dock = DockStyle.Top, .Height = 34, .Padding = New Padding(4),
-            .Text = "El almacen entrega presentaciones completas y lo entregado se da por consumido (D12). El costo real es del servicio: entregas menos devoluciones."})
-        Controls.Add(barraReal)
-        Controls.Add(barra)
-
-        AddHandler _gMinutas.SelectionChanged, Sub() CargarRequerimientos()
-        AddHandler _gRequerimientos.SelectionChanged, Sub() CargarLineas()
+        AddHandler gridMinutas.SelectionChanged, Sub() CargarRequerimientos()
+        AddHandler gridRequerimientos.SelectionChanged, Sub() CargarLineas()
         AddHandler Load, Sub() Ui.Ejecutar(Me, Sub()
                                                    _almacenes.AddRange(admin.ListarAlmacenes())
                                                    CargarMinutas()
@@ -67,13 +62,13 @@ Partial Public Class FormProduccion
 
     Private ReadOnly Property Minuta As MinutaDto
         Get
-            Return Ui.Seleccionado(Of MinutaDto)(_gMinutas)
+            Return Ui.Seleccionado(Of MinutaDto)(gridMinutas)
         End Get
     End Property
 
     Private ReadOnly Property Requerimiento As RequerimientoDto
         Get
-            Return Ui.Seleccionado(Of RequerimientoDto)(_gRequerimientos)
+            Return Ui.Seleccionado(Of RequerimientoDto)(gridRequerimientos)
         End Get
     End Property
 
@@ -84,23 +79,35 @@ Partial Public Class FormProduccion
     End Sub
 
     Private Sub CargarMinutas()
-        Ui.Ejecutar(Me, Sub() Ui.Mostrar(_gMinutas, _minutas.ListarMinutas(_fecha.Value, _fecha.Value), "Fecha|Fecha", "ServicioNombre|Servicio",
+        Ui.Ejecutar(Me, Sub() Ui.Mostrar(gridMinutas, _minutas.ListarMinutas(dtFecha.Value, dtFecha.Value), "Fecha|Fecha", "ServicioNombre|Servicio",
                                          "RegimenNombre|Regimen", "Comensales|Comensales", "Estado|Estado",
                                          "VentaPrevistaU6|Venta teorica", "PrecioVentaComensalU6|Precio por comensal"))
     End Sub
 
     Private Sub CargarRequerimientos()
         Dim m = Minuta
-        If m Is Nothing Then _gRequerimientos.DataSource = Nothing : Return
-        Ui.Ejecutar(Me, Sub() Ui.Mostrar(_gRequerimientos, _produccion.ListarRequerimientos(m.Id), "Numero|Requerimiento", "Tipo|Tipo", "Estado|Estado"))
+        If m Is Nothing Then gridRequerimientos.DataSource = Nothing : Return
+        Ui.Ejecutar(Me, Sub() Ui.Mostrar(gridRequerimientos, _produccion.ListarRequerimientos(m.Id), "Numero|Requerimiento", "Tipo|Tipo", "Estado|Estado"))
     End Sub
 
     Private Sub CargarLineas()
         Dim r = Requerimiento
-        If r Is Nothing Then _gLineas.DataSource = Nothing : Return
-        Ui.Ejecutar(Me, Sub() Ui.Mostrar(_gLineas, _produccion.ListarLineas(r.Id), "ProductoDescripcion|Producto", "PrevistoU6|Previsto",
+        If r Is Nothing Then gridLineas.DataSource = Nothing : Return
+        Ui.Ejecutar(Me, Sub() Ui.Mostrar(gridLineas, _produccion.ListarLineas(r.Id), "ProductoDescripcion|Producto", "PrevistoU6|Previsto",
                                          "SolicitadoU6|Solicitado", "Unidad|Unidad"))
     End Sub
+
+    ''' <summary>Motivo obligatorio del adicional (Nothing si el usuario cancela o lo deja vacío).</summary>
+    Private Function PedirMotivo() As String
+        Using d As New DialogoCampos("Requerimiento adicional")
+            d.Texto("motivo", "Motivo del adicional (obligatorio)")
+            If d.ShowDialog(Me) <> DialogResult.OK Then Return Nothing
+            If String.IsNullOrWhiteSpace(d.Valor("motivo")) Then
+                Ui.Informar(Me, "El requerimiento adicional necesita un motivo.") : Return Nothing
+            End If
+            Return d.Valor("motivo").Trim()
+        End Using
+    End Function
 
     Private Function ElegirAlmacen() As AlmacenResumen
         If _almacenes.Count = 1 Then Return _almacenes(0)
@@ -125,7 +132,9 @@ Partial Public Class FormProduccion
         If m Is Nothing Then Ui.Informar(Me, "Seleccione una minuta.") : Return
         Dim a = ElegirAlmacen()
         If a Is Nothing Then Return
-        Ui.Ejecutar(Me, Sub() _produccion.RequerimientoAdicional(m.Id, a.Id))
+        Dim motivo = PedirMotivo()
+        If motivo Is Nothing Then Return
+        Ui.Ejecutar(Me, Sub() _produccion.RequerimientoAdicional(m.Id, a.Id, motivo))
         CargarRequerimientos()
     End Sub
 
@@ -150,9 +159,37 @@ Partial Public Class FormProduccion
         CargarLineas()
     End Sub
 
+    Private Sub AprobarAdicional()
+        Dim r = Requerimiento
+        If r Is Nothing OrElse r.Tipo <> "adicional" OrElse r.Estado <> "borrador" Then Ui.Informar(Me, "Seleccione un requerimiento adicional en borrador.") : Return
+        Ui.Ejecutar(Me, Sub() _produccion.AprobarAdicional(r.Id))
+        CargarRequerimientos()
+    End Sub
+
+    ''' <summary>La cocina pide devolver parte de una entrega. No mueve stock: el almacén lo atiende.</summary>
+    Private Sub SolicitarDevolucion()
+        Dim m = Minuta
+        If m Is Nothing Then Ui.Informar(Me, "Seleccione una minuta.") : Return
+        Ui.Ejecutar(Me,
+            Sub()
+                Dim entregas = _produccion.ListarEntregasDevolubles(m.Id)
+                If entregas.Count = 0 Then Ui.Informar(Me, "No hay entregas de esta minuta que se puedan devolver.") : Return
+                Using d As New DialogoCampos("Pedir devolucion a almacen")
+                    d.Opciones("entrega", "Producto entregado", entregas.Select(Function(x) CObj(New Opcion(Of EntregaDevolubleDto)(x,
+                        $"{x.Producto} - entrega {x.Numero} (se puede devolver {EscalaU6.ADecimal(x.DisponibleU6)})")))) _
+                     .Texto("cantidad", "Cantidad a devolver (unidad base)").Texto("motivo", "Motivo")
+                    If d.ShowDialog(Me) <> DialogResult.OK Then Return
+                    Dim e = d.Elegido(Of Opcion(Of EntregaDevolubleDto))("entrega").Valor
+                    _produccion.SolicitarDevolucion(e.DocumentoId, e.VarianteId, Ui.LeerU6(d.Valor("cantidad"), "cantidad"), d.Valor("motivo"))
+                    Ui.Informar(Me, "Solicitud enviada. El almacen la atiende y recien ahi sale el stock.")
+                End Using
+            End Sub)
+    End Sub
+
     Private Sub Atender()
         Dim r = Requerimiento
-        If r Is Nothing OrElse r.Estado <> "borrador" Then Ui.Informar(Me, "Seleccione un requerimiento en borrador.") : Return
+        Dim listo = r IsNot Nothing AndAlso (r.Estado = "aprobado" OrElse (r.Estado = "borrador" AndAlso r.Tipo <> "adicional"))
+        If Not listo Then Ui.Informar(Me, "Seleccione un requerimiento listo para entregar: calculado en borrador, o adicional ya aprobado.") : Return
         If Not Ui.Confirmar(Me, $"Entregar el requerimiento {r.Numero}? Saldran presentaciones completas del almacen.") Then Return
         Ui.Ejecutar(Me,
             Sub()
@@ -244,9 +281,10 @@ Partial Public Class FormProduccion
         If m Is Nothing Then Ui.Informar(Me, "Seleccione una minuta.") : Return
         Dim c As ComparativoDto = Nothing
         If Not Ui.Ejecutar(Me, Sub() c = If(delMes, _comparativo.ComparativoMes(m.OperacionServicioId, m.Fecha.Year, m.Fecha.Month), _comparativo.Comparativo(m.Id))) Then Return
-        Using f As New FormComparativo(c)
-            Tema.Aplicar(f)
-            f.ShowDialog(Me)
-        End Using
+        ' Ventana no modal: la comparación queda abierta junto a la producción (como las demás consultas) y se libera al cerrarla.
+        Dim f As New FormComparativo(c)
+        Tema.Aplicar(f)
+        AddHandler f.FormClosed, Sub() f.Dispose()
+        f.Show(Me)
     End Sub
 End Class

@@ -9,49 +9,46 @@ Imports AppSistema.Dominio.Seguridad
 Partial Public Class FormContratos
 
     Private ReadOnly _servicio As ServicioContratos
-    Private ReadOnly _contratos As DataGridView = Ui.NuevaGrilla()
-    Private ReadOnly _lineas As DataGridView = Ui.NuevaGrilla()
 
     Public Sub New()
         InitializeComponent()
+        Ui.Configurar(gridContratos)
+        Ui.Configurar(gridLineas)
     End Sub
 
     Public Sub New(cadena As String, sesion As SesionUsuario)
         InitializeComponent()
-        Controls.Clear()
+        Ui.Configurar(gridContratos)
+        Ui.Configurar(gridLineas)
         _servicio = New ServicioContratos(cadena, sesion)
         Text = "Contratos - " & sesion.Operacion.Nombre
         Dim edita = sesion.Tiene(Permisos.ContratosEditar)
-        Dim barra = Ui.BarraBotones(Ui.Boton("Clientes", AddressOf VerClientes), Ui.BotonSi(edita, "Nuevo cliente...", AddressOf NuevoCliente),
-                                    Ui.BotonSi(edita, "Nuevo contrato...", AddressOf NuevoContrato), Ui.BotonSi(edita, "Cerrar vigencia...", AddressOf CerrarContrato),
-                                    Ui.BotonSi(edita, "Agregar servicio...", AddressOf AgregarServicio), Ui.BotonSi(edita, "Ajustar importe...", AddressOf Ajustar),
-                                    Ui.BotonSi(edita, "Generar ingresos del mes...", AddressOf GenerarIngresos))
-        Dim division As New SplitContainer With {.Dock = DockStyle.Fill, .Orientation = Orientation.Horizontal, .SplitterDistance = 200}
-        division.Panel1.Controls.Add(_contratos)
-        division.Panel2.Controls.Add(_lineas)
-        Controls.Add(division)
-        Controls.Add(New Label With {.Dock = DockStyle.Top, .Height = 34, .Padding = New Padding(4),
-            .Text = "Un ajuste cierra la linea vigente el dia anterior y abre otra con el importe nuevo. El ingreso del mes se prorratea por dias y no reemplaza un ingreso registrado a mano."})
-        Controls.Add(barra)
-        AddHandler _contratos.SelectionChanged, Sub() CargarLineas()
+        barraAcciones.Controls.Add(Ui.Boton("Clientes", AddressOf VerClientes))
+        barraAcciones.Controls.Add(Ui.BotonSi(edita, "Nuevo cliente...", AddressOf NuevoCliente))
+        barraAcciones.Controls.Add(Ui.BotonSi(edita, "Nuevo contrato...", AddressOf NuevoContrato))
+        barraAcciones.Controls.Add(Ui.BotonSi(edita, "Cerrar vigencia...", AddressOf CerrarContrato))
+        barraAcciones.Controls.Add(Ui.BotonSi(edita, "Agregar servicio...", AddressOf AgregarServicio))
+        barraAcciones.Controls.Add(Ui.BotonSi(edita, "Ajustar importe...", AddressOf Ajustar))
+        barraAcciones.Controls.Add(Ui.BotonSi(edita, "Generar ingresos del mes...", AddressOf GenerarIngresos))
+        AddHandler gridContratos.SelectionChanged, Sub() CargarLineas()
         AddHandler Load, Sub() CargarContratos()
     End Sub
 
     Private ReadOnly Property Contrato As ContratoDto
         Get
-            Return Ui.Seleccionado(Of ContratoDto)(_contratos)
+            Return Ui.Seleccionado(Of ContratoDto)(gridContratos)
         End Get
     End Property
 
     Private Sub CargarContratos()
-        Ui.Ejecutar(Me, Sub() Ui.Mostrar(_contratos, _servicio.ListarContratos(), "Codigo|Contrato", "Cliente|Cliente", "FechaDesde|Desde", "FechaHasta|Hasta",
+        Ui.Ejecutar(Me, Sub() Ui.Mostrar(gridContratos, _servicio.ListarContratos(), "Codigo|Contrato", "Cliente|Cliente", "FechaDesde|Desde", "FechaHasta|Hasta",
                                          "Moneda|Moneda", "Condiciones|Condiciones"))
     End Sub
 
     Private Sub CargarLineas()
         Dim c = Contrato
-        If c Is Nothing Then _lineas.DataSource = Nothing : Return
-        Ui.Ejecutar(Me, Sub() Ui.Mostrar(_lineas, _servicio.Lineas(c.Id), "Servicio|Servicio", "ImporteMensualU6|Importe mensual", "FechaDesde|Desde", "FechaHasta|Hasta"))
+        If c Is Nothing Then gridLineas.DataSource = Nothing : Return
+        Ui.Ejecutar(Me, Sub() Ui.Mostrar(gridLineas, _servicio.Lineas(c.Id), "Servicio|Servicio", "ImporteMensualU6|Importe mensual", "FechaDesde|Desde", "FechaHasta|Hasta"))
     End Sub
 
     Private Sub VerClientes()
@@ -109,7 +106,7 @@ Partial Public Class FormContratos
     End Sub
 
     Private Sub Ajustar()
-        Dim l = Ui.Seleccionado(Of LineaContratoDto)(_lineas)
+        Dim l = Ui.Seleccionado(Of LineaContratoDto)(gridLineas)
         If l Is Nothing Then Ui.Informar(Me, "Seleccione la linea a ajustar.") : Return
         Using d As New DialogoCampos("Ajuste de " & l.Servicio)
             d.Texto("importe", "Nuevo importe mensual (S/)").Fecha("desde", "Vigente desde", Date.Today)

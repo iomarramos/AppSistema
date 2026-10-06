@@ -14,16 +14,51 @@ Partial Public Class FormPrincipal
     Public Sub New()
         InitializeComponent()
         lblVersion.Text = "Version " & GetType(FormPrincipal).Assembly.GetName().Version.ToString(3)
-        _menu.BackColor = Tema.Fondo
-        _estado.BackColor = Tema.SuperficieFuerte
-        For Each mdi In Controls.OfType(Of MdiClient)()
-            mdi.BackColor = Drawing.Color.FromArgb(243, 243, 243)
-        Next
+        _menu.MdiWindowListItem = mnuVentanas
+        AgregarAccionesVentanas()
+        Tema.Aplicar(Me)
         ' Toda ventana de trabajo recibe la franja con la operación y el estilo común (también las que abre otra pantalla).
         AddHandler MdiChildActivate, Sub()
                                          If ActiveMdiChild IsNot Nothing AndAlso _sesion IsNot Nothing Then Tema.AplicarVentana(ActiveMdiChild, _sesion.Operacion?.ToString())
                                      End Sub
         AddHandler Shown, Sub() IniciarSesion()
+    End Sub
+
+    Private Sub AgregarAccionesVentanas()
+        Dim ir As New ToolStripMenuItem("Ir a una pantalla...") With {.Name = "mnuIrPantalla", .ShortcutKeys = Keys.Control Or Keys.K}
+        Dim cascada As New ToolStripMenuItem("Organizar en cascada") With {.Name = "mnuOrganizarCascada"}
+        Dim mosaico As New ToolStripMenuItem("Organizar lado a lado") With {.Name = "mnuOrganizarMosaico"}
+        Dim cerrar As New ToolStripMenuItem("Cerrar ventana activa") With {.Name = "mnuCerrarVentanaActiva", .ShortcutKeys = Keys.Control Or Keys.F4}
+        AddHandler cascada.Click, Sub() LayoutMdi(MdiLayout.Cascade)
+        AddHandler mosaico.Click, Sub() LayoutMdi(MdiLayout.TileVertical)
+        AddHandler cerrar.Click, Sub() ActiveMdiChild?.Close()
+        AddHandler ir.Click, Sub() IrAPantalla()
+        mnuVentanas.DropDownItems.AddRange({ir, New ToolStripSeparator(), cascada, mosaico, cerrar, New ToolStripSeparator()})
+        AddHandler mnuVentanas.DropDownOpening, Sub()
+                                                  Dim hayVentanas = MdiChildren.Length > 0
+                                                  cascada.Enabled = hayVentanas
+                                                  mosaico.Enabled = hayVentanas
+                                                  cerrar.Enabled = hayVentanas
+                                              End Sub
+    End Sub
+
+    Private Sub IrAPantalla()
+        If _sesion Is Nothing Then Return
+        Dim opciones As New List(Of Object)()
+        For Each modulo In {mnuCatalogo, mnuMenus, mnuCompras, mnuAlmacen, mnuCierresYControl, mnuAdministracion}
+            If Not modulo.Available Then Continue For
+            For Each pantalla In modulo.DropDownItems.OfType(Of ToolStripMenuItem)()
+                If pantalla.Available Then opciones.Add(New Opcion(Of ToolStripMenuItem)(pantalla,
+                    Identificadores.NombreAccesible(modulo.Text) & " › " & Identificadores.NombreAccesible(pantalla.Text)))
+            Next
+        Next
+        If opciones.Count = 0 Then Return
+        Using dialogo As New DialogoCampos("Ir a una pantalla")
+            dialogo.Opciones("pantalla", "Pantalla disponible", opciones)
+            If dialogo.ShowDialog(Me) <> DialogResult.OK Then Return
+            Dim elegida = dialogo.Elegido(Of Opcion(Of ToolStripMenuItem))("pantalla")
+            If elegida IsNot Nothing AndAlso elegida.Valor.Available Then elegida.Valor.PerformClick()
+        End Using
     End Sub
 
     Private Sub IniciarSesion()
@@ -44,7 +79,15 @@ Partial Public Class FormPrincipal
         End Using
         ConstruirMenu()
         _etiquetaEstado.Text = $"Empresa {_sesion.EmpresaCodigo}  |  Operacion {_sesion.Operacion}  |  Usuario {_sesion.NombreUsuario} ({_sesion.Login})" &
-                               If(_sesion.EsDueno, "  |  DUENO DEL SISTEMA", "")
+                               If(_sesion.EsDueno, "  |  DUENO DEL SISTEMA", "") & $"  |  Version {Application.ProductVersion}"
+        If _sesion.Tiene(Permisos.ReportesVer) Then
+            Try
+                Dim ultimo = New ServicioCierres(_config.CadenaConexion(), _sesion).UltimoDiaCerrado()
+                _etiquetaEstado.Text &= If(ultimo.HasValue, $"  |  Ultimo cierre {ultimo.Value:dd/MM/yyyy}", "  |  Sin cierres todavia")
+            Catch ex As Exception
+                _etiquetaEstado.Text &= "  |  Ultimo cierre no disponible"
+            End Try
+        End If
         If _sesion.Tiene(Permisos.ReportesVer) Then
             ' Distingue lo confirmado en la sede de lo ya recibido por la central; se refresca cada 5 minutos.
             Dim envio As New ToolStripStatusLabel()
@@ -76,9 +119,15 @@ Partial Public Class FormPrincipal
         Opcion(mnuServiciosYEstructuras, Permisos.MenusConfigurar, Function() New FormServicios(cadena, _sesion))
         Opcion(mnuImportarRecetas, Permisos.RecetasEditar, Function() New FormImportacion(cadena, _sesion, ModoImportacion.Recetas))
         Opcion(mnuProduccion, Permisos.MenusVer, Function() New FormProduccion(cadena, _sesion))
+        Opcion(mnuMatrizDePlanificacion, Permisos.MenusVer, Function() New FormPlanificacionMenus(cadena, _sesion))
+        Opcion(mnuCatalogoDeReportes, Permisos.ReportesVer, Function() New FormReportes(cadena, _sesion))
+        Opcion(mnuCierreMensualWizard, Permisos.ReportesVer, Function() New FormCierreMensualWizard(cadena, _sesion))
+        Opcion(mnuPlanOperativoChef, Permisos.MenusVer, Function() New FormProduccionChef(cadena, _sesion))
+        Opcion(mnuPlanillaDelMenu, Permisos.MenusVer, Function() New FormPlanillaMenu(cadena, _sesion))
+        Opcion(mnuMinutaTeoricaReal, Permisos.MenusVer, Function() New FormMinutaVista(cadena, _sesion))
 
         Opcion(mnuStockEInventarioInicial, Permisos.CatalogoVer, Function() New FormStock(cadena, _sesion))
-        Opcion(mnuInventarioFisico, Permisos.InventarioContar, Function() New FormInventarios(cadena, _sesion))
+        Opcion(mnuInventarioFisico, Permisos.InventarioVer,Function() New FormInventarios(cadena, _sesion))
 
         Opcion(mnuPrevisionYPedidos, Permisos.ComprasVer, Function() New FormCompras(cadena, _sesion))
         Opcion(mnuConsolidadoDeComprasTodasLasOperaciones, Permisos.ComprasConsolidar, Function() New FormConsolidado(cadena, _sesion))

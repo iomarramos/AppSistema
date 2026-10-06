@@ -9,45 +9,29 @@ Imports AppSistema.Dominio.Seguridad
 Partial Public Class FormCierres
 
     Private ReadOnly _servicio As ServicioCierres
-    Private ReadOnly _fecha As New DateTimePicker With {.Format = DateTimePickerFormat.Short, .Width = 110}
-    Private ReadOnly _mes As New DateTimePicker With {.Format = DateTimePickerFormat.Custom, .CustomFormat = "MM/yyyy", .ShowUpDown = True, .Width = 90}
-    Private ReadOnly _pendientes As DataGridView = Ui.NuevaGrilla()
-    Private ReadOnly _servicios As DataGridView = Ui.NuevaGrilla()
-    Private ReadOnly _estadoDia As New Label With {.Dock = DockStyle.Bottom, .Height = 28, .Padding = New Padding(6)}
-    Private ReadOnly _totales As New Label With {.Dock = DockStyle.Bottom, .Height = 28, .Padding = New Padding(6)}
-    Private ReadOnly _envio As New Label With {.Dock = DockStyle.Bottom, .Height = 28, .Padding = New Padding(6)}
 
     Public Sub New()
         InitializeComponent()
+        Ui.Configurar(gridPendientes)
+        Ui.Configurar(gridServicios)
     End Sub
 
     Public Sub New(cadena As String, sesion As SesionUsuario)
         InitializeComponent()
-        Controls.Clear()
+        Ui.Configurar(gridPendientes)
+        Ui.Configurar(gridServicios)
         _servicio = New ServicioCierres(cadena, sesion)
         Text = "Cierres y Food Cost - " & sesion.Operacion.Nombre
         Dim cierra = sesion.Tiene(Permisos.CierreEjecutar)
-
-        Dim barraDia = Ui.BarraBotones(New Label With {.Text = "Dia", .AutoSize = True, .Margin = New Padding(3, 9, 3, 3)}, _fecha,
-                                       Ui.Boton("Actualizar", AddressOf CargarDia), Ui.BotonSi(cierra, "Cerrar dia", AddressOf CerrarDia))
-        Dim barraMes = Ui.BarraBotones(New Label With {.Text = "Mes", .AutoSize = True, .Margin = New Padding(3, 9, 3, 3)}, _mes,
-                                       Ui.Boton("Reporte", AddressOf CargarMes), Ui.BotonSi(cierra, "Generar venta (estructura)", AddressOf GenerarVenta),
-                                       Ui.BotonSi(cierra, "Registrar ingreso...", AddressOf RegistrarIngreso),
-                                       Ui.BotonSi(cierra, "Objetivo Food Cost...", AddressOf FijarObjetivo), Ui.BotonSi(cierra, "Cerrar mes", AddressOf CerrarMes))
-
-        Dim division As New SplitContainer With {.Dock = DockStyle.Fill, .Orientation = Orientation.Horizontal, .SplitterDistance = 220}
-        division.Panel1.Controls.Add(_pendientes)
-        division.Panel1.Controls.Add(_estadoDia)
-        division.Panel1.Controls.Add(_envio)
-        division.Panel1.Controls.Add(barraDia)
-        division.Panel2.Controls.Add(_servicios)
-        division.Panel2.Controls.Add(_totales)
-        division.Panel2.Controls.Add(barraMes)
-        Controls.Add(division)
-        Controls.Add(New Label With {.Dock = DockStyle.Top, .Height = 34, .Padding = New Padding(4),
-            .Text = "Food Cost = costo de alimentos consumidos / venta del servicio. La venta sale de la estructura: costo previsto de las minutas / Food Cost objetivo (48 % por defecto). Un dia o mes cerrado ya no admite cambios."})
-        AddHandler _fecha.ValueChanged, Sub() CargarDia()
-        AddHandler _mes.ValueChanged, Sub() CargarMes()
+        barraDia.Controls.Add(Ui.Boton("Actualizar", AddressOf CargarDia))
+        barraDia.Controls.Add(Ui.BotonSi(cierra, "Cerrar dia", AddressOf CerrarDia))
+        barraMes.Controls.Add(Ui.Boton("Reporte", AddressOf CargarMes))
+        barraMes.Controls.Add(Ui.BotonSi(cierra, "Generar venta (estructura)", AddressOf GenerarVenta))
+        barraMes.Controls.Add(Ui.BotonSi(cierra, "Registrar ingreso...", AddressOf RegistrarIngreso))
+        barraMes.Controls.Add(Ui.BotonSi(cierra, "Objetivo Food Cost...", AddressOf FijarObjetivo))
+        barraMes.Controls.Add(Ui.BotonSi(cierra, "Cerrar mes", AddressOf CerrarMes))
+        AddHandler dtFecha.ValueChanged, Sub() CargarDia()
+        AddHandler dtMes.ValueChanged, Sub() CargarMes()
         AddHandler Load, Sub()
                              CargarDia()
                              CargarMes()
@@ -56,25 +40,25 @@ Partial Public Class FormCierres
 
     Private ReadOnly Property Anio As Integer
         Get
-            Return _mes.Value.Year
+            Return dtMes.Value.Year
         End Get
     End Property
 
     Private ReadOnly Property Mes As Integer
         Get
-            Return _mes.Value.Month
+            Return dtMes.Value.Month
         End Get
     End Property
 
     Private Sub CargarDia()
         Ui.Ejecutar(Me,
             Sub()
-                Dim pendientes = _servicio.Pendientes(_fecha.Value.Date).Select(Function(p) New With {
+                Dim pendientes = _servicio.Pendientes(dtFecha.Value.Date).Select(Function(p) New With {
                     .Tipo = If(p.Bloqueante, "Bloquea", "Advertencia"), p.Codigo, p.Detalle}).ToList()
-                Ui.Mostrar(_pendientes, pendientes, "Tipo|Tipo", "Codigo|Codigo", "Detalle|Detalle")
-                Dim cerrado = _servicio.DiaCerrado(_fecha.Value.Date)
-                _envio.Text = _servicio.EstadoEnvio().ToString()
-                _estadoDia.Text = If(cerrado, "Dia CERRADO.", If(pendientes.Any(Function(p) p.Tipo = "Bloquea"),
+                Ui.Mostrar(gridPendientes, pendientes, "Tipo|Tipo", "Codigo|Codigo", "Detalle|Detalle")
+                Dim cerrado = _servicio.DiaCerrado(dtFecha.Value.Date)
+                lblEnvio.Text = _servicio.EstadoEnvio().ToString()
+                lblEstadoDia.Text = If(cerrado, "Dia CERRADO.", If(pendientes.Any(Function(p) p.Tipo = "Bloquea"),
                     "Dia abierto: resuelva los pendientes que bloquean antes de cerrar.", "Dia abierto: listo para cerrar."))
             End Sub)
     End Sub
@@ -83,18 +67,18 @@ Partial Public Class FormCierres
         Ui.Ejecutar(Me,
             Sub()
                 Dim r = _servicio.ReporteMensual(Anio, Mes)
-                Ui.Mostrar(_servicios, r.Servicios, "Servicio|Servicio", "Regimen|Regimen", "RacionesServidas|Raciones servidas",
+                Ui.Mostrar(gridServicios, r.Servicios, "Servicio|Servicio", "Regimen|Regimen", "RacionesServidas|Raciones servidas",
                            "CostoAlimentosU6|Costo alimentos", "CostoPorRacionU6|Costo por racion", "IngresoU6|Ingreso neto",
                            "FoodCostU6|Food Cost %", "ObjetivoU6|Objetivo %", "DesviacionPuntosU6|Desviacion (puntos)",
                            "PresupuestoU6|Presupuesto", "DiferenciaPresupuestoU6|Diferencia vs presupuesto", "Observacion|Observacion")
-                _totales.Text = $"Mes {Mes:00}/{Anio} ({r.Estado}): costo {Ui.Dinero(r.TotalCostoAlimentosU6)}, ingreso {Ui.Dinero(r.TotalIngresoU6)}, " &
-                                $"Food Cost {If(r.FoodCostTotalU6.HasValue, Ui.Cantidad(r.FoodCostTotalU6.Value) & " %", "no calculable")}; " &
+                lblTotales.Text = $"Mes {Mes:00}/{Anio} ({r.Estado}): costo {Ui.Dinero(r.TotalCostoAlimentosU6)}, ingreso {Ui.Dinero(r.TotalIngresoU6)}, " &
+                                $"Food Cost {If(r.FoodCostTotalU6.HasValue, Ui.Porcentaje(r.FoodCostTotalU6.Value) & " %", "no calculable")}; " &
                                 $"bajas {Ui.Dinero(r.BajasU6)}, ajuste de inventario {Ui.Dinero(r.AjusteInventarioU6)}"
             End Sub)
     End Sub
 
     Private Sub CerrarDia()
-        Dim fecha = _fecha.Value.Date
+        Dim fecha = dtFecha.Value.Date
         If Not Ui.Confirmar(Me, $"Cerrar el dia {fecha:dd/MM/yyyy}? Despues no se podran registrar movimientos con esa fecha.") Then Return
         Ui.Ejecutar(Me, Sub()
                             Dim r = _servicio.CerrarDia(fecha)
@@ -111,7 +95,7 @@ Partial Public Class FormCierres
     End Sub
 
     Private Function ServicioElegido() As LineaReporteServicio
-        Dim s = Ui.Seleccionado(Of LineaReporteServicio)(_servicios)
+        Dim s = Ui.Seleccionado(Of LineaReporteServicio)(gridServicios)
         If s Is Nothing Then Ui.Informar(Me, "Seleccione un servicio del reporte.")
         Return s
     End Function

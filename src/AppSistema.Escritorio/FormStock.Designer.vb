@@ -12,57 +12,99 @@ Partial Class FormStock
     End Sub
     <System.Diagnostics.DebuggerStepThrough()>
     Private Sub InitializeComponent()
-        Me.tabla = New System.Windows.Forms.TableLayoutPanel()
-        Me.lblTituloDiseno = New System.Windows.Forms.Label()
-        Me.grp1 = New System.Windows.Forms.GroupBox()
-        Me.grp1.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.grp1.Text = "Filtros y almacén"
-        Me.grp1.Name = "grp1"
-        Me.grp2 = New System.Windows.Forms.GroupBox()
-        Me.grp2.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.grp2.Text = "Stock valorizado"
-        Me.grp2.Name = "grp2"
-        Me.grp3 = New System.Windows.Forms.GroupBox()
-        Me.grp3.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.grp3.Text = "Kárdex / movimientos"
-        Me.grp3.Name = "grp3"
-        Me.grp4 = New System.Windows.Forms.GroupBox()
-        Me.grp4.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.grp4.Text = "Totales / documentos"
-        Me.grp4.Name = "grp4"
+        Me.barraFiltros = New System.Windows.Forms.FlowLayoutPanel()
+        Me.lblAlmacen = New System.Windows.Forms.Label()
+        Me.cmbAlmacen = New System.Windows.Forms.ComboBox()
+        Me.lblBuscar = New System.Windows.Forms.Label()
+        Me.txtBuscar = New System.Windows.Forms.TextBox()
+        Me.barraAcciones = New System.Windows.Forms.FlowLayoutPanel()
+        Me.gridSaldos = New System.Windows.Forms.DataGridView()
+        Me.lblTotal = New System.Windows.Forms.Label()
+        Me.barraFiltros.SuspendLayout()
+        Me.barraAcciones.SuspendLayout()
+        CType(Me.gridSaldos, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.SuspendLayout()
-        Me.tabla.ColumnCount = 1
-        Me.tabla.ColumnStyles.Add(New System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100.0!))
-        Me.tabla.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.tabla.Padding = New System.Windows.Forms.Padding(12)
-        Me.tabla.RowCount = 5
-        Me.tabla.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 48.0!))
-        Me.tabla.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 25.00!))
-        Me.tabla.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 25.00!))
-        Me.tabla.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 25.00!))
-        Me.tabla.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 25.00!))
-        Me.lblTituloDiseno.AutoSize = True
-        Me.lblTituloDiseno.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.lblTituloDiseno.Font = New System.Drawing.Font("Segoe UI", 14.0!, System.Drawing.FontStyle.Bold)
-        Me.lblTituloDiseno.Text = "Stock y kárdex"
-        Me.lblTituloDiseno.TextAlign = System.Drawing.ContentAlignment.MiddleLeft
-        Me.tabla.Controls.Add(Me.lblTituloDiseno, 0, 0)
-        Me.tabla.Controls.Add(Me.grp1, 0, 1)
-        Me.tabla.Controls.Add(Me.grp2, 0, 2)
-        Me.tabla.Controls.Add(Me.grp3, 0, 3)
-        Me.tabla.Controls.Add(Me.grp4, 0, 4)
-        Me.AutoScaleDimensions = New System.Drawing.SizeF(96.0!, 96.0!)
-        Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi
+        '
+        'barraFiltros
+        '
+        Me.barraFiltros.AutoSize = True
+        Me.barraFiltros.Dock = System.Windows.Forms.DockStyle.Top
+        Me.barraFiltros.Controls.Add(Me.lblAlmacen)
+        Me.barraFiltros.Controls.Add(Me.cmbAlmacen)
+        Me.barraFiltros.Controls.Add(Me.lblBuscar)
+        Me.barraFiltros.Controls.Add(Me.txtBuscar)
+        Me.barraFiltros.Name = "barraFiltros"
+        '
+        'lblAlmacen
+        '
+        Me.lblAlmacen.AutoSize = True
+        Me.lblAlmacen.Margin = New System.Windows.Forms.Padding(3, 9, 3, 3)
+        Me.lblAlmacen.Name = "lblAlmacen"
+        Me.lblAlmacen.Text = "Almacen"
+        '
+        'cmbAlmacen
+        '
+        Me.cmbAlmacen.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
+        Me.cmbAlmacen.Name = "cmbAlmacen"
+        Me.cmbAlmacen.AccessibleName = "Almacen"
+        Me.cmbAlmacen.Width = 220
+        '
+        'lblBuscar
+        '
+        Me.lblBuscar.AutoSize = True
+        Me.lblBuscar.Margin = New System.Windows.Forms.Padding(3, 9, 3, 3)
+        Me.lblBuscar.Name = "lblBuscar"
+        Me.lblBuscar.Text = "Buscar"
+        '
+        'txtBuscar
+        '
+        Me.txtBuscar.Name = "txtBuscar"
+        Me.txtBuscar.AccessibleName = "Buscar"
+        Me.txtBuscar.Width = 200
+        '
+        'barraAcciones
+        '
+        Me.barraAcciones.AutoSize = True
+        Me.barraAcciones.Dock = System.Windows.Forms.DockStyle.Top
+        Me.barraAcciones.Name = "barraAcciones"
+        '
+        'gridSaldos
+        '
+        Me.gridSaldos.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.gridSaldos.Name = "gridSaldos"
+        Me.gridSaldos.AccessibleName = "Saldos"
+        '
+        'lblTotal
+        '
+        Me.lblTotal.Dock = System.Windows.Forms.DockStyle.Bottom
+        Me.lblTotal.Height = 28
+        Me.lblTotal.Name = "lblTotal"
+        Me.lblTotal.Padding = New System.Windows.Forms.Padding(6)
+        '
+        'FormStock
+        '
+        Me.AutoScaleDimensions = New System.Drawing.SizeF(7.0!, 15.0!)
+        Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
         Me.ClientSize = New System.Drawing.Size(1100, 720)
-        Me.Controls.Add(Me.tabla)
+        Me.Controls.Add(Me.gridSaldos)
+        Me.Controls.Add(Me.lblTotal)
+        Me.Controls.Add(Me.barraAcciones)
+        Me.Controls.Add(Me.barraFiltros)
         Me.Name = "FormStock"
-        Me.Text = "Stock y kárdex"
+        Me.Text = "Stock e inventario inicial"
+        Me.barraFiltros.ResumeLayout(False)
+        Me.barraFiltros.PerformLayout()
+        Me.barraAcciones.ResumeLayout(False)
+        Me.barraAcciones.PerformLayout()
+        CType(Me.gridSaldos, System.ComponentModel.ISupportInitialize).EndInit()
         Me.ResumeLayout(False)
     End Sub
-    Friend WithEvents tabla As System.Windows.Forms.TableLayoutPanel
-    Friend WithEvents lblTituloDiseno As System.Windows.Forms.Label
-    Friend WithEvents grp1 As System.Windows.Forms.GroupBox
-    Friend WithEvents grp2 As System.Windows.Forms.GroupBox
-    Friend WithEvents grp3 As System.Windows.Forms.GroupBox
-    Friend WithEvents grp4 As System.Windows.Forms.GroupBox
+    Friend WithEvents barraFiltros As System.Windows.Forms.FlowLayoutPanel
+    Friend WithEvents lblAlmacen As System.Windows.Forms.Label
+    Friend WithEvents cmbAlmacen As System.Windows.Forms.ComboBox
+    Friend WithEvents lblBuscar As System.Windows.Forms.Label
+    Friend WithEvents txtBuscar As System.Windows.Forms.TextBox
+    Friend WithEvents barraAcciones As System.Windows.Forms.FlowLayoutPanel
+    Friend WithEvents gridSaldos As System.Windows.Forms.DataGridView
+    Friend WithEvents lblTotal As System.Windows.Forms.Label
 End Class

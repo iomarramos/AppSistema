@@ -12,57 +12,95 @@ Partial Class FormContinuidad
     End Sub
     <System.Diagnostics.DebuggerStepThrough()>
     Private Sub InitializeComponent()
-        Me.tabla = New System.Windows.Forms.TableLayoutPanel()
-        Me.lblTituloDiseno = New System.Windows.Forms.Label()
-        Me.grp1 = New System.Windows.Forms.GroupBox()
-        Me.grp1.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.grp1.Text = "Estado de la sede"
-        Me.grp1.Name = "grp1"
-        Me.grp2 = New System.Windows.Forms.GroupBox()
-        Me.grp2.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.grp2.Text = "Acciones de sincronización / respaldo"
-        Me.grp2.Name = "grp2"
-        Me.grp3 = New System.Windows.Forms.GroupBox()
-        Me.grp3.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.grp3.Text = "Central y sedes registradas"
-        Me.grp3.Name = "grp3"
-        Me.grp4 = New System.Windows.Forms.GroupBox()
-        Me.grp4.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.grp4.Text = "Conciliación"
-        Me.grp4.Name = "grp4"
+        Me.gridSedes = New System.Windows.Forms.DataGridView()
+        Me.barraCentral = New System.Windows.Forms.FlowLayoutPanel()
+        Me.lblCentral = New System.Windows.Forms.Label()
+        Me.lblEstado = New System.Windows.Forms.Label()
+        Me.barraSede = New System.Windows.Forms.FlowLayoutPanel()
+        Me.lblSede = New System.Windows.Forms.Label()
+        Me.lblAviso = New System.Windows.Forms.Label()
+        CType(Me.gridSedes, System.ComponentModel.ISupportInitialize).BeginInit()
+        Me.barraCentral.SuspendLayout()
+        Me.barraSede.SuspendLayout()
         Me.SuspendLayout()
-        Me.tabla.ColumnCount = 1
-        Me.tabla.ColumnStyles.Add(New System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100.0!))
-        Me.tabla.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.tabla.Padding = New System.Windows.Forms.Padding(12)
-        Me.tabla.RowCount = 5
-        Me.tabla.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 48.0!))
-        Me.tabla.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 25.00!))
-        Me.tabla.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 25.00!))
-        Me.tabla.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 25.00!))
-        Me.tabla.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 25.00!))
-        Me.lblTituloDiseno.AutoSize = True
-        Me.lblTituloDiseno.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.lblTituloDiseno.Font = New System.Drawing.Font("Segoe UI", 14.0!, System.Drawing.FontStyle.Bold)
-        Me.lblTituloDiseno.Text = "Sincronización y respaldo"
-        Me.lblTituloDiseno.TextAlign = System.Drawing.ContentAlignment.MiddleLeft
-        Me.tabla.Controls.Add(Me.lblTituloDiseno, 0, 0)
-        Me.tabla.Controls.Add(Me.grp1, 0, 1)
-        Me.tabla.Controls.Add(Me.grp2, 0, 2)
-        Me.tabla.Controls.Add(Me.grp3, 0, 3)
-        Me.tabla.Controls.Add(Me.grp4, 0, 4)
-        Me.AutoScaleDimensions = New System.Drawing.SizeF(96.0!, 96.0!)
-        Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi
+        '
+        'gridSedes
+        '
+        Me.gridSedes.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.gridSedes.Name = "gridSedes"
+        Me.gridSedes.AccessibleName = "Sedes"
+        '
+        'barraCentral
+        '
+        Me.barraCentral.AutoSize = True
+        Me.barraCentral.Dock = System.Windows.Forms.DockStyle.Top
+        Me.barraCentral.Name = "barraCentral"
+        Me.barraCentral.Padding = New System.Windows.Forms.Padding(4)
+        Me.barraCentral.WrapContents = True
+        Me.barraCentral.Controls.Add(Me.lblCentral)
+        '
+        'lblCentral
+        '
+        Me.lblCentral.AutoSize = True
+        Me.lblCentral.Margin = New System.Windows.Forms.Padding(3, 9, 3, 3)
+        Me.lblCentral.Name = "lblCentral"
+        Me.lblCentral.Text = "Central:"
+        '
+        'lblEstado
+        '
+        Me.lblEstado.Dock = System.Windows.Forms.DockStyle.Top
+        Me.lblEstado.Height = 64
+        Me.lblEstado.Name = "lblEstado"
+        Me.lblEstado.Padding = New System.Windows.Forms.Padding(6)
+        '
+        'barraSede
+        '
+        Me.barraSede.AutoSize = True
+        Me.barraSede.Dock = System.Windows.Forms.DockStyle.Top
+        Me.barraSede.Name = "barraSede"
+        Me.barraSede.Padding = New System.Windows.Forms.Padding(4)
+        Me.barraSede.WrapContents = True
+        Me.barraSede.Controls.Add(Me.lblSede)
+        '
+        'lblSede
+        '
+        Me.lblSede.AutoSize = True
+        Me.lblSede.Margin = New System.Windows.Forms.Padding(3, 9, 3, 3)
+        Me.lblSede.Name = "lblSede"
+        Me.lblSede.Text = "Esta sede:"
+        '
+        'lblAviso
+        '
+        Me.lblAviso.Dock = System.Windows.Forms.DockStyle.Top
+        Me.lblAviso.Height = 50
+        Me.lblAviso.Name = "lblAviso"
+        Me.lblAviso.Padding = New System.Windows.Forms.Padding(4)
+        Me.lblAviso.Text = "Para TI. La sincronizacion programada la hace herramientas/windows/programar_sede.ps1; aqui se revisa y se fuerza. Respaldar requiere pg_dump en esta PC (normalmente, el servidor de la sede). Restaurar y actualizar: solo con el Instalador y sin usuarios conectados."
+        '
+        'FormContinuidad
+        '
+        Me.AutoScaleDimensions = New System.Drawing.SizeF(7.0!, 15.0!)
+        Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
         Me.ClientSize = New System.Drawing.Size(1100, 720)
-        Me.Controls.Add(Me.tabla)
+        Me.Controls.Add(Me.gridSedes)
+        Me.Controls.Add(Me.barraCentral)
+        Me.Controls.Add(Me.lblEstado)
+        Me.Controls.Add(Me.barraSede)
+        Me.Controls.Add(Me.lblAviso)
         Me.Name = "FormContinuidad"
-        Me.Text = "Sincronización y respaldo"
+        Me.Text = "Sincronizacion y respaldo"
+        CType(Me.gridSedes, System.ComponentModel.ISupportInitialize).EndInit()
+        Me.barraCentral.ResumeLayout(False)
+        Me.barraCentral.PerformLayout()
+        Me.barraSede.ResumeLayout(False)
+        Me.barraSede.PerformLayout()
         Me.ResumeLayout(False)
     End Sub
-    Friend WithEvents tabla As System.Windows.Forms.TableLayoutPanel
-    Friend WithEvents lblTituloDiseno As System.Windows.Forms.Label
-    Friend WithEvents grp1 As System.Windows.Forms.GroupBox
-    Friend WithEvents grp2 As System.Windows.Forms.GroupBox
-    Friend WithEvents grp3 As System.Windows.Forms.GroupBox
-    Friend WithEvents grp4 As System.Windows.Forms.GroupBox
+    Friend WithEvents gridSedes As System.Windows.Forms.DataGridView
+    Friend WithEvents barraCentral As System.Windows.Forms.FlowLayoutPanel
+    Friend WithEvents lblCentral As System.Windows.Forms.Label
+    Friend WithEvents lblEstado As System.Windows.Forms.Label
+    Friend WithEvents barraSede As System.Windows.Forms.FlowLayoutPanel
+    Friend WithEvents lblSede As System.Windows.Forms.Label
+    Friend WithEvents lblAviso As System.Windows.Forms.Label
 End Class

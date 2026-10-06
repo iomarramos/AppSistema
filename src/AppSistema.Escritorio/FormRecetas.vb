@@ -9,18 +9,18 @@ Partial Public Class FormRecetas
     Private ReadOnly _sesion As SesionUsuario
     Private ReadOnly _servicio As ServicioRecetas
     Private ReadOnly _catalogo As ServicioCatalogo
-    Private ReadOnly _buscar As New TextBox With {.Width = 220}
-    Private ReadOnly _recetas As DataGridView = Ui.NuevaGrilla()
-    Private ReadOnly _versiones As DataGridView = Ui.NuevaGrilla()
-    Private ReadOnly _ingredientes As DataGridView = Ui.NuevaGrilla()
-
     Public Sub New()
         InitializeComponent()
+        Ui.Configurar(gridRecetas)
+        Ui.Configurar(gridVersiones)
+        Ui.Configurar(gridIngredientes)
     End Sub
 
     Public Sub New(cadena As String, sesion As SesionUsuario)
         InitializeComponent()
-        Controls.Clear()
+        Ui.Configurar(gridRecetas)
+        Ui.Configurar(gridVersiones)
+        Ui.Configurar(gridIngredientes)
         _sesion = sesion
         _servicio = New ServicioRecetas(cadena, sesion)
         _catalogo = New ServicioCatalogo(cadena, sesion)
@@ -28,60 +28,52 @@ Partial Public Class FormRecetas
 
         Dim edita = sesion.Tiene(Permisos.RecetasEditar)
         Dim aprueba = sesion.Tiene(Permisos.RecetasAprobar)
-        Dim barraRecetas = Ui.BarraBotones(New Label With {.Text = "Buscar:", .AutoSize = True, .Margin = New Padding(3, 9, 3, 3)}, _buscar,
-                                           Ui.Boton("Buscar", AddressOf CargarRecetas), Ui.BotonSi(edita, "Nueva receta", AddressOf NuevaReceta))
-        Dim barraVersiones = Ui.BarraBotones(Ui.BotonSi(edita, "Nueva version", AddressOf NuevaVersion), Ui.BotonSi(edita, "Rendimiento e instrucciones", AddressOf EditarBorrador),
-                                             Ui.BotonSi(aprueba, "Aprobar", AddressOf Aprobar), Ui.BotonSi(aprueba, "Retirar", AddressOf Retirar),
-                                             Ui.Boton("Costo simulado...", AddressOf CostoSimulado))
-        Dim barraIngredientes = Ui.BarraBotones(Ui.Boton("Agregar ingrediente", AddressOf AgregarIngrediente), Ui.Boton("Quitar", AddressOf QuitarIngrediente),
-                                                Ui.Boton("Limitar a una variante", AddressOf PermitirVariante))
+        barraRecetas.Controls.Add(Ui.Boton("Buscar", AddressOf CargarRecetas))
+        barraRecetas.Controls.Add(Ui.BotonSi(edita, "Nueva receta", AddressOf NuevaReceta))
+        barraVersiones.Controls.Add(Ui.BotonSi(edita, "Nueva version", AddressOf NuevaVersion))
+        barraVersiones.Controls.Add(Ui.BotonSi(edita, "Rendimiento e instrucciones", AddressOf EditarBorrador))
+        barraVersiones.Controls.Add(Ui.BotonSi(aprueba, "Aprobar", AddressOf Aprobar))
+        barraVersiones.Controls.Add(Ui.BotonSi(aprueba, "Retirar", AddressOf Retirar))
+        barraVersiones.Controls.Add(Ui.Boton("Costo simulado...", AddressOf CostoSimulado))
+        barraIngredientes.Controls.Add(Ui.Boton("Agregar ingrediente", AddressOf AgregarIngrediente))
+        barraIngredientes.Controls.Add(Ui.Boton("Quitar", AddressOf QuitarIngrediente))
+        barraIngredientes.Controls.Add(Ui.Boton("Limitar a una variante", AddressOf PermitirVariante))
         barraIngredientes.Visible = edita
 
-        Dim izquierda As New Panel With {.Dock = DockStyle.Fill}
-        izquierda.Controls.Add(_recetas) : izquierda.Controls.Add(barraRecetas)
-        Dim derecha As New SplitContainer With {.Dock = DockStyle.Fill, .Orientation = Orientation.Horizontal}
-        derecha.Panel1.Controls.Add(_versiones) : derecha.Panel1.Controls.Add(barraVersiones)
-        derecha.Panel1.Controls.Add(New Label With {.Text = "Versiones (la aprobada no se modifica; para cambiarla cree una nueva version)", .Dock = DockStyle.Top, .Padding = New Padding(4)})
-        derecha.Panel2.Controls.Add(_ingredientes) : derecha.Panel2.Controls.Add(barraIngredientes)
-        derecha.Panel2.Controls.Add(New Label With {.Text = "Ingredientes de la version (cantidad bruta para el rendimiento completo, en unidad base)", .Dock = DockStyle.Top, .Padding = New Padding(4)})
-        Dim division As New SplitContainer With {.Dock = DockStyle.Fill}
-        division.Panel1.Controls.Add(izquierda) : division.Panel2.Controls.Add(derecha)
-        Controls.Add(division)
-
-        AddHandler _buscar.KeyDown, Sub(s, e) If e.KeyCode = Keys.Enter Then CargarRecetas()
-        AddHandler _recetas.SelectionChanged, Sub() CargarVersiones()
-        AddHandler _versiones.SelectionChanged, Sub() CargarIngredientes()
+        AddHandler txtBuscar.KeyDown, Sub(s, e) If e.KeyCode = Keys.Enter Then CargarRecetas()
+        AddHandler gridRecetas.SelectionChanged, Sub() CargarVersiones()
+        AddHandler gridVersiones.SelectionChanged, Sub() CargarIngredientes()
         AddHandler Load, Sub() CargarRecetas()
     End Sub
 
     Private ReadOnly Property Receta As RecetaDto
         Get
-            Return Ui.Seleccionado(Of RecetaDto)(_recetas)
+            Return Ui.Seleccionado(Of RecetaDto)(gridRecetas)
         End Get
     End Property
 
     Private ReadOnly Property Version As RecetaVersionDto
         Get
-            Return Ui.Seleccionado(Of RecetaVersionDto)(_versiones)
+            Return Ui.Seleccionado(Of RecetaVersionDto)(gridVersiones)
         End Get
     End Property
 
     Private Sub CargarRecetas()
-        Ui.Ejecutar(Me, Sub() Ui.Mostrar(_recetas, _servicio.BuscarRecetas(_buscar.Text),
+        Ui.Ejecutar(Me, Sub() Ui.Mostrar(gridRecetas, _servicio.BuscarRecetas(txtBuscar.Text),
                                          "Codigo|Codigo", "Nombre|Nombre", "Categoria|Categoria", "VersionAprobada|Version aprobada"))
     End Sub
 
     Private Sub CargarVersiones()
         Dim r = Receta
-        If r Is Nothing Then _versiones.DataSource = Nothing : Return
-        Ui.Ejecutar(Me, Sub() Ui.Mostrar(_versiones, _servicio.ListarVersiones(r.Id),
+        If r Is Nothing Then gridVersiones.DataSource = Nothing : Return
+        Ui.Ejecutar(Me, Sub() Ui.Mostrar(gridVersiones, _servicio.ListarVersiones(r.Id),
                                          "Version|Version", "Estado|Estado", "RendimientoRacionesU6|Rendimiento (raciones)", "Instrucciones|Instrucciones"))
     End Sub
 
     Private Sub CargarIngredientes()
         Dim v = Version
-        If v Is Nothing Then _ingredientes.DataSource = Nothing : Return
-        Ui.Ejecutar(Me, Sub() Ui.Mostrar(_ingredientes, _servicio.ListarIngredientes(v.Id),
+        If v Is Nothing Then gridIngredientes.DataSource = Nothing : Return
+        Ui.Ejecutar(Me, Sub() Ui.Mostrar(gridIngredientes, _servicio.ListarIngredientes(v.Id),
                                          "ProductoCodigo|Codigo", "ProductoDescripcion|Producto", "CantidadBrutaU6|Cantidad bruta", "CantidadNetaU6|Cantidad neta",
                                          "Unidad|Unidad", "Tecnica|Tecnica", "VariantesPermitidas|Variantes permitidas"))
     End Sub
@@ -93,7 +85,7 @@ Partial Public Class FormRecetas
             If d.ShowDialog(Me) <> DialogResult.OK Then Return
             Ui.Ejecutar(Me, Sub() _servicio.CrearReceta(d.Valor("codigo"), d.Valor("nombre"), d.Valor("categoria"),
                                                         Ui.LeerU6(d.Valor("rendimiento"), "rendimiento"), d.Valor("instrucciones")))
-            _buscar.Text = d.Valor("codigo")
+            txtBuscar.Text = d.Valor("codigo")
         End Using
         CargarRecetas()
     End Sub
@@ -135,7 +127,7 @@ Partial Public Class FormRecetas
                     If productos.Count = 0 Then Ui.Informar(Me, "No se encontro ningun producto.") : Return
                     Using d2 As New DialogoCampos("Ingrediente")
                         d2.Opciones("producto", "Producto", productos.Take(200).Select(Function(p) CObj(New Opcion(Of ProductoBaseDto)(p, $"{p.Codigo} - {p.Descripcion} ({p.UnidadCodigo})")))) _
-                          .Texto("bruta", "Cantidad bruta (unidad base)").Texto("neta", "Cantidad neta (opcional)").Texto("tecnica", "Tecnica (opcional)").Texto("orden", "Orden", (_ingredientes.Rows.Count + 1).ToString())
+                          .Texto("bruta", "Cantidad bruta (unidad base)").Texto("neta", "Cantidad neta (opcional)").Texto("tecnica", "Tecnica (opcional)").Texto("orden", "Orden", (gridIngredientes.Rows.Count + 1).ToString())
                         If d2.ShowDialog(Me) <> DialogResult.OK Then Return
                         Dim neta As Long? = If(d2.Valor("neta") = "", CType(Nothing, Long?), Ui.LeerU6(d2.Valor("neta"), "cantidad neta"))
                         _servicio.AgregarIngrediente(v.Id, d2.Elegido(Of Opcion(Of ProductoBaseDto))("producto").Valor.Id,
@@ -147,7 +139,7 @@ Partial Public Class FormRecetas
     End Sub
 
     Private Sub QuitarIngrediente()
-        Dim i = Ui.Seleccionado(Of IngredienteDto)(_ingredientes)
+        Dim i = Ui.Seleccionado(Of IngredienteDto)(gridIngredientes)
         If i Is Nothing OrElse VersionBorrador() Is Nothing Then Return
         If Not Ui.Confirmar(Me, $"Quitar {i.ProductoDescripcion} de la receta?") Then Return
         Ui.Ejecutar(Me, Sub() _servicio.QuitarIngrediente(i.Id))
@@ -155,7 +147,7 @@ Partial Public Class FormRecetas
     End Sub
 
     Private Sub PermitirVariante()
-        Dim i = Ui.Seleccionado(Of IngredienteDto)(_ingredientes)
+        Dim i = Ui.Seleccionado(Of IngredienteDto)(gridIngredientes)
         If i Is Nothing Then Ui.Informar(Me, "Seleccione un ingrediente.") : Return
         If VersionBorrador() Is Nothing Then Return
         Ui.Ejecutar(Me,

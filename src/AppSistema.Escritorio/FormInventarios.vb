@@ -1,3 +1,4 @@
+Imports AppSistema.Dominio.Inventario
 Imports System.IO
 Imports System.Text
 Imports System.Windows.Forms
@@ -13,78 +14,72 @@ Partial Public Class FormInventarios
     Private ReadOnly _servicio As ServicioInventarios
     Private ReadOnly _catalogo As ServicioCatalogo
     Private ReadOnly _reportes As ServicioReportes
-    Private ReadOnly _almacen As New ComboBox With {.DropDownStyle = ComboBoxStyle.DropDownList, .Width = 220}
-    Private ReadOnly _ciego As New CheckBox With {.Text = "Conteo ciego", .AutoSize = True, .Margin = New Padding(6, 8, 3, 3)}
-    Private ReadOnly _inventarios As DataGridView = Ui.NuevaGrilla()
-    Private ReadOnly _hoja As DataGridView = Ui.NuevaGrilla()
-    Private ReadOnly _resumen As New Label With {.Dock = DockStyle.Bottom, .Height = 28, .Padding = New Padding(6)}
-
     Public Sub New()
         InitializeComponent()
+        Ui.Configurar(gridInventarios)
+        Ui.Configurar(gridHoja)
     End Sub
 
     Public Sub New(cadena As String, sesion As SesionUsuario)
         InitializeComponent()
-        Controls.Clear()
+        Ui.Configurar(gridInventarios)
+        Ui.Configurar(gridHoja)
         _servicio = New ServicioInventarios(cadena, sesion)
         _catalogo = New ServicioCatalogo(cadena, sesion)
         _reportes = New ServicioReportes(cadena, sesion)
         Dim admin As New ServicioAdministracion(cadena, sesion)
         Text = "Inventario fisico - " & sesion.Operacion.Nombre
         Dim aprueba = sesion.Tiene(Permisos.InventarioAprobar)
-        Dim barra = Ui.BarraBotones(New Label With {.Text = "Almacen", .AutoSize = True, .Margin = New Padding(3, 9, 3, 3)}, _almacen, _ciego,
-                                    Ui.Boton("Nuevo general", Sub() Abrir("general")), Ui.Boton("Nuevo rotativo...", Sub() Abrir("rotativo")),
-                                    Ui.Boton("Contar linea...", AddressOf ContarLinea), Ui.Boton("Importar conteo...", AddressOf Importar),
-                                    Ui.Boton("Cerrar conteo", Sub() Accion(Sub(i) _servicio.CerrarConteo(i))), Ui.Boton("Recontar", Sub() Accion(Sub(i) _servicio.Recontar(i))),
-                                    Ui.BotonSi(aprueba, "Revisar", Sub() Accion(Sub(i) _servicio.Revisar(i))), Ui.BotonSi(aprueba, "Autorizar ajuste...", AddressOf Autorizar),
-                                    Ui.Boton("Imprimir hoja de conteo...", Sub() Imprimir(True)), Ui.Boton("Imprimir resultado...", Sub() Imprimir(False)))
-        Dim division As New SplitContainer With {.Dock = DockStyle.Fill, .Orientation = Orientation.Horizontal, .SplitterDistance = 140}
-        division.Panel1.Controls.Add(_inventarios)
-        division.Panel2.Controls.Add(_hoja)
-        division.Panel2.Controls.Add(_resumen)
-        Controls.Add(division)
-        Controls.Add(New Label With {.Dock = DockStyle.Top, .Height = 34, .Padding = New Padding(4),
-            .Text = "Mientras se cuenta, esos productos no admiten movimientos. Celda vacia = sin contar (no es cero). El saldo solo cambia al autorizar el ajuste."})
-        Controls.Add(barra)
-        AddHandler _almacen.SelectedIndexChanged, Sub() CargarInventarios()
-        AddHandler _inventarios.SelectionChanged, Sub() CargarHoja()
-        AddHandler _ciego.CheckedChanged, Sub() CargarHoja()
+        Dim cuenta = sesion.Tiene(Permisos.InventarioContar)
+        barraAcciones.Controls.Add(Ui.BotonSi(cuenta, "Nuevo general", Sub() Abrir("general")))
+        barraAcciones.Controls.Add(Ui.BotonSi(cuenta, "Nuevo rotativo...", Sub() Abrir("rotativo")))
+        barraAcciones.Controls.Add(Ui.BotonSi(cuenta, "Contar linea...", AddressOf ContarLinea))
+        barraAcciones.Controls.Add(Ui.BotonSi(cuenta, "Importar conteo...", AddressOf Importar))
+        barraAcciones.Controls.Add(Ui.BotonSi(cuenta, "Cerrar conteo", Sub() Accion(Sub(i) _servicio.CerrarConteo(i))))
+        barraAcciones.Controls.Add(Ui.BotonSi(cuenta, "Recontar", Sub() Accion(Sub(i) _servicio.Recontar(i))))
+        barraAcciones.Controls.Add(Ui.BotonSi(aprueba, "Revisar", Sub() Accion(Sub(i) _servicio.Revisar(i))))
+        barraAcciones.Controls.Add(Ui.BotonSi(aprueba, "Autorizar ajuste...", AddressOf Autorizar))
+        barraAcciones.Controls.Add(Ui.Boton("Imprimir hoja de conteo...", Sub() Imprimir(True)))
+        barraAcciones.Controls.Add(Ui.Boton("Imprimir resultado...", Sub() Imprimir(False)))
+        AddHandler cmbAlmacen.SelectedIndexChanged, Sub() CargarInventarios()
+        AddHandler gridInventarios.SelectionChanged, Sub() CargarHoja()
+        AddHandler chkCiego.CheckedChanged, Sub() CargarHoja()
         AddHandler Load, Sub() Ui.Ejecutar(Me, Sub()
                                                    For Each a In admin.ListarAlmacenes()
-                                                       _almacen.Items.Add(New Opcion(Of AlmacenResumen)(a, $"{a.Codigo} - {a.Nombre}"))
+                                                       cmbAlmacen.Items.Add(New Opcion(Of AlmacenResumen)(a, $"{a.Codigo} - {a.Nombre}"))
                                                    Next
-                                                   If _almacen.Items.Count > 0 Then _almacen.SelectedIndex = 0
+                                                   If cmbAlmacen.Items.Count > 0 Then cmbAlmacen.SelectedIndex = 0
                                                End Sub)
     End Sub
 
     Private ReadOnly Property AlmacenId As Long
         Get
-            Dim o = TryCast(_almacen.SelectedItem, Opcion(Of AlmacenResumen))
+            Dim o = TryCast(cmbAlmacen.SelectedItem, Opcion(Of AlmacenResumen))
             Return If(o Is Nothing, 0L, o.Valor.Id)
         End Get
     End Property
 
     Private ReadOnly Property Inventario As InventarioDto
         Get
-            Return Ui.Seleccionado(Of InventarioDto)(_inventarios)
+            Return Ui.Seleccionado(Of InventarioDto)(gridInventarios)
         End Get
     End Property
 
     Private Sub CargarInventarios()
         If AlmacenId = 0 Then Return
-        Ui.Ejecutar(Me, Sub() Ui.Mostrar(_inventarios, _servicio.Listar(AlmacenId), "Numero|Inventario", "Tipo|Tipo", "FechaCorte|Corte", "Estado|Estado"))
+        Ui.Ejecutar(Me, Sub() Ui.Mostrar(gridInventarios, _servicio.Listar(AlmacenId), "Numero|Inventario", "Tipo|Tipo", "FechaCorte|Corte", "Estado|Estado"))
     End Sub
 
     Private Sub CargarHoja()
         Dim i = Inventario
-        If i Is Nothing Then _hoja.DataSource = Nothing : _resumen.Text = "" : Return
+        If i Is Nothing Then gridHoja.DataSource = Nothing : lblResumen.Text = "" : Return
         Ui.Ejecutar(Me,
             Sub()
-                Ui.Mostrar(_hoja, _servicio.Hoja(i.Id, _ciego.Checked), "Descripcion|Producto", "Presentacion|Presentacion", "ContenidoEnvaseU6|Contenido por envase",
+                Ui.Mostrar(gridHoja, _servicio.Hoja(i.Id, chkCiego.Checked), "Descripcion|Producto", "Presentacion|Presentacion", "ContenidoEnvaseU6|Contenido por envase",
                            "Unidad|Unidad", "SistemaU6|Sistema al corte", "FisicoU6|Fisico", "DiferenciaU6|Diferencia", "ValorDiferenciaU6|Valor diferencia", "Resultado|Resultado")
                 Dim r = _servicio.Resumen(i.Id)
-                _resumen.Text = $"{r.Lineas} lineas, {r.SinContar} sin contar, {r.ConDiferencia} con diferencia" &
-                                If(_ciego.Checked, "", $"; faltante {Ui.Dinero(r.FaltanteValorU6)}, sobrante {Ui.Dinero(r.SobranteValorU6)}")
+                lblResumen.Text = $"{r.Lineas} lineas, {r.SinContar} sin contar, {r.ConDiferencia} con diferencia" &
+                                If(chkCiego.Checked, "", $"; faltante {Ui.Dinero(r.FaltanteValorU6)}, sobrante {Ui.Dinero(r.SobranteValorU6)}")
             End Sub)
     End Sub
 
@@ -92,14 +87,26 @@ Partial Public Class FormInventarios
         If AlmacenId = 0 Then Return
         Using d As New DialogoCampos(If(tipo = "general", "Inventario general", "Inventario rotativo"))
             d.Fecha("corte", "Fecha de corte", Date.Today)
-            If tipo = "rotativo" Then d.Texto("buscar", "Productos a contar (codigo o parte del nombre)")
+            If tipo = "rotativo" Then
+                d.Opciones("seleccion", "Productos a contar", {
+                    CObj(New Opcion(Of String)("texto", "Buscar por codigo o nombre")),
+                    CObj(New Opcion(Of String)("A", "Clase A (80 % del consumo)")),
+                    CObj(New Opcion(Of String)("B", "Clase B (15 % siguiente)")),
+                    CObj(New Opcion(Of String)("C", "Clase C (resto y sin consumo)"))})
+                d.Texto("buscar", "Texto a buscar (solo si elige buscar por codigo o nombre)")
+            End If
             If d.ShowDialog(Me) <> DialogResult.OK Then Return
             Ui.Ejecutar(Me,
                 Sub()
                     Dim variantes As IEnumerable(Of Long) = Nothing
                     If tipo = "rotativo" Then
-                        variantes = _catalogo.BuscarProductos(d.Valor("buscar")).Take(100).SelectMany(Function(p) _catalogo.ListarVariantes(p.Id)).Select(Function(v) v.Id).ToList()
-                        If Not variantes.Any() Then Ui.Informar(Me, "No se encontraron productos.") : Return
+                        Dim seleccion = d.Elegido(Of Opcion(Of String))("seleccion").Valor
+                        If seleccion = "texto" Then
+                            variantes = _catalogo.BuscarProductos(d.Valor("buscar")).Take(100).SelectMany(Function(p) _catalogo.ListarVariantes(p.Id)).Select(Function(v) v.Id).ToList()
+                        Else
+                            variantes = _servicio.ClasificarAbc(AlmacenId, Date.Today.AddDays(-90), Date.Today).Where(Function(x) x.Clase = seleccion).Select(Function(x) x.VarianteId).ToList()
+                        End If
+                        If Not variantes.Any() Then Ui.Informar(Me, "No se encontraron productos para esa seleccion.") : Return
                     End If
                     _servicio.Abrir(AlmacenId, d.FechaElegida("corte").Value, tipo, variantes)
                 End Sub)
@@ -108,7 +115,7 @@ Partial Public Class FormInventarios
     End Sub
 
     Private Sub ContarLinea()
-        Dim l = Ui.Seleccionado(Of LineaConteoDto)(_hoja)
+        Dim l = Ui.Seleccionado(Of LineaConteoDto)(gridHoja)
         If l Is Nothing Then Ui.Informar(Me, "Seleccione una linea de la hoja.") : Return
         Using d As New DialogoCampos("Conteo de " & l.Descripcion)
             d.Texto("envases", $"Envases completos ({l.Presentacion} de {Ui.Cantidad(l.ContenidoEnvaseU6)} {l.Unidad})").Texto("parcial", $"Parcial suelto ({l.Unidad})") _
@@ -147,10 +154,14 @@ Partial Public Class FormInventarios
         Dim i = Inventario
         If i Is Nothing Then Return
         Using d As New DialogoCampos("Autorizar ajuste de " & i.Numero)
-            d.Fecha("fecha", "Fecha del ajuste", Date.Today).Texto("motivo", "Motivo")
+            d.Fecha("fecha", "Fecha del ajuste", Date.Today)
+            d.Opciones("motivo", "Motivo del ajuste", MotivosAjuste.Todos.Select(Function(m) CObj(New Opcion(Of String)(m.Key, m.Value))))
+            d.Texto("explicacion", "Explicacion (obligatoria)")
+            d.Texto("soporte", "Documento de soporte (opcional)")
             If d.ShowDialog(Me) <> DialogResult.OK Then Return
             Ui.Ejecutar(Me, Sub()
-                                Dim r = _servicio.AutorizarAjuste(i.Id, d.FechaElegida("fecha").Value, d.Valor("motivo"))
+                                Dim r = _servicio.AutorizarAjusteNormalizado(i.Id, d.FechaElegida("fecha").Value,
+                                                                             d.Elegido(Of Opcion(Of String))("motivo").Valor, d.Valor("explicacion"), d.Valor("soporte"))
                                 Ui.Informar(Me, $"Ajuste aplicado: faltante {Ui.Dinero(r.FaltanteValorU6)}, sobrante {Ui.Dinero(r.SobranteValorU6)}.")
                             End Sub)
         End Using

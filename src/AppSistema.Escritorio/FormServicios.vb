@@ -5,51 +5,45 @@ Imports AppSistema.Datos
 Partial Public Class FormServicios
 
     Private ReadOnly _servicio As ServicioMinutas
-    Private ReadOnly _servicios As DataGridView = Ui.NuevaGrilla()
-    Private ReadOnly _estructuras As DataGridView = Ui.NuevaGrilla()
-    Private ReadOnly _operacion As DataGridView = Ui.NuevaGrilla()
 
     Public Sub New()
         InitializeComponent()
+        Ui.Configurar(gridServicios)
+        Ui.Configurar(gridEstructuras)
+        Ui.Configurar(gridOperacion)
     End Sub
 
     Public Sub New(cadena As String, sesion As SesionUsuario)
         InitializeComponent()
-        Controls.Clear()
+        Ui.Configurar(gridServicios)
+        Ui.Configurar(gridEstructuras)
+        Ui.Configurar(gridOperacion)
         _servicio = New ServicioMinutas(cadena, sesion)
         Text = "Servicios y estructuras"
-
-        Dim izquierda As New Panel With {.Dock = DockStyle.Fill}
-        izquierda.Controls.Add(_servicios)
-        izquierda.Controls.Add(Ui.BarraBotones(Ui.Boton("Nuevo servicio", AddressOf NuevoServicio), Ui.Boton("Nuevo regimen", AddressOf NuevoRegimen)))
-        Dim derecha As New SplitContainer With {.Dock = DockStyle.Fill, .Orientation = Orientation.Horizontal}
-        derecha.Panel1.Controls.Add(_estructuras)
-        derecha.Panel1.Controls.Add(Ui.BarraBotones(Ui.Boton("Nueva estructura", AddressOf NuevaEstructura), Ui.Boton("Factor de consumo...", AddressOf CambiarFactor)))
-        derecha.Panel1.Controls.Add(New Label With {.Text = "Estructura del servicio (orden en que se sirve). Factor de consumo = parte de los comensales que toma el componente.", .Dock = DockStyle.Top, .Padding = New Padding(4)})
-        derecha.Panel2.Controls.Add(_operacion)
-        derecha.Panel2.Controls.Add(Ui.BarraBotones(Ui.Boton("Asignar servicio a la operacion", AddressOf Asignar), Ui.Boton("Food Cost objetivo...", AddressOf FijarObjetivo)))
-        derecha.Panel2.Controls.Add(New Label With {.Text = "Servicios que presta " & sesion.Operacion.Nombre, .Dock = DockStyle.Top, .Padding = New Padding(4)})
-        Dim division As New SplitContainer With {.Dock = DockStyle.Fill}
-        division.Panel1.Controls.Add(izquierda) : division.Panel2.Controls.Add(derecha)
-        Controls.Add(division)
-
-        AddHandler _servicios.SelectionChanged, Sub() CargarEstructuras()
+        barraServicios.Controls.Add(Ui.Boton("Nuevo servicio", AddressOf NuevoServicio))
+        barraServicios.Controls.Add(Ui.Boton("Nuevo regimen", AddressOf NuevoRegimen))
+        barraEstructuras.Controls.Add(Ui.Boton("Nueva estructura", AddressOf NuevaEstructura))
+        barraEstructuras.Controls.Add(Ui.Boton("Factor de consumo...", AddressOf CambiarFactor))
+        barraOperacion.Controls.Add(Ui.Boton("Asignar servicio a la operacion", AddressOf Asignar))
+        barraOperacion.Controls.Add(Ui.Boton("Food Cost objetivo...", AddressOf FijarObjetivo))
+        lblOperacion.Text = "Servicios que presta " & sesion.Operacion.Nombre
+        AddHandler gridServicios.SelectionChanged, Sub() CargarEstructuras()
         AddHandler Load, Sub() Cargar()
     End Sub
 
     Private Sub Cargar()
         Ui.Ejecutar(Me,
             Sub()
-                Ui.Mostrar(_servicios, _servicio.ListarServicios(), "Codigo|Codigo", "Nombre|Servicio")
-                Ui.Mostrar(_operacion, _servicio.ListarServiciosDeOperacion(), "ServicioNombre|Servicio", "RegimenNombre|Regimen",
+                Ui.Mostrar(gridServicios, _servicio.ListarServicios(), "Codigo|Codigo", "Nombre|Servicio")
+                Ui.Mostrar(gridOperacion, _servicio.ListarServiciosDeOperacion(), "ServicioNombre|Servicio", "RegimenNombre|Regimen",
                            "CostoObjetivoRacionU6|Costo objetivo por racion", "FoodCostObjetivoTexto|Food Cost objetivo")
             End Sub)
     End Sub
 
     Private Sub CargarEstructuras()
-        Dim s = Ui.Seleccionado(Of ServicioDto)(_servicios)
-        If s Is Nothing Then _estructuras.DataSource = Nothing : Return
-        Ui.Ejecutar(Me, Sub() Ui.Mostrar(_estructuras, _servicio.ListarEstructuras(s.Id), "Orden|Orden", "Codigo|Codigo", "Nombre|Nombre", "FactorConsumoTexto|Factor de consumo"))
+        Dim s = Ui.Seleccionado(Of ServicioDto)(gridServicios)
+        If s Is Nothing Then gridEstructuras.DataSource = Nothing : Return
+        Ui.Ejecutar(Me, Sub() Ui.Mostrar(gridEstructuras, _servicio.ListarEstructuras(s.Id), "Orden|Orden", "Codigo|Codigo", "Nombre|Nombre", "FactorConsumoTexto|Factor de consumo"))
     End Sub
 
     Private Sub NuevoServicio()
@@ -70,10 +64,10 @@ Partial Public Class FormServicios
     End Sub
 
     Private Sub NuevaEstructura()
-        Dim s = Ui.Seleccionado(Of ServicioDto)(_servicios)
+        Dim s = Ui.Seleccionado(Of ServicioDto)(gridServicios)
         If s Is Nothing Then Ui.Informar(Me, "Seleccione un servicio.") : Return
         Using d As New DialogoCampos("Estructura de " & s.Nombre)
-            d.Texto("codigo", "Codigo").Texto("nombre", "Nombre (bebida, jugo, pan, fondo, complemento...)").Texto("orden", "Orden", (_estructuras.Rows.Count + 1).ToString()) _
+            d.Texto("codigo", "Codigo").Texto("nombre", "Nombre (bebida, jugo, pan, fondo, complemento...)").Texto("orden", "Orden", (gridEstructuras.Rows.Count + 1).ToString()) _
              .Texto("factor", "Factor de consumo % (100 plato caliente; 30-70 complementos)", "100")
             If d.ShowDialog(Me) <> DialogResult.OK Then Return
             Ui.Ejecutar(Me, Sub() _servicio.CrearEstructura(s.Id, d.Valor("codigo"), d.Valor("nombre"), Ui.LeerEntero(d.Valor("orden"), "orden"),
@@ -88,7 +82,7 @@ Partial Public Class FormServicios
     End Function
 
     Private Sub CambiarFactor()
-        Dim e = Ui.Seleccionado(Of EstructuraDto)(_estructuras)
+        Dim e = Ui.Seleccionado(Of EstructuraDto)(gridEstructuras)
         If e Is Nothing Then Ui.Informar(Me, "Seleccione un componente de la estructura.") : Return
         Using d As New DialogoCampos("Factor de consumo de " & e.Nombre)
             d.Texto("factor", "Factor de consumo %", (e.FactorConsumoBp / 100D).ToString("0.##"))
@@ -99,7 +93,7 @@ Partial Public Class FormServicios
     End Sub
 
     Private Sub FijarObjetivo()
-        Dim os = Ui.Seleccionado(Of OperacionServicioDto)(_operacion)
+        Dim os = Ui.Seleccionado(Of OperacionServicioDto)(gridOperacion)
         If os Is Nothing Then Ui.Informar(Me, "Seleccione un servicio de la operacion.") : Return
         Using d As New DialogoCampos($"Food Cost objetivo de {os.ServicioNombre} - {os.RegimenNombre}")
             d.Texto("objetivo", "Food Cost objetivo % (vacio = 48 %)", If(os.FoodCostObjetivoBp.HasValue, (os.FoodCostObjetivoBp.Value / 100D).ToString("0.##"), ""))

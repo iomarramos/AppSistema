@@ -8,10 +8,12 @@ Partial Public Class FormAuditoria
 
     Public Sub New()
         InitializeComponent()
+        Ui.Configurar(_filas)
     End Sub
 
     Public Sub New(cadena As String, sesion As SesionUsuario)
         InitializeComponent()
+        Ui.Configurar(_filas)
         _servicio = New ServicioAdministracion(cadena, sesion)
         _desde.Value = Date.Today.AddDays(-7)
 

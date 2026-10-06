@@ -12,50 +12,111 @@ Partial Class FormResultados
     End Sub
     <System.Diagnostics.DebuggerStepThrough()>
     Private Sub InitializeComponent()
-        Me.tabla = New System.Windows.Forms.TableLayoutPanel()
-        Me.lblTituloDiseno = New System.Windows.Forms.Label()
-        Me.grp1 = New System.Windows.Forms.GroupBox()
-        Me.grp1.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.grp1.Text = "Resultado por servicio"
-        Me.grp1.Name = "grp1"
-        Me.grp2 = New System.Windows.Forms.GroupBox()
-        Me.grp2.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.grp2.Text = "Gastos del mes"
-        Me.grp2.Name = "grp2"
-        Me.grp3 = New System.Windows.Forms.GroupBox()
-        Me.grp3.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.grp3.Text = "Margen / estado / exportación"
-        Me.grp3.Name = "grp3"
+        Me.lblDescripcion = New System.Windows.Forms.Label()
+        Me.divide = New System.Windows.Forms.SplitContainer()
+        Me.gridResultado = New System.Windows.Forms.DataGridView()
+        Me.lblEstado = New System.Windows.Forms.Label()
+        Me.gridGastos = New System.Windows.Forms.DataGridView()
+        Me.barraMes = New System.Windows.Forms.FlowLayoutPanel()
+        Me.lblMes = New System.Windows.Forms.Label()
+        Me.dtMes = New System.Windows.Forms.DateTimePicker()
+        CType(Me.divide, System.ComponentModel.ISupportInitialize).BeginInit()
+        Me.divide.Panel1.SuspendLayout()
+        Me.divide.Panel2.SuspendLayout()
+        Me.divide.SuspendLayout()
+        CType(Me.gridResultado, System.ComponentModel.ISupportInitialize).BeginInit()
+        CType(Me.gridGastos, System.ComponentModel.ISupportInitialize).BeginInit()
+        Me.barraMes.SuspendLayout()
         Me.SuspendLayout()
-        Me.tabla.ColumnCount = 1
-        Me.tabla.ColumnStyles.Add(New System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100.0!))
-        Me.tabla.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.tabla.Padding = New System.Windows.Forms.Padding(12)
-        Me.tabla.RowCount = 4
-        Me.tabla.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 48.0!))
-        Me.tabla.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 33.33!))
-        Me.tabla.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 33.33!))
-        Me.tabla.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 33.33!))
-        Me.lblTituloDiseno.AutoSize = True
-        Me.lblTituloDiseno.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.lblTituloDiseno.Font = New System.Drawing.Font("Segoe UI", 14.0!, System.Drawing.FontStyle.Bold)
-        Me.lblTituloDiseno.Text = "Gastos y resultado mensual"
-        Me.lblTituloDiseno.TextAlign = System.Drawing.ContentAlignment.MiddleLeft
-        Me.tabla.Controls.Add(Me.lblTituloDiseno, 0, 0)
-        Me.tabla.Controls.Add(Me.grp1, 0, 1)
-        Me.tabla.Controls.Add(Me.grp2, 0, 2)
-        Me.tabla.Controls.Add(Me.grp3, 0, 3)
-        Me.AutoScaleDimensions = New System.Drawing.SizeF(96.0!, 96.0!)
-        Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi
+        '
+        'divide
+        '
+        Me.divide.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.divide.Name = "divide"
+        Me.divide.Orientation = System.Windows.Forms.Orientation.Horizontal
+        Me.divide.SplitterDistance = 220
+        Me.divide.Panel1.Controls.Add(Me.gridResultado)
+        Me.divide.Panel1.Controls.Add(Me.lblEstado)
+        Me.divide.Panel2.Controls.Add(Me.gridGastos)
+        '
+        'gridResultado
+        '
+        Me.gridResultado.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.gridResultado.Name = "gridResultado"
+        Me.gridResultado.AccessibleName = "Resultado"
+        '
+        'lblEstado
+        '
+        Me.lblEstado.Dock = System.Windows.Forms.DockStyle.Bottom
+        Me.lblEstado.Height = 28
+        Me.lblEstado.Name = "lblEstado"
+        Me.lblEstado.Padding = New System.Windows.Forms.Padding(6)
+        '
+        'gridGastos
+        '
+        Me.gridGastos.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.gridGastos.Name = "gridGastos"
+        Me.gridGastos.AccessibleName = "Gastos"
+        '
+        'lblDescripcion
+        '
+        Me.lblDescripcion.Dock = System.Windows.Forms.DockStyle.Top
+        Me.lblDescripcion.Height = 34
+        Me.lblDescripcion.Name = "lblDescripcion"
+        Me.lblDescripcion.Padding = New System.Windows.Forms.Padding(4)
+        Me.lblDescripcion.Text = "Margen = ingreso - alimentos consumidos - gastos reales. Los gastos presupuestados solo se comparan. Bajas y ajustes de inventario van en 'No asignado'."
+        '
+        'barraMes
+        '
+        Me.barraMes.AutoSize = True
+        Me.barraMes.Dock = System.Windows.Forms.DockStyle.Top
+        Me.barraMes.Controls.Add(Me.lblMes)
+        Me.barraMes.Controls.Add(Me.dtMes)
+        Me.barraMes.Name = "barraMes"
+        '
+        'lblMes
+        '
+        Me.lblMes.AutoSize = True
+        Me.lblMes.Margin = New System.Windows.Forms.Padding(3, 9, 3, 3)
+        Me.lblMes.Name = "lblMes"
+        Me.lblMes.Text = "Mes"
+        '
+        'dtMes
+        '
+        Me.dtMes.CustomFormat = "MM/yyyy"
+        Me.dtMes.Format = System.Windows.Forms.DateTimePickerFormat.Custom
+        Me.dtMes.Name = "dtMes"
+        Me.dtMes.AccessibleName = "Mes"
+        Me.dtMes.ShowUpDown = True
+        Me.dtMes.Width = 90
+        '
+        'FormResultados
+        '
+        Me.AutoScaleDimensions = New System.Drawing.SizeF(7.0!, 15.0!)
+        Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
         Me.ClientSize = New System.Drawing.Size(1100, 720)
-        Me.Controls.Add(Me.tabla)
+        Me.Controls.Add(Me.divide)
+        Me.Controls.Add(Me.lblDescripcion)
+        Me.Controls.Add(Me.barraMes)
         Me.Name = "FormResultados"
         Me.Text = "Gastos y resultado mensual"
+        Me.divide.Panel1.ResumeLayout(False)
+        Me.divide.Panel1.PerformLayout()
+        Me.divide.Panel2.ResumeLayout(False)
+        CType(Me.divide, System.ComponentModel.ISupportInitialize).EndInit()
+        Me.divide.ResumeLayout(False)
+        CType(Me.gridResultado, System.ComponentModel.ISupportInitialize).EndInit()
+        CType(Me.gridGastos, System.ComponentModel.ISupportInitialize).EndInit()
+        Me.barraMes.ResumeLayout(False)
+        Me.barraMes.PerformLayout()
         Me.ResumeLayout(False)
     End Sub
-    Friend WithEvents tabla As System.Windows.Forms.TableLayoutPanel
-    Friend WithEvents lblTituloDiseno As System.Windows.Forms.Label
-    Friend WithEvents grp1 As System.Windows.Forms.GroupBox
-    Friend WithEvents grp2 As System.Windows.Forms.GroupBox
-    Friend WithEvents grp3 As System.Windows.Forms.GroupBox
+    Friend WithEvents lblDescripcion As System.Windows.Forms.Label
+    Friend WithEvents divide As System.Windows.Forms.SplitContainer
+    Friend WithEvents gridResultado As System.Windows.Forms.DataGridView
+    Friend WithEvents lblEstado As System.Windows.Forms.Label
+    Friend WithEvents gridGastos As System.Windows.Forms.DataGridView
+    Friend WithEvents barraMes As System.Windows.Forms.FlowLayoutPanel
+    Friend WithEvents lblMes As System.Windows.Forms.Label
+    Friend WithEvents dtMes As System.Windows.Forms.DateTimePicker
 End Class

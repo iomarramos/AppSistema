@@ -10,68 +10,55 @@ Partial Public Class FormMinutas
     Private ReadOnly _catalogo As ServicioCatalogo
     Private ReadOnly _comparativo As ServicioComparativo
     Private ReadOnly _reportes As ServicioReportes
-    Private ReadOnly _desde As New DateTimePicker With {.Format = DateTimePickerFormat.Short, .Width = 110}
-    Private ReadOnly _hasta As New DateTimePicker With {.Format = DateTimePickerFormat.Short, .Width = 110}
-    Private ReadOnly _minutas As DataGridView = Ui.NuevaGrilla()
-    Private ReadOnly _platos As DataGridView = Ui.NuevaGrilla()
-    Private ReadOnly _fijos As DataGridView = Ui.NuevaGrilla()
 
     Public Sub New()
         InitializeComponent()
+        Ui.Configurar(gridMinutas)
+        Ui.Configurar(gridPlatos)
+        Ui.Configurar(gridFijos)
     End Sub
 
     Public Sub New(cadena As String, sesion As SesionUsuario)
         InitializeComponent()
-        Controls.Clear()
+        Ui.Configurar(gridMinutas)
+        Ui.Configurar(gridPlatos)
+        Ui.Configurar(gridFijos)
         _servicio = New ServicioMinutas(cadena, sesion)
         _recetas = New ServicioRecetas(cadena, sesion)
         _catalogo = New ServicioCatalogo(cadena, sesion)
         _comparativo = New ServicioComparativo(cadena, sesion)
         _reportes = New ServicioReportes(cadena, sesion)
         Text = "Minutas - " & sesion.Operacion.Nombre
-        _desde.Value = Date.Today.AddDays(-Date.Today.Day + 1)
-        _hasta.Value = _desde.Value.AddMonths(1).AddDays(-1)
+        dtDesde.Value = Date.Today.AddDays(-Date.Today.Day + 1)
+        dtHasta.Value = dtDesde.Value.AddMonths(1).AddDays(-1)
 
         Dim edita = sesion.Tiene(Permisos.MinutasEditar)
         Dim aprueba = sesion.Tiene(Permisos.MinutasAprobar)
-        Dim barraMinutas = Ui.BarraBotones(New Label With {.Text = "Desde", .AutoSize = True, .Margin = New Padding(3, 9, 3, 3)}, _desde,
-                                           New Label With {.Text = "hasta", .AutoSize = True, .Margin = New Padding(3, 9, 3, 3)}, _hasta,
-                                           Ui.Boton("Ver", AddressOf CargarMinutas),
-                                           Ui.BotonSi(edita, "Nueva minuta", AddressOf NuevaMinuta),
-                                           Ui.BotonSi(edita, "Cambiar comensales...", AddressOf CambiarComensales),
-                                           Ui.BotonSi(aprueba, "Aprobar", AddressOf Aprobar),
-                                           Ui.BotonSi(sesion.Tiene(Permisos.FactoresEditar), "Factores de la operacion...", AddressOf FactoresOperacion),
-                                           Ui.Boton("Necesidades del periodo...", AddressOf Necesidades),
-                                           Ui.Boton("Imprimir minuta...", AddressOf ImprimirMinuta))
-        Dim barraPlatos = Ui.BarraBotones(Ui.Boton("Agregar plato", AddressOf AgregarPlato), Ui.Boton("Quitar plato", AddressOf QuitarPlato),
-                                          Ui.Boton("Agregar fijo", AddressOf AgregarFijo), Ui.Boton("Quitar fijo", AddressOf QuitarFijo))
+        barraMinutas.Controls.Add(Ui.Boton("Ver", AddressOf CargarMinutas))
+        barraMinutas.Controls.Add(Ui.BotonSi(edita, "Nueva minuta", AddressOf NuevaMinuta))
+        barraMinutas.Controls.Add(Ui.BotonSi(edita, "Cambiar comensales...", AddressOf CambiarComensales))
+        barraMinutas.Controls.Add(Ui.BotonSi(aprueba, "Aprobar", AddressOf Aprobar))
+        barraMinutas.Controls.Add(Ui.BotonSi(sesion.Tiene(Permisos.FactoresEditar), "Factores de la operacion...", AddressOf FactoresOperacion))
+        barraMinutas.Controls.Add(Ui.Boton("Necesidades del periodo...", AddressOf Necesidades))
+        barraMinutas.Controls.Add(Ui.Boton("Imprimir minuta...", AddressOf ImprimirMinuta))
+        barraPlatos.Controls.Add(Ui.Boton("Agregar plato", AddressOf AgregarPlato))
+        barraPlatos.Controls.Add(Ui.Boton("Quitar plato", AddressOf QuitarPlato))
+        barraPlatos.Controls.Add(Ui.Boton("Agregar fijo", AddressOf AgregarFijo))
+        barraPlatos.Controls.Add(Ui.Boton("Quitar fijo", AddressOf QuitarFijo))
         barraPlatos.Visible = edita
 
-        Dim arriba As New Panel With {.Dock = DockStyle.Fill}
-        arriba.Controls.Add(_minutas) : arriba.Controls.Add(barraMinutas)
-        Dim abajo As New SplitContainer With {.Dock = DockStyle.Fill}
-        abajo.Panel1.Controls.Add(_platos)
-        abajo.Panel1.Controls.Add(New Label With {.Text = "Platos (costo previsto fijado al aprobar; 'pendiente' = falta precio)", .Dock = DockStyle.Top, .Padding = New Padding(4)})
-        abajo.Panel2.Controls.Add(_fijos)
-        abajo.Panel2.Controls.Add(New Label With {.Text = "Fijos (productos fuera de recetas, cantidad total)", .Dock = DockStyle.Top, .Padding = New Padding(4)})
-        Dim inferior As New Panel With {.Dock = DockStyle.Fill}
-        inferior.Controls.Add(abajo) : inferior.Controls.Add(barraPlatos)
-        Dim division As New SplitContainer With {.Dock = DockStyle.Fill, .Orientation = Orientation.Horizontal}
-        division.Panel1.Controls.Add(arriba) : division.Panel2.Controls.Add(inferior)
-        Controls.Add(division)
-
-        AddHandler _minutas.SelectionChanged, Sub() CargarDetalle()
+        AddHandler gridMinutas.SelectionChanged, Sub() CargarDetalle()
         AddHandler Load, Sub() CargarMinutas()
     End Sub
 
     Private ReadOnly Property Minuta As MinutaDto
         Get
-            Return Ui.Seleccionado(Of MinutaDto)(_minutas)
+            Return Ui.Seleccionado(Of MinutaDto)(gridMinutas)
         End Get
     End Property
 
     Private Sub CargarMinutas()
-        Ui.Ejecutar(Me, Sub() Ui.Mostrar(_minutas, _servicio.ListarMinutas(_desde.Value, _hasta.Value),
+        Ui.Ejecutar(Me, Sub() Ui.Mostrar(gridMinutas, _servicio.ListarMinutas(dtDesde.Value, dtHasta.Value),
                                          "Fecha|Fecha", "ServicioNombre|Servicio", "RegimenNombre|Regimen", "Comensales|Comensales",
                                          "Estado|Estado", "MonedaCosteo|Moneda", "CostoPrevistoU6|Costo previsto", "CostoComensalU6|Costo por comensal",
                                          "VentaPrevistaU6|Venta (costo / FC objetivo)", "PrecioVentaComensalU6|Precio de venta por comensal"))
@@ -79,12 +66,12 @@ Partial Public Class FormMinutas
 
     Private Sub CargarDetalle()
         Dim m = Minuta
-        If m Is Nothing Then _platos.DataSource = Nothing : _fijos.DataSource = Nothing : Return
+        If m Is Nothing Then gridPlatos.DataSource = Nothing : gridFijos.DataSource = Nothing : Return
         Ui.Ejecutar(Me,
             Sub()
-                Ui.Mostrar(_platos, _servicio.ListarPlatos(m.Id), "EstructuraNombre|Estructura", "RecetaCodigo|Receta", "RecetaNombre|Nombre",
+                Ui.Mostrar(gridPlatos, _servicio.ListarPlatos(m.Id), "EstructuraNombre|Estructura", "RecetaCodigo|Receta", "RecetaNombre|Nombre",
                            "Version|Version", "Raciones|Raciones", "CostoPrevistoRacionU6|Costo por racion", "IngredientesSinCosto|Sin precio")
-                Ui.Mostrar(_fijos, _servicio.ListarFijos(m.Id), "ProductoDescripcion|Producto", "CantidadBaseU6|Cantidad", "Unidad|Unidad",
+                Ui.Mostrar(gridFijos, _servicio.ListarFijos(m.Id), "ProductoDescripcion|Producto", "CantidadBaseU6|Cantidad", "Unidad|Unidad",
                            "CostoPrevistoUnitarioU6|Costo unitario")
             End Sub)
     End Sub
@@ -153,7 +140,7 @@ Partial Public Class FormMinutas
     End Sub
 
     Private Sub QuitarPlato()
-        Dim p = Ui.Seleccionado(Of PlatoDto)(_platos)
+        Dim p = Ui.Seleccionado(Of PlatoDto)(gridPlatos)
         If p Is Nothing OrElse MinutaBorrador() Is Nothing Then Return
         Ui.Ejecutar(Me, Sub() _servicio.QuitarPlato(p.Id))
         CargarDetalle()
@@ -181,7 +168,7 @@ Partial Public Class FormMinutas
     End Sub
 
     Private Sub QuitarFijo()
-        Dim f = Ui.Seleccionado(Of FijoMinutaDto)(_fijos)
+        Dim f = Ui.Seleccionado(Of FijoMinutaDto)(gridFijos)
         If f Is Nothing OrElse MinutaBorrador() Is Nothing Then Return
         Ui.Ejecutar(Me, Sub() _servicio.QuitarFijo(f.Id))
         CargarDetalle()
@@ -206,10 +193,10 @@ Partial Public Class FormMinutas
     End Sub
 
     Private Sub Necesidades()
-        Dim ids = _minutas.Rows.Cast(Of DataGridViewRow)().Select(Function(r) DirectCast(r.DataBoundItem, MinutaDto).Id).ToList()
+        Dim ids = gridMinutas.Rows.Cast(Of DataGridViewRow)().Select(Function(r) DirectCast(r.DataBoundItem, MinutaDto).Id).ToList()
         If ids.Count = 0 Then Ui.Informar(Me, "No hay minutas en el periodo.") : Return
         Ui.Ejecutar(Me, Sub() Ui.MostrarLista(Me, "Necesidades consolidadas",
-                                               $"{ids.Count} minuta(s) del {_desde.Value.ToShortDateString()} al {_hasta.Value.ToShortDateString()} (borradores incluidos). " &
+                                               $"{ids.Count} minuta(s) del {dtDesde.Value.ToShortDateString()} al {dtHasta.Value.ToShortDateString()} (borradores incluidos). " &
                                                "Cantidad bruta en unidad base; cada producto aparece una sola vez.",
                                                _servicio.Necesidades(ids), "ProductoCodigo|Codigo", "ProductoDescripcion|Producto", "CantidadU6|Cantidad",
                                                "Unidad|Unidad", "Origenes|Platos y fijos"))

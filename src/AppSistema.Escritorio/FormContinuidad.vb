@@ -14,33 +14,26 @@ Partial Public Class FormContinuidad
     Private ReadOnly _config As Configuracion
     Private ReadOnly _sesion As SesionUsuario
     Private _servicio As ServicioContinuidad
-    Private ReadOnly _estado As New Label With {.Dock = DockStyle.Top, .Height = 64, .Padding = New Padding(6)}
-    Private ReadOnly _sedes As DataGridView = Ui.NuevaGrilla()
 
     Public Sub New()
         InitializeComponent()
+        Ui.Configurar(gridSedes)
     End Sub
 
     Public Sub New(config As Configuracion, sesion As SesionUsuario)
         InitializeComponent()
-        Controls.Clear()
+        Ui.Configurar(gridSedes)
         _config = config
         _sesion = sesion
         Text = "Sincronizacion y respaldo"
-        Dim sede = Ui.BarraBotones(New Label With {.Text = "Esta sede:", .AutoSize = True, .Margin = New Padding(3, 9, 3, 3)},
-                                   Ui.Boton("Actualizar estado", AddressOf RefrescarEstado), Ui.Boton("Configurar sede...", AddressOf ConfigurarSede),
-                                   Ui.Boton("Enviar ahora...", AddressOf EnviarAhora), Ui.Boton("Respaldar ahora...", AddressOf Respaldar),
-                                   Ui.Boton("Ver conciliacion", AddressOf VerConciliacion))
-        Dim central = Ui.BarraBotones(New Label With {.Text = "Central:", .AutoSize = True, .Margin = New Padding(3, 9, 3, 3)},
-                                      Ui.Boton("Ver sedes", AddressOf CargarSedes), Ui.Boton("Registrar sede...", AddressOf RegistrarSede),
-                                      Ui.Boton("Desactivar sede", AddressOf DesactivarSede))
-        Controls.Add(_sedes)
-        Controls.Add(central)
-        Controls.Add(_estado)
-        Controls.Add(sede)
-        Controls.Add(New Label With {.Dock = DockStyle.Top, .Height = 50, .Padding = New Padding(4),
-            .Text = "Para TI. La sincronizacion programada la hace herramientas/windows/programar_sede.ps1; aqui se revisa y se fuerza. " &
-                    "Respaldar requiere pg_dump en esta PC (normalmente, el servidor de la sede). Restaurar y actualizar: solo con el Instalador y sin usuarios conectados."})
+        barraSede.Controls.Add(Ui.Boton("Actualizar estado", AddressOf RefrescarEstado))
+        barraSede.Controls.Add(Ui.Boton("Configurar sede...", AddressOf ConfigurarSede))
+        barraSede.Controls.Add(Ui.Boton("Enviar ahora...", AddressOf EnviarAhora))
+        barraSede.Controls.Add(Ui.Boton("Respaldar ahora...", AddressOf Respaldar))
+        barraSede.Controls.Add(Ui.Boton("Ver conciliacion", AddressOf VerConciliacion))
+        barraCentral.Controls.Add(Ui.Boton("Ver sedes", AddressOf CargarSedes))
+        barraCentral.Controls.Add(Ui.Boton("Registrar sede...", AddressOf RegistrarSede))
+        barraCentral.Controls.Add(Ui.Boton("Desactivar sede", AddressOf DesactivarSede))
         AddHandler Load, Sub()
                              If Not PedirConexionPropietario() Then
                                  BeginInvoke(New Action(AddressOf Close))
@@ -75,7 +68,7 @@ Partial Public Class FormContinuidad
         If _servicio Is Nothing Then Return
         Dim e As EstadoColaDto = Nothing
         If Not Ui.Ejecutar(Me, Sub() e = _servicio.EstadoCola(_sesion.EmpresaCodigo)) Then Return
-        _estado.Text = $"Sede: {If(e.Origen, "(sin configurar: use 'Configurar sede...')")}. Cola: {e.Pendientes:N0} pendientes, {e.ConError:N0} con error, " &
+        lblEstado.Text = $"Sede: {If(e.Origen, "(sin configurar: use 'Configurar sede...')")}. Cola: {e.Pendientes:N0} pendientes, {e.ConError:N0} con error, " &
                        $"{e.EnConflicto:N0} en conflicto, {e.Enviados:N0} enviados." & vbCrLf &
                        $"Ultimo envio: {If(e.UltimoEnvio.HasValue, e.UltimoEnvio.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm"), "nunca")}" &
                        If(e.UltimoError Is Nothing, "", $". Ultimo error: {e.UltimoError}")
@@ -131,7 +124,7 @@ Partial Public Class FormContinuidad
 
     Private Sub CargarSedes()
         If _servicio Is Nothing Then Return
-        Ui.Ejecutar(Me, Sub() Ui.Mostrar(_sedes, _servicio.ResumenCentral(_sesion.EmpresaCodigo), "Sede|Sede", "Nombre|Nombre", "Activa|Activa",
+        Ui.Ejecutar(Me, Sub() Ui.Mostrar(gridSedes, _servicio.ResumenCentral(_sesion.EmpresaCodigo), "Sede|Sede", "Nombre|Nombre", "Activa|Activa",
                                          "UltimaSincronizacion|Ultima sincronizacion", "UltimaSecuenciaAplicada|Secuencia", "Documentos|Documentos",
                                          "ValorStockU6|Valor stock", "Retenidos|Retenidos", "Conflictos|Conflictos", "MotivoRetencion|Motivo de retencion"))
     End Sub
@@ -151,7 +144,7 @@ Partial Public Class FormContinuidad
     End Sub
 
     Private Sub DesactivarSede()
-        Dim s = Ui.Seleccionado(Of SedeCentralDto)(_sedes)
+        Dim s = Ui.Seleccionado(Of SedeCentralDto)(gridSedes)
         If s Is Nothing OrElse _servicio Is Nothing Then Ui.Informar(Me, "Seleccione una sede (Ver sedes).") : Return
         If Not Ui.Confirmar(Me, $"Desactivar la sede {s.Sede}? La central rechazara sus envios hasta registrarla de nuevo.") Then Return
         Ui.Ejecutar(Me, Sub() _servicio.DesactivarSede(_sesion.EmpresaCodigo, s.Sede))

@@ -12,78 +12,72 @@ Partial Class FormCargaReal
     End Sub
     <System.Diagnostics.DebuggerStepThrough()>
     Private Sub InitializeComponent()
-        Me.tabla = New System.Windows.Forms.TableLayoutPanel()
-        Me.lblTituloDiseno = New System.Windows.Forms.Label()
-        Me.grp1 = New System.Windows.Forms.GroupBox()
-        Me.grp1.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.grp1.Text = "1. Catálogo y productos"
-        Me.grp1.Name = "grp1"
-        Me.grp2 = New System.Windows.Forms.GroupBox()
-        Me.grp2.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.grp2.Text = "2. Precios y proveedores"
-        Me.grp2.Name = "grp2"
-        Me.grp3 = New System.Windows.Forms.GroupBox()
-        Me.grp3.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.grp3.Text = "3. Recetas reales"
-        Me.grp3.Name = "grp3"
-        Me.grp4 = New System.Windows.Forms.GroupBox()
-        Me.grp4.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.grp4.Text = "4. Insumos sin costo"
-        Me.grp4.Name = "grp4"
-        Me.grp5 = New System.Windows.Forms.GroupBox()
-        Me.grp5.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.grp5.Text = "5. Inventario inicial"
-        Me.grp5.Name = "grp5"
-        Me.grp6 = New System.Windows.Forms.GroupBox()
-        Me.grp6.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.grp6.Text = "6. Estructuras de servicio"
-        Me.grp6.Name = "grp6"
-        Me.grp7 = New System.Windows.Forms.GroupBox()
-        Me.grp7.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.grp7.Text = "7. Ciclo de menú"
-        Me.grp7.Name = "grp7"
+        Me.txtResultado = New System.Windows.Forms.TextBox()
+        Me.lblResultado = New System.Windows.Forms.Label()
+        Me.lblEstado = New System.Windows.Forms.Label()
+        Me.tablaPasos = New System.Windows.Forms.TableLayoutPanel()
+        Me.lblDescripcion = New System.Windows.Forms.Label()
         Me.SuspendLayout()
-        Me.tabla.ColumnCount = 1
-        Me.tabla.ColumnStyles.Add(New System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100.0!))
-        Me.tabla.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.tabla.Padding = New System.Windows.Forms.Padding(12)
-        Me.tabla.RowCount = 8
-        Me.tabla.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 48.0!))
-        Me.tabla.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 14.29!))
-        Me.tabla.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 14.29!))
-        Me.tabla.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 14.29!))
-        Me.tabla.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 14.29!))
-        Me.tabla.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 14.29!))
-        Me.tabla.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 14.29!))
-        Me.tabla.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 14.29!))
-        Me.lblTituloDiseno.AutoSize = True
-        Me.lblTituloDiseno.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.lblTituloDiseno.Font = New System.Drawing.Font("Segoe UI", 14.0!, System.Drawing.FontStyle.Bold)
-        Me.lblTituloDiseno.Text = "Carga de datos reales"
-        Me.lblTituloDiseno.TextAlign = System.Drawing.ContentAlignment.MiddleLeft
-        Me.tabla.Controls.Add(Me.lblTituloDiseno, 0, 0)
-        Me.tabla.Controls.Add(Me.grp1, 0, 1)
-        Me.tabla.Controls.Add(Me.grp2, 0, 2)
-        Me.tabla.Controls.Add(Me.grp3, 0, 3)
-        Me.tabla.Controls.Add(Me.grp4, 0, 4)
-        Me.tabla.Controls.Add(Me.grp5, 0, 5)
-        Me.tabla.Controls.Add(Me.grp6, 0, 6)
-        Me.tabla.Controls.Add(Me.grp7, 0, 7)
-        Me.AutoScaleDimensions = New System.Drawing.SizeF(96.0!, 96.0!)
-        Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi
+        '
+        'txtResultado
+        '
+        Me.txtResultado.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.txtResultado.Font = New System.Drawing.Font("Consolas", 9.0!)
+        Me.txtResultado.Multiline = True
+        Me.txtResultado.Name = "txtResultado"
+        Me.txtResultado.AccessibleName = "Resultado"
+        Me.txtResultado.ReadOnly = True
+        Me.txtResultado.ScrollBars = System.Windows.Forms.ScrollBars.Both
+        Me.txtResultado.WordWrap = False
+        '
+        'lblResultado
+        '
+        Me.lblResultado.Dock = System.Windows.Forms.DockStyle.Top
+        Me.lblResultado.Height = 22
+        Me.lblResultado.Name = "lblResultado"
+        Me.lblResultado.Padding = New System.Windows.Forms.Padding(6, 4, 4, 0)
+        Me.lblResultado.Text = "Resultado de la ultima carga:"
+        '
+        'lblEstado
+        '
+        Me.lblEstado.Dock = System.Windows.Forms.DockStyle.Top
+        Me.lblEstado.Height = 84
+        Me.lblEstado.Name = "lblEstado"
+        Me.lblEstado.Padding = New System.Windows.Forms.Padding(6)
+        '
+        'tablaPasos
+        '
+        Me.tablaPasos.AutoSize = True
+        Me.tablaPasos.ColumnCount = 3
+        Me.tablaPasos.Dock = System.Windows.Forms.DockStyle.Top
+        Me.tablaPasos.Name = "tablaPasos"
+        Me.tablaPasos.Padding = New System.Windows.Forms.Padding(6)
+        '
+        'lblDescripcion
+        '
+        Me.lblDescripcion.Dock = System.Windows.Forms.DockStyle.Top
+        Me.lblDescripcion.Height = 34
+        Me.lblDescripcion.Name = "lblDescripcion"
+        Me.lblDescripcion.Padding = New System.Windows.Forms.Padding(4)
+        Me.lblDescripcion.Text = "Siga los pasos en orden. Cada paso se puede repetir: lo que ya existe no se duplica ni se pisa. Los archivos los genera herramientas/ordenar_datos_reales.py (ver datos/real/LEEME.md)."
+        '
+        'FormCargaReal
+        '
+        Me.AutoScaleDimensions = New System.Drawing.SizeF(7.0!, 15.0!)
+        Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
         Me.ClientSize = New System.Drawing.Size(1100, 720)
-        Me.Controls.Add(Me.tabla)
+        Me.Controls.Add(Me.txtResultado)
+        Me.Controls.Add(Me.lblResultado)
+        Me.Controls.Add(Me.lblEstado)
+        Me.Controls.Add(Me.tablaPasos)
+        Me.Controls.Add(Me.lblDescripcion)
         Me.Name = "FormCargaReal"
         Me.Text = "Carga de datos reales"
         Me.ResumeLayout(False)
     End Sub
-    Friend WithEvents tabla As System.Windows.Forms.TableLayoutPanel
-    Friend WithEvents lblTituloDiseno As System.Windows.Forms.Label
-    Friend WithEvents grp1 As System.Windows.Forms.GroupBox
-    Friend WithEvents grp2 As System.Windows.Forms.GroupBox
-    Friend WithEvents grp3 As System.Windows.Forms.GroupBox
-    Friend WithEvents grp4 As System.Windows.Forms.GroupBox
-    Friend WithEvents grp5 As System.Windows.Forms.GroupBox
-    Friend WithEvents grp6 As System.Windows.Forms.GroupBox
-    Friend WithEvents grp7 As System.Windows.Forms.GroupBox
+    Friend WithEvents txtResultado As System.Windows.Forms.TextBox
+    Friend WithEvents lblResultado As System.Windows.Forms.Label
+    Friend WithEvents lblEstado As System.Windows.Forms.Label
+    Friend WithEvents tablaPasos As System.Windows.Forms.TableLayoutPanel
+    Friend WithEvents lblDescripcion As System.Windows.Forms.Label
 End Class

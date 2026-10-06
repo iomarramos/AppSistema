@@ -12,57 +12,150 @@ Partial Class FormProduccion
     End Sub
     <System.Diagnostics.DebuggerStepThrough()>
     Private Sub InitializeComponent()
-        Me.tabla = New System.Windows.Forms.TableLayoutPanel()
-        Me.lblTituloDiseno = New System.Windows.Forms.Label()
-        Me.grp1 = New System.Windows.Forms.GroupBox()
-        Me.grp1.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.grp1.Text = "Servicio / requerimiento"
-        Me.grp1.Name = "grp1"
-        Me.grp2 = New System.Windows.Forms.GroupBox()
-        Me.grp2.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.grp2.Text = "Entregas y adicionales"
-        Me.grp2.Name = "grp2"
-        Me.grp3 = New System.Windows.Forms.GroupBox()
-        Me.grp3.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.grp3.Text = "Producción / raciones"
-        Me.grp3.Name = "grp3"
-        Me.grp4 = New System.Windows.Forms.GroupBox()
-        Me.grp4.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.grp4.Text = "Consumo real / devoluciones / mermas"
-        Me.grp4.Name = "grp4"
+        Me.divPrincipal = New System.Windows.Forms.SplitContainer()
+        Me.gridMinutas = New System.Windows.Forms.DataGridView()
+        Me.divRequerimientos = New System.Windows.Forms.SplitContainer()
+        Me.gridRequerimientos = New System.Windows.Forms.DataGridView()
+        Me.gridLineas = New System.Windows.Forms.DataGridView()
+        Me.lblNota = New System.Windows.Forms.Label()
+        Me.barraReal = New System.Windows.Forms.FlowLayoutPanel()
+        Me.lblReal = New System.Windows.Forms.Label()
+        Me.barraFecha = New System.Windows.Forms.FlowLayoutPanel()
+        Me.lblFecha = New System.Windows.Forms.Label()
+        Me.dtFecha = New System.Windows.Forms.DateTimePicker()
+        CType(Me.divPrincipal, System.ComponentModel.ISupportInitialize).BeginInit()
+        Me.divPrincipal.Panel1.SuspendLayout()
+        Me.divPrincipal.Panel2.SuspendLayout()
+        Me.divPrincipal.SuspendLayout()
+        CType(Me.gridMinutas, System.ComponentModel.ISupportInitialize).BeginInit()
+        CType(Me.divRequerimientos, System.ComponentModel.ISupportInitialize).BeginInit()
+        Me.divRequerimientos.Panel1.SuspendLayout()
+        Me.divRequerimientos.Panel2.SuspendLayout()
+        Me.divRequerimientos.SuspendLayout()
+        CType(Me.gridRequerimientos, System.ComponentModel.ISupportInitialize).BeginInit()
+        CType(Me.gridLineas, System.ComponentModel.ISupportInitialize).BeginInit()
+        Me.barraReal.SuspendLayout()
+        Me.barraFecha.SuspendLayout()
         Me.SuspendLayout()
-        Me.tabla.ColumnCount = 1
-        Me.tabla.ColumnStyles.Add(New System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100.0!))
-        Me.tabla.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.tabla.Padding = New System.Windows.Forms.Padding(12)
-        Me.tabla.RowCount = 5
-        Me.tabla.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 48.0!))
-        Me.tabla.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 25.00!))
-        Me.tabla.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 25.00!))
-        Me.tabla.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 25.00!))
-        Me.tabla.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 25.00!))
-        Me.lblTituloDiseno.AutoSize = True
-        Me.lblTituloDiseno.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.lblTituloDiseno.Font = New System.Drawing.Font("Segoe UI", 14.0!, System.Drawing.FontStyle.Bold)
-        Me.lblTituloDiseno.Text = "Producción y despacho"
-        Me.lblTituloDiseno.TextAlign = System.Drawing.ContentAlignment.MiddleLeft
-        Me.tabla.Controls.Add(Me.lblTituloDiseno, 0, 0)
-        Me.tabla.Controls.Add(Me.grp1, 0, 1)
-        Me.tabla.Controls.Add(Me.grp2, 0, 2)
-        Me.tabla.Controls.Add(Me.grp3, 0, 3)
-        Me.tabla.Controls.Add(Me.grp4, 0, 4)
-        Me.AutoScaleDimensions = New System.Drawing.SizeF(96.0!, 96.0!)
-        Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi
+        '
+        'divPrincipal
+        '
+        Me.divPrincipal.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.divPrincipal.Name = "divPrincipal"
+        Me.divPrincipal.Orientation = System.Windows.Forms.Orientation.Horizontal
+        Me.divPrincipal.Panel1.Controls.Add(Me.gridMinutas)
+        Me.divPrincipal.Panel2.Controls.Add(Me.divRequerimientos)
+        '
+        'gridMinutas
+        '
+        Me.gridMinutas.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.gridMinutas.Name = "gridMinutas"
+        Me.gridMinutas.AccessibleName = "Minutas"
+        '
+        'divRequerimientos
+        '
+        Me.divRequerimientos.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.divRequerimientos.Name = "divRequerimientos"
+        Me.divRequerimientos.Panel1.Controls.Add(Me.gridRequerimientos)
+        Me.divRequerimientos.Panel2.Controls.Add(Me.gridLineas)
+        '
+        'gridRequerimientos
+        '
+        Me.gridRequerimientos.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.gridRequerimientos.Name = "gridRequerimientos"
+        Me.gridRequerimientos.AccessibleName = "Requerimientos"
+        '
+        'gridLineas
+        '
+        Me.gridLineas.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.gridLineas.Name = "gridLineas"
+        Me.gridLineas.AccessibleName = "Lineas"
+        '
+        'lblNota
+        '
+        Me.lblNota.Dock = System.Windows.Forms.DockStyle.Top
+        Me.lblNota.Height = 34
+        Me.lblNota.Name = "lblNota"
+        Me.lblNota.Padding = New System.Windows.Forms.Padding(4)
+        Me.lblNota.Text = "El almacen entrega presentaciones completas y lo entregado se da por consumido (D12). El costo real es del servicio: entregas menos devoluciones."
+        '
+        'barraReal
+        '
+        Me.barraReal.AutoSize = True
+        Me.barraReal.Dock = System.Windows.Forms.DockStyle.Top
+        Me.barraReal.Name = "barraReal"
+        Me.barraReal.Padding = New System.Windows.Forms.Padding(4)
+        Me.barraReal.WrapContents = True
+        Me.barraReal.Controls.Add(Me.lblReal)
+        '
+        'lblReal
+        '
+        Me.lblReal.AutoSize = True
+        Me.lblReal.Margin = New System.Windows.Forms.Padding(3, 9, 3, 3)
+        Me.lblReal.Name = "lblReal"
+        Me.lblReal.Text = "Real del servicio:"
+        '
+        'barraFecha
+        '
+        Me.barraFecha.AutoSize = True
+        Me.barraFecha.Dock = System.Windows.Forms.DockStyle.Top
+        Me.barraFecha.Name = "barraFecha"
+        Me.barraFecha.Padding = New System.Windows.Forms.Padding(4)
+        Me.barraFecha.WrapContents = True
+        Me.barraFecha.Controls.Add(Me.lblFecha)
+        Me.barraFecha.Controls.Add(Me.dtFecha)
+        '
+        'lblFecha
+        '
+        Me.lblFecha.AutoSize = True
+        Me.lblFecha.Margin = New System.Windows.Forms.Padding(3, 9, 3, 3)
+        Me.lblFecha.Name = "lblFecha"
+        Me.lblFecha.Text = "Fecha"
+        '
+        'dtFecha
+        '
+        Me.dtFecha.Format = System.Windows.Forms.DateTimePickerFormat.Short
+        Me.dtFecha.Name = "dtFecha"
+        Me.dtFecha.AccessibleName = "Fecha"
+        Me.dtFecha.Width = 110
+        '
+        'FormProduccion
+        '
+        Me.AutoScaleDimensions = New System.Drawing.SizeF(7.0!, 15.0!)
+        Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
         Me.ClientSize = New System.Drawing.Size(1100, 720)
-        Me.Controls.Add(Me.tabla)
+        Me.Controls.Add(Me.divPrincipal)
+        Me.Controls.Add(Me.lblNota)
+        Me.Controls.Add(Me.barraReal)
+        Me.Controls.Add(Me.barraFecha)
         Me.Name = "FormProduccion"
-        Me.Text = "Producción y despacho"
+        Me.Text = "Produccion"
+        Me.divPrincipal.Panel1.ResumeLayout(False)
+        Me.divPrincipal.Panel2.ResumeLayout(False)
+        CType(Me.divPrincipal, System.ComponentModel.ISupportInitialize).EndInit()
+        Me.divPrincipal.ResumeLayout(False)
+        CType(Me.gridMinutas, System.ComponentModel.ISupportInitialize).EndInit()
+        Me.divRequerimientos.Panel1.ResumeLayout(False)
+        Me.divRequerimientos.Panel2.ResumeLayout(False)
+        CType(Me.divRequerimientos, System.ComponentModel.ISupportInitialize).EndInit()
+        Me.divRequerimientos.ResumeLayout(False)
+        CType(Me.gridRequerimientos, System.ComponentModel.ISupportInitialize).EndInit()
+        CType(Me.gridLineas, System.ComponentModel.ISupportInitialize).EndInit()
+        Me.barraReal.ResumeLayout(False)
+        Me.barraReal.PerformLayout()
+        Me.barraFecha.ResumeLayout(False)
+        Me.barraFecha.PerformLayout()
         Me.ResumeLayout(False)
     End Sub
-    Friend WithEvents tabla As System.Windows.Forms.TableLayoutPanel
-    Friend WithEvents lblTituloDiseno As System.Windows.Forms.Label
-    Friend WithEvents grp1 As System.Windows.Forms.GroupBox
-    Friend WithEvents grp2 As System.Windows.Forms.GroupBox
-    Friend WithEvents grp3 As System.Windows.Forms.GroupBox
-    Friend WithEvents grp4 As System.Windows.Forms.GroupBox
+    Friend WithEvents divPrincipal As System.Windows.Forms.SplitContainer
+    Friend WithEvents gridMinutas As System.Windows.Forms.DataGridView
+    Friend WithEvents divRequerimientos As System.Windows.Forms.SplitContainer
+    Friend WithEvents gridRequerimientos As System.Windows.Forms.DataGridView
+    Friend WithEvents gridLineas As System.Windows.Forms.DataGridView
+    Friend WithEvents lblNota As System.Windows.Forms.Label
+    Friend WithEvents barraReal As System.Windows.Forms.FlowLayoutPanel
+    Friend WithEvents lblReal As System.Windows.Forms.Label
+    Friend WithEvents barraFecha As System.Windows.Forms.FlowLayoutPanel
+    Friend WithEvents lblFecha As System.Windows.Forms.Label
+    Friend WithEvents dtFecha As System.Windows.Forms.DateTimePicker
 End Class

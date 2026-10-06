@@ -13,15 +13,18 @@ Partial Public Class FormComparativo
 
     Public Sub New()
         InitializeComponent()
+        Ui.Configurar(gridResumen)
+        Ui.Configurar(gridComponentes)
+        Ui.Configurar(gridProductos)
     End Sub
 
     Public Sub New(c As ComparativoDto)
         InitializeComponent()
-        Controls.Clear()
+        Ui.Configurar(gridResumen)
+        Ui.Configurar(gridComponentes)
+        Ui.Configurar(gridProductos)
         Text = "Teorico vs real - " & c.Titulo
-        Width = 1100 : Height = 700
-        StartPosition = FormStartPosition.CenterParent
-        Dim resumen = Ui.NuevaGrilla(), componentes = Ui.NuevaGrilla(), productos = Ui.NuevaGrilla()
+        Dim resumen = gridResumen, componentes = gridComponentes, productos = gridProductos
         Dim n = Function(v As Long?) If(v.HasValue, v.Value.ToString("N0"), "-")
         Dim d = Function(v As Long?) If(v.HasValue, Ui.Dinero(v.Value), "pendiente")
         Dim p = Function(v As Long?) If(v.HasValue, Ui.Cantidad(v.Value) & " %", "-")
@@ -45,15 +48,7 @@ Partial Public Class FormComparativo
                    "CostoTeoricoConsumidoU6|Costo teorico de lo consumido")
         Ui.Mostrar(productos, c.Productos, "Estado|Estado", "Producto|Producto", "Unidad|Unidad", "CantidadTeoricaU6|Cantidad teorica", "EntregadoU6|Entregado", "DevueltoU6|Devuelto", "CantidadRealU6|Consumo real (neto)",
                    "DiferenciaCantidadU6|Diferencia cantidad", "CostoTeoricoU6|Costo teorico", "CostoRealU6|Costo real", "DiferenciaCostoU6|Diferencia costo")
-        Dim abajo As New SplitContainer With {.Dock = DockStyle.Fill, .Orientation = Orientation.Horizontal}
-        abajo.Panel1.Controls.Add(componentes)
-        abajo.Panel2.Controls.Add(productos)
-        Dim division As New SplitContainer With {.Dock = DockStyle.Fill, .Orientation = Orientation.Horizontal, .SplitterDistance = 230}
-        division.Panel1.Controls.Add(resumen)
-        division.Panel2.Controls.Add(abajo)
-        Controls.Add(division)
-        Controls.Add(New Label With {.Dock = DockStyle.Top, .Height = 34, .Padding = New Padding(4),
-            .Text = $"{c.Minutas} minuta(s). Productos 'no planificado': salieron del almacen para el servicio sin estar en la minuta; 'sin salida': planificados y no entregados." &
-                    If(c.Mermas.Count > 0, " Mermas: " & String.Join("; ", c.Mermas), "")})
+        lblDescripcion.Text = $"{c.Minutas} minuta(s). Productos 'no planificado': salieron del almacen para el servicio sin estar en la minuta; 'sin salida': planificados y no entregados." &
+                    If(c.Mermas.Count > 0, " Mermas: " & String.Join("; ", c.Mermas), "")
     End Sub
 End Class

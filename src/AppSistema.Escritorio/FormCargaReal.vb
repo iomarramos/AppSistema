@@ -14,48 +14,36 @@ Partial Public Class FormCargaReal
     Private ReadOnly _cadena As String
     Private ReadOnly _sesion As SesionUsuario
     Private ReadOnly _carga As ServicioCargaReal
-    Private ReadOnly _estado As New Label With {.Dock = DockStyle.Top, .Height = 84, .Padding = New Padding(6)}
-    Private ReadOnly _resultado As New TextBox With {.Dock = DockStyle.Fill, .Multiline = True, .ReadOnly = True, .ScrollBars = ScrollBars.Both,
-                                                     .WordWrap = False, .Font = New Drawing.Font("Consolas", 9.0F)}
-
     Public Sub New()
         InitializeComponent()
     End Sub
 
     Public Sub New(cadena As String, sesion As SesionUsuario)
         InitializeComponent()
-        Controls.Clear()
         _cadena = cadena
         _sesion = sesion
         _carga = New ServicioCargaReal(cadena, sesion)
         Text = "Carga de datos reales - " & sesion.Operacion.Nombre
 
-        Dim pasos As New TableLayoutPanel With {.Dock = DockStyle.Top, .AutoSize = True, .ColumnCount = 3, .Padding = New Padding(6)}
-        Paso(pasos, 1, "Catalogo: productos y presentaciones (listado SGP o catalogo por ingrediente)", Permisos.CatalogoImportar,
+        Paso(tablaPasos, 1, "Catalogo: productos y presentaciones (listado SGP o catalogo por ingrediente)", Permisos.CatalogoImportar,
              "Abrir importacion de catalogo", Sub() Abrir(New FormImportacion(_cadena, _sesion, ModoImportacion.Catalogo)))
-        Paso(pasos, 2, "Familias del SGP: familia, subfamilia y grupo de cada producto (familias_sgp.csv)", Permisos.CatalogoEditar,
+        Paso(tablaPasos, 2, "Familias del SGP: familia, subfamilia y grupo de cada producto (familias_sgp.csv)", Permisos.CatalogoEditar,
              "Cargar familias...", Sub() Cargar("Familias", AddressOf _carga.CargarFamilias))
-        Paso(pasos, 3, "Precios por presentacion (precios_sgp.csv). Sin precio no se inventa; un precio ya cargado no se pisa", Permisos.PreciosEditar,
+        Paso(tablaPasos, 3, "Precios por presentacion (precios_sgp.csv). Sin precio no se inventa; un precio ya cargado no se pisa", Permisos.PreciosEditar,
              "Cargar precios...", Sub() Cargar("Precios", AddressOf _carga.ImportarPrecios))
-        Paso(pasos, 4, "Producto activo por ingrediente en esta operacion (productos_activos.csv): su precio es el que se costea", Permisos.CatalogoEditar,
+        Paso(tablaPasos, 4, "Producto activo por ingrediente en esta operacion (productos_activos.csv): su precio es el que se costea", Permisos.CatalogoEditar,
              "Liberar productos...", Sub() Cargar("Productos activos", AddressOf _carga.LiberarProductos))
-        Paso(pasos, 5, "Recetas con gramaje (recetas_reales.csv)", Permisos.RecetasEditar,
+        Paso(tablaPasos, 5, "Recetas con gramaje (recetas_reales.csv)", Permisos.RecetasEditar,
              "Abrir importacion de recetas", Sub() Abrir(New FormImportacion(_cadena, _sesion, ModoImportacion.Recetas)))
-        Paso(pasos, 6, "Insumos sin costo de compra, por ejemplo agua para receta (insumos_sin_costo.csv)", Permisos.CatalogoEditar,
+        Paso(tablaPasos, 6, "Insumos sin costo de compra, por ejemplo agua para receta (insumos_sin_costo.csv)", Permisos.CatalogoEditar,
              "Marcar insumos...", Sub() Cargar("Insumos sin costo", AddressOf _carga.MarcarInsumosSinCosto))
-        Paso(pasos, 7, "Inventario inicial por almacen: en Stock, boton 'Inventario inicial...'", Permisos.StockContabilizar,
+        Paso(tablaPasos, 7, "Inventario inicial por almacen: en Stock, boton 'Inventario inicial...'", Permisos.StockContabilizar,
              "Abrir stock", Sub() Abrir(New FormStock(_cadena, _sesion)))
-        Paso(pasos, 8, "Estructuras de menu con factores de consumo (estructuras_menu.csv)", Permisos.MenusConfigurar,
+        Paso(tablaPasos, 8, "Estructuras de menu con factores de consumo (estructuras_menu.csv)", Permisos.MenusConfigurar,
              "Cargar estructuras...", Sub() Cargar("Estructuras", AddressOf _carga.CargarEstructuras))
-        Paso(pasos, 9, "Ciclo de minutas (ciclo_menu.csv) desde una fecha, con los comensales de cada servicio", Permisos.MinutasEditar,
+        Paso(tablaPasos, 9, "Ciclo de minutas (ciclo_menu.csv) desde una fecha, con los comensales de cada servicio", Permisos.MinutasEditar,
              "Cargar ciclo...", AddressOf CargarCiclo)
 
-        Controls.Add(_resultado)
-        Controls.Add(New Label With {.Dock = DockStyle.Top, .Height = 22, .Padding = New Padding(6, 4, 4, 0), .Text = "Resultado de la ultima carga:"})
-        Controls.Add(_estado)
-        Controls.Add(pasos)
-        Controls.Add(New Label With {.Dock = DockStyle.Top, .Height = 34, .Padding = New Padding(4),
-            .Text = "Siga los pasos en orden. Cada paso se puede repetir: lo que ya existe no se duplica ni se pisa. Los archivos los genera herramientas/ordenar_datos_reales.py (ver datos/real/LEEME.md)."})
         AddHandler Load, Sub() RefrescarEstado()
     End Sub
 
@@ -118,14 +106,14 @@ Partial Public Class FormCargaReal
         For Each p In r.Problemas
             sb.AppendLine(p)
         Next
-        _resultado.Text = sb.ToString()
+        txtResultado.Text = sb.ToString()
     End Sub
 
     Private Sub RefrescarEstado()
         If IsDisposed Then Return
         Dim e As EstadoCargaReal = Nothing
         If Not Ui.Ejecutar(Me, Sub() e = _carga.Estado()) Then Return
-        _estado.Text = $"Empresa: {e.Productos:N0} productos, {e.Presentaciones:N0} presentaciones, {e.PreciosSgp:N0} precios cargados, " &
+        lblEstado.Text = $"Empresa: {e.Productos:N0} productos, {e.Presentaciones:N0} presentaciones, {e.PreciosSgp:N0} precios cargados, " &
                        $"{e.RecetasAprobadas:N0} recetas aprobadas, {e.InsumosSinCosto:N0} insumos sin costo." & vbCrLf &
                        $"Presentaciones con familia SGP: {e.PresentacionesConFamilia:N0}. Productos activos en la operacion: {e.ProductosActivos:N0}." & vbCrLf &
                        $"Operacion: inventario inicial en {e.AlmacenesConApertura} de {e.Almacenes} almacen(es), {e.ServiciosAsignados} servicio(s) asignado(s), " &

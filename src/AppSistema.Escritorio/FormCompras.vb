@@ -10,95 +10,77 @@ Partial Public Class FormCompras
 
     Private ReadOnly _servicio As ServicioCompras
     Private ReadOnly _proveedores As ServicioProveedores
-    Private ReadOnly _almacen As New ComboBox With {.DropDownStyle = ComboBoxStyle.DropDownList, .Width = 220}
-    Private ReadOnly _corte As New DateTimePicker With {.Format = DateTimePickerFormat.Short, .Width = 105}
-    Private ReadOnly _desde As New DateTimePicker With {.Format = DateTimePickerFormat.Short, .Width = 105}
-    Private ReadOnly _hasta As New DateTimePicker With {.Format = DateTimePickerFormat.Short, .Width = 105}
-    Private ReadOnly _previsiones As DataGridView = Ui.NuevaGrilla()
-    Private ReadOnly _desglose As DataGridView = Ui.NuevaGrilla()
-    Private ReadOnly _pedidos As DataGridView = Ui.NuevaGrilla()
-    Private ReadOnly _lineas As DataGridView = Ui.NuevaGrilla()
 
     Public Sub New()
         InitializeComponent()
+        Ui.Configurar(gridPrevisiones)
+        Ui.Configurar(gridDesglose)
+        Ui.Configurar(gridPedidos)
+        Ui.Configurar(gridLineas)
     End Sub
 
     Public Sub New(cadena As String, sesion As SesionUsuario)
         InitializeComponent()
-        Controls.Clear()
+        Ui.Configurar(gridPrevisiones)
+        Ui.Configurar(gridDesglose)
+        Ui.Configurar(gridPedidos)
+        Ui.Configurar(gridLineas)
         _servicio = New ServicioCompras(cadena, sesion)
         _proveedores = New ServicioProveedores(cadena, sesion)
         Dim admin As New ServicioAdministracion(cadena, sesion)
         Text = "Compras - " & sesion.Operacion.Nombre
-        _corte.Value = Date.Today
-        _desde.Value = Date.Today.AddDays(1)
-        _hasta.Value = Date.Today.AddDays(30)
+        dtCorte.Value = Date.Today
+        dtDesde.Value = Date.Today.AddDays(1)
+        dtHasta.Value = Date.Today.AddDays(30)
         Dim edita = sesion.Tiene(Permisos.ComprasEditar)
         Dim aprueba = sesion.Tiene(Permisos.ComprasAprobar)
 
         ' --- Previsión ---
-        Dim barraPrev = Ui.BarraBotones(Etiqueta("Corte"), _corte, Etiqueta("Desde"), _desde, Etiqueta("Hasta"), _hasta,
-                                        Ui.BotonSi(edita, "Calcular", AddressOf Calcular), Ui.BotonSi(edita, "Validar", AddressOf Validar),
-                                        Ui.Boton("Esta vigente?", AddressOf VerDiferencias), Ui.BotonSi(edita, "Generar pedido...", AddressOf GenerarPedido),
-                                        Ui.BotonSi(edita, "Reserva del producto...", AddressOf FijarReserva))
-        Dim divPrev As New SplitContainer With {.Dock = DockStyle.Fill, .Orientation = Orientation.Horizontal, .SplitterDistance = 120}
-        divPrev.Panel1.Controls.Add(_previsiones)
-        divPrev.Panel2.Controls.Add(_desglose)
-        divPrev.Panel2.Controls.Add(New Label With {.Dock = DockStyle.Top, .Height = 36, .Padding = New Padding(4),
-            .Text = "Necesidad = max(0, mayor faltante por fecha, reserva - saldo final). Quiebre: primera fecha sin stock si no se compra (lo que llega despues no la cubre)."})
-        Dim tabPrev As New TabPage("Prevision")
-        tabPrev.Controls.Add(divPrev) : tabPrev.Controls.Add(barraPrev)
+        barraPrevision.Controls.Add(Ui.BotonSi(edita, "Calcular", AddressOf Calcular))
+        barraPrevision.Controls.Add(Ui.BotonSi(edita, "Validar", AddressOf Validar))
+        barraPrevision.Controls.Add(Ui.Boton("Esta vigente?", AddressOf VerDiferencias))
+        barraPrevision.Controls.Add(Ui.BotonSi(edita, "Generar pedido...", AddressOf GenerarPedido))
+        barraPrevision.Controls.Add(Ui.BotonSi(edita, "Reserva del producto...", AddressOf FijarReserva))
 
         ' --- Pedidos ---
-        Dim barraPed = Ui.BarraBotones(Ui.Boton("Actualizar", AddressOf CargarPedidos), Ui.BotonSi(edita, "Pedido manual...", AddressOf PedidoManual),
-                                       Ui.BotonSi(edita, "Agregar linea...", AddressOf AgregarLinea), Ui.BotonSi(edita, "Quitar linea", AddressOf QuitarLinea),
-                                       Ui.BotonSi(aprueba, "Aprobar", AddressOf Aprobar), Ui.BotonSi(aprueba, "Anular", AddressOf Anular))
-        Dim divPed As New SplitContainer With {.Dock = DockStyle.Fill, .Orientation = Orientation.Horizontal}
-        divPed.Panel1.Controls.Add(_pedidos)
-        divPed.Panel2.Controls.Add(_lineas)
-        Dim tabPed As New TabPage("Pedidos")
-        tabPed.Controls.Add(divPed) : tabPed.Controls.Add(barraPed)
+        barraPedidos.Controls.Add(Ui.Boton("Actualizar", AddressOf CargarPedidos))
+        barraPedidos.Controls.Add(Ui.BotonSi(edita, "Pedido manual...", AddressOf PedidoManual))
+        barraPedidos.Controls.Add(Ui.BotonSi(edita, "Agregar linea...", AddressOf AgregarLinea))
+        barraPedidos.Controls.Add(Ui.BotonSi(edita, "Quitar linea", AddressOf QuitarLinea))
+        barraPedidos.Controls.Add(Ui.BotonSi(aprueba, "Aprobar", AddressOf Aprobar))
+        barraPedidos.Controls.Add(Ui.BotonSi(aprueba, "Anular", AddressOf Anular))
 
-        Dim tabs As New TabControl With {.Dock = DockStyle.Fill}
-        tabs.TabPages.AddRange({tabPrev, tabPed})
-        Controls.Add(tabs)
-        Controls.Add(Ui.BarraBotones(Etiqueta("Almacen"), _almacen))
-
-        AddHandler _almacen.SelectedIndexChanged, Sub()
+        AddHandler cmbAlmacen.SelectedIndexChanged, Sub()
                                                       CargarPrevisiones()
                                                       CargarPedidos()
                                                   End Sub
-        AddHandler _previsiones.SelectionChanged, Sub() CargarDesglose()
-        AddHandler _pedidos.SelectionChanged, Sub() CargarLineas()
+        AddHandler gridPrevisiones.SelectionChanged, Sub() CargarDesglose()
+        AddHandler gridPedidos.SelectionChanged, Sub() CargarLineas()
         AddHandler Load, Sub() Ui.Ejecutar(Me,
                                     Sub()
                                         For Each a In admin.ListarAlmacenes()
-                                            _almacen.Items.Add(New Opcion(Of AlmacenResumen)(a, $"{a.Codigo} - {a.Nombre}"))
+                                            cmbAlmacen.Items.Add(New Opcion(Of AlmacenResumen)(a, $"{a.Codigo} - {a.Nombre}"))
                                         Next
-                                        If _almacen.Items.Count > 0 Then _almacen.SelectedIndex = 0
+                                        If cmbAlmacen.Items.Count > 0 Then cmbAlmacen.SelectedIndex = 0
                                     End Sub)
     End Sub
 
-    Private Shared Function Etiqueta(texto As String) As Label
-        Return New Label With {.Text = texto, .AutoSize = True, .Margin = New Padding(3, 9, 3, 3)}
-    End Function
-
     Private ReadOnly Property AlmacenId As Long
         Get
-            Dim o = TryCast(_almacen.SelectedItem, Opcion(Of AlmacenResumen))
+            Dim o = TryCast(cmbAlmacen.SelectedItem, Opcion(Of AlmacenResumen))
             Return If(o Is Nothing, 0L, o.Valor.Id)
         End Get
     End Property
 
     Private ReadOnly Property PrevisionSel As PrevisionDto
         Get
-            Return Ui.Seleccionado(Of PrevisionDto)(_previsiones)
+            Return Ui.Seleccionado(Of PrevisionDto)(gridPrevisiones)
         End Get
     End Property
 
     Private ReadOnly Property PedidoSel As PedidoDto
         Get
-            Return Ui.Seleccionado(Of PedidoDto)(_pedidos)
+            Return Ui.Seleccionado(Of PedidoDto)(gridPedidos)
         End Get
     End Property
 
@@ -106,21 +88,21 @@ Partial Public Class FormCompras
 
     Private Sub CargarPrevisiones()
         If AlmacenId = 0 Then Return
-        Ui.Ejecutar(Me, Sub() Ui.Mostrar(_previsiones, _servicio.ListarPrevisiones(AlmacenId), "Id|N.", "FechaCorte|Corte", "FechaDesde|Desde",
+        Ui.Ejecutar(Me, Sub() Ui.Mostrar(gridPrevisiones, _servicio.ListarPrevisiones(AlmacenId), "Id|N.", "FechaCorte|Corte", "FechaDesde|Desde",
                                          "FechaHasta|Hasta", "Estado|Estado", "FechaCalculo|Calculada"))
     End Sub
 
     Private Sub CargarDesglose()
         Dim p = PrevisionSel
-        If p Is Nothing Then _desglose.DataSource = Nothing : Return
-        Ui.Ejecutar(Me, Sub() Ui.Mostrar(_desglose, _servicio.Desglose(p.Id), "ProductoCodigo|Codigo", "ProductoDescripcion|Producto", "Unidad|Unidad",
+        If p Is Nothing Then gridDesglose.DataSource = Nothing : Return
+        Ui.Ejecutar(Me, Sub() Ui.Mostrar(gridDesglose, _servicio.Desglose(p.Id), "ProductoCodigo|Codigo", "ProductoDescripcion|Producto", "Unidad|Unidad",
                                          "DemandaU6|Demanda", "ConsumoPuenteU6|Consumo puente", "StockU6|Stock", "ReservaU6|Reserva",
                                          "PendienteRecibirU6|Pendiente de recibir", "NecesidadNetaU6|Necesidad neta", "FechaQuiebre|Quiebre"))
     End Sub
 
     Private Sub Calcular()
         If AlmacenId = 0 Then Return
-        Ui.Ejecutar(Me, Sub() _servicio.CalcularPrevision(AlmacenId, _corte.Value, _desde.Value, _hasta.Value))
+        Ui.Ejecutar(Me, Sub() _servicio.CalcularPrevision(AlmacenId, dtCorte.Value, dtDesde.Value, dtHasta.Value))
         CargarPrevisiones()
     End Sub
 
@@ -142,7 +124,7 @@ Partial Public Class FormCompras
     End Sub
 
     Private Sub FijarReserva()
-        Dim l = Ui.Seleccionado(Of PrevisionLineaDto)(_desglose)
+        Dim l = Ui.Seleccionado(Of PrevisionLineaDto)(gridDesglose)
         If l Is Nothing OrElse AlmacenId = 0 Then Ui.Informar(Me, "Seleccione un producto del desglose.") : Return
         Using d As New DialogoCampos("Reserva de " & l.ProductoDescripcion)
             d.Texto("reserva", $"Reserva al final del horizonte ({l.Unidad})", Ui.Cantidad(l.ReservaU6))
@@ -175,14 +157,14 @@ Partial Public Class FormCompras
 
     Private Sub CargarPedidos()
         If AlmacenId = 0 Then Return
-        Ui.Ejecutar(Me, Sub() Ui.Mostrar(_pedidos, _servicio.ListarPedidos(AlmacenId), "Numero|Numero", "ProveedorNombre|Proveedor", "Tipo|Tipo",
+        Ui.Ejecutar(Me, Sub() Ui.Mostrar(gridPedidos, _servicio.ListarPedidos(AlmacenId), "Numero|Numero", "ProveedorNombre|Proveedor", "Tipo|Tipo",
                                          "Fecha|Fecha", "Estado|Estado", "Moneda|Moneda", "TotalU6|Total", "PrevisionId|Prevision"))
     End Sub
 
     Private Sub CargarLineas()
         Dim p = PedidoSel
-        If p Is Nothing Then _lineas.DataSource = Nothing : Return
-        Ui.Ejecutar(Me, Sub() Ui.Mostrar(_lineas, _servicio.ListarLineas(p.Id), "ProductoDescripcion|Producto", "VarianteCodigo|Variante",
+        If p Is Nothing Then gridLineas.DataSource = Nothing : Return
+        Ui.Ejecutar(Me, Sub() Ui.Mostrar(gridLineas, _servicio.ListarLineas(p.Id), "ProductoDescripcion|Producto", "VarianteCodigo|Variante",
                                          "EmpaqueDescripcion|Empaque", "CantidadEmpaques|Empaques", "CantidadBaseU6|Cantidad", "Unidad|Unidad",
                                          "NecesidadU6|Necesidad", "ExcesoU6|Exceso por redondeo", "PrecioEmpaqueU6|Precio empaque",
                                          "ImporteU6|Importe", "FechaEntrega|Entrega", "PendienteU6|Pendiente"))
@@ -221,7 +203,7 @@ Partial Public Class FormCompras
     End Sub
 
     Private Sub QuitarLinea()
-        Dim l = Ui.Seleccionado(Of PedidoLineaDto)(_lineas)
+        Dim l = Ui.Seleccionado(Of PedidoLineaDto)(gridLineas)
         If l Is Nothing Then Return
         Ui.Ejecutar(Me, Sub() _servicio.QuitarLinea(l.Id))
         CargarLineas()

@@ -8,77 +8,68 @@ Partial Public Class FormCatalogo
 
     Private ReadOnly _servicio As ServicioCatalogo
     Private ReadOnly _sesion As SesionUsuario
-    Private ReadOnly _buscar As New TextBox With {.Width = 260}
-    Private ReadOnly _inactivos As New CheckBox With {.Text = "Incluir inactivos", .AutoSize = True}
-    Private ReadOnly _productos As DataGridView = Ui.NuevaGrilla()
-    Private ReadOnly _variantes As DataGridView = Ui.NuevaGrilla()
-    Private ReadOnly _empaques As DataGridView = Ui.NuevaGrilla()
 
     Public Sub New()
         InitializeComponent()
+        Ui.Configurar(gridProductos)
+        Ui.Configurar(gridVariantes)
+        Ui.Configurar(gridEmpaques)
     End Sub
 
     Public Sub New(cadena As String, sesion As SesionUsuario)
         InitializeComponent()
-        Controls.Clear()
+        Ui.Configurar(gridProductos)
+        Ui.Configurar(gridVariantes)
+        Ui.Configurar(gridEmpaques)
         _servicio = New ServicioCatalogo(cadena, sesion)
         _sesion = sesion
         Text = "Catalogo: productos, variantes y empaques"
         Dim edita = sesion.Tiene(Permisos.CatalogoEditar)
 
         ' Izquierda: búsqueda y productos.
-        Dim busqueda As New FlowLayoutPanel With {.Dock = DockStyle.Top, .AutoSize = True, .Padding = New Padding(4)}
-        busqueda.Controls.AddRange({New Label With {.Text = "Buscar:", .AutoSize = True, .Margin = New Padding(3, 7, 3, 3)}, _buscar,
-                                    Ui.Boton("Buscar", AddressOf CargarProductos), _inactivos})
-        Dim barraProductos = Ui.BarraBotones(Ui.Boton("Nuevo producto", AddressOf NuevoProducto), Ui.Boton("Editar producto", AddressOf EditarProducto),
-                                             Ui.Boton("Nueva unidad", AddressOf NuevaUnidad), Ui.Boton("Nueva categoria", AddressOf NuevaCategoria),
-                                             Ui.Boton("Nueva marca", AddressOf NuevaMarca), Ui.Boton("Sin costo de compra...", AddressOf CambiarSinCosto))
+        barraBusqueda.Controls.Add(Ui.Boton("Buscar", AddressOf CargarProductos))
+        barraBusqueda.Controls.SetChildIndex(barraBusqueda.Controls(barraBusqueda.Controls.Count - 1), 2)
+        barraProductos.Controls.Add(Ui.Boton("Nuevo producto", AddressOf NuevoProducto))
+        barraProductos.Controls.Add(Ui.Boton("Editar producto", AddressOf EditarProducto))
+        barraProductos.Controls.Add(Ui.Boton("Nueva unidad", AddressOf NuevaUnidad))
+        barraProductos.Controls.Add(Ui.Boton("Nueva categoria", AddressOf NuevaCategoria))
+        barraProductos.Controls.Add(Ui.Boton("Nueva marca", AddressOf NuevaMarca))
+        barraProductos.Controls.Add(Ui.Boton("Sin costo de compra...", AddressOf CambiarSinCosto))
         barraProductos.Visible = edita
-        Dim izquierda As New Panel With {.Dock = DockStyle.Fill}
-        izquierda.Controls.Add(_productos) : izquierda.Controls.Add(barraProductos) : izquierda.Controls.Add(busqueda)
 
         ' Derecha: variantes y empaques.
-        Dim barraVariantes = Ui.BarraBotones(Ui.Boton("Nueva variante", AddressOf NuevaVariante), Ui.Boton("Editar variante", AddressOf EditarVariante),
-                                             Ui.Boton("Corregir contenido...", AddressOf CorregirContenido),
-                                             Ui.Boton("Producto activo en la operacion", AddressOf ActivarEnOperacion),
-                                             Ui.Boton("Quitar producto activo", AddressOf QuitarActivo))
+        barraVariantes.Controls.Add(Ui.Boton("Nueva variante", AddressOf NuevaVariante))
+        barraVariantes.Controls.Add(Ui.Boton("Editar variante", AddressOf EditarVariante))
+        barraVariantes.Controls.Add(Ui.Boton("Corregir contenido...", AddressOf CorregirContenido))
+        barraVariantes.Controls.Add(Ui.Boton("Producto activo en la operacion", AddressOf ActivarEnOperacion))
+        barraVariantes.Controls.Add(Ui.Boton("Quitar producto activo", AddressOf QuitarActivo))
         barraVariantes.Visible = edita
-        Dim barraEmpaques = Ui.BarraBotones(Ui.Boton("Nuevo empaque", AddressOf NuevoEmpaque))
+        barraEmpaques.Controls.Add(Ui.Boton("Nuevo empaque", AddressOf NuevoEmpaque))
         barraEmpaques.Visible = edita
-        Dim derecha As New SplitContainer With {.Dock = DockStyle.Fill, .Orientation = Orientation.Horizontal}
-        derecha.Panel1.Controls.Add(_variantes) : derecha.Panel1.Controls.Add(barraVariantes)
-        derecha.Panel1.Controls.Add(New Label With {.Text = "Variantes (marca y presentacion)", .Dock = DockStyle.Top, .Padding = New Padding(4)})
-        derecha.Panel2.Controls.Add(_empaques) : derecha.Panel2.Controls.Add(barraEmpaques)
-        derecha.Panel2.Controls.Add(New Label With {.Text = "Empaques de compra", .Dock = DockStyle.Top, .Padding = New Padding(4)})
 
-        Dim division As New SplitContainer With {.Dock = DockStyle.Fill}
-        division.Panel1.Controls.Add(izquierda)
-        division.Panel2.Controls.Add(derecha)
-        Controls.Add(division)
-
-        AddHandler _productos.SelectionChanged, Sub() CargarVariantes()
-        AddHandler _variantes.SelectionChanged, Sub() CargarEmpaques()
-        AddHandler _buscar.KeyDown, Sub(s, e)
-                                        If e.KeyCode = Keys.Enter Then CargarProductos() : e.SuppressKeyPress = True
-                                    End Sub
-        AddHandler _productos.CellDoubleClick, Sub() If edita Then EditarProducto()
+        AddHandler gridProductos.SelectionChanged, Sub() CargarVariantes()
+        AddHandler gridVariantes.SelectionChanged, Sub() CargarEmpaques()
+        AddHandler txtBuscar.KeyDown, Sub(s, e)
+                                          If e.KeyCode = Keys.Enter Then CargarProductos() : e.SuppressKeyPress = True
+                                      End Sub
+        AddHandler gridProductos.CellDoubleClick, Sub() If edita Then EditarProducto()
         AddHandler Load, Sub() CargarProductos()
     End Sub
 
     Private ReadOnly Property Producto As ProductoBaseDto
         Get
-            Return Ui.Seleccionado(Of ProductoBaseDto)(_productos)
+            Return Ui.Seleccionado(Of ProductoBaseDto)(gridProductos)
         End Get
     End Property
 
     Private ReadOnly Property Variante As VarianteDto
         Get
-            Return Ui.Seleccionado(Of VarianteDto)(_variantes)
+            Return Ui.Seleccionado(Of VarianteDto)(gridVariantes)
         End Get
     End Property
 
     Private Sub CargarProductos()
-        Ui.Ejecutar(Me, Sub() Ui.Mostrar(_productos, _servicio.BuscarProductos(_buscar.Text, _inactivos.Checked),
+        Ui.Ejecutar(Me, Sub() Ui.Mostrar(gridProductos, _servicio.BuscarProductos(txtBuscar.Text, chkInactivos.Checked),
                                          "Codigo|Codigo", "Descripcion|Descripcion", "Especificacion|Especificacion",
                                          "UnidadCodigo|Unidad", "CategoriaCodigo|Categoria", "Activo|Activo", "SinCostoCompra|Sin costo de compra"))
     End Sub
@@ -86,10 +77,10 @@ Partial Public Class FormCatalogo
     Private Sub CargarVariantes()
         Dim p = Producto
         If p Is Nothing Then
-            _variantes.DataSource = Nothing
+            gridVariantes.DataSource = Nothing
             Return
         End If
-        Ui.Ejecutar(Me, Sub() Ui.Mostrar(_variantes, _servicio.ListarVariantes(p.Id),
+        Ui.Ejecutar(Me, Sub() Ui.Mostrar(gridVariantes, _servicio.ListarVariantes(p.Id),
                                          "Codigo|Codigo", "MarcaNombre|Marca", "DescripcionComercial|Descripcion comercial",
                                          "TipoEnvase|Envase", "ContenidoBasePorEnvaseU6|Contenido por envase (" & p.UnidadCodigo & ")", "Activo|Activo",
                                          "ActivoEnOperacion|Activo en la operacion (su precio se costea)", "Familia|Familia"))
@@ -98,11 +89,11 @@ Partial Public Class FormCatalogo
     Private Sub CargarEmpaques()
         Dim v = Variante
         If v Is Nothing Then
-            _empaques.DataSource = Nothing
+            gridEmpaques.DataSource = Nothing
             Return
         End If
         Dim unidad = If(Producto?.UnidadCodigo, "")
-        Ui.Ejecutar(Me, Sub() Ui.Mostrar(_empaques, _servicio.ListarEmpaques(v.Id),
+        Ui.Ejecutar(Me, Sub() Ui.Mostrar(gridEmpaques, _servicio.ListarEmpaques(v.Id),
                                          "Codigo|Codigo", "Descripcion|Descripcion", "EnvasesPorEmpaque|Envases por empaque",
                                          "ContenidoBaseU6|Contenido total (" & unidad & ")", "MinimoEmpaques|Minimo", "MultiploEmpaques|Multiplo"))
     End Sub
@@ -157,7 +148,7 @@ Partial Public Class FormCatalogo
                     _servicio.CrearProducto(d.Valor("codigo"), d.Valor("descripcion"), d.Valor("espec"),
                                             d.Elegido(Of Opcion(Of Long))("unidad").Valor, IdElegido(d, "categoria"))
                 End Using
-                _buscar.Text = ""
+                txtBuscar.Text = ""
                 CargarProductos()
             End Sub)
     End Sub
@@ -249,7 +240,7 @@ Partial Public Class FormCatalogo
 
     ''' <summary>D02: la presentacion elegida pasa a ser el producto activo del ingrediente en esta operacion.</summary>
     Private Sub ActivarEnOperacion()
-        Dim v = Ui.Seleccionado(Of VarianteDto)(_variantes)
+        Dim v = Ui.Seleccionado(Of VarianteDto)(gridVariantes)
         If v Is Nothing Then Ui.Informar(Me, "Seleccione una variante.") : Return
         If Not Ui.Confirmar(Me, $"Usar '{v.DescripcionComercial}' como producto activo de '{Producto?.Descripcion}' en esta operacion? " &
                                 "Las minutas que se aprueben desde ahora y los pedidos usaran su precio.") Then Return
@@ -267,7 +258,7 @@ Partial Public Class FormCatalogo
 
     ''' <summary>Corrige el contenido por envase de una presentacion que todavia no se uso (si ya se uso, la base lo impide).</summary>
     Private Sub CorregirContenido()
-        Dim v = Ui.Seleccionado(Of VarianteDto)(_variantes)
+        Dim v = Ui.Seleccionado(Of VarianteDto)(gridVariantes)
         If v Is Nothing Then Ui.Informar(Me, "Seleccione una variante.") : Return
         Using d As New DialogoCampos("Contenido por envase de " & v.Codigo)
             d.Texto("contenido", $"Contenido por envase ({Producto?.UnidadCodigo})", Ui.Cantidad(v.ContenidoBasePorEnvaseU6))

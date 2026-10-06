@@ -12,50 +12,78 @@ Partial Class FormContratos
     End Sub
     <System.Diagnostics.DebuggerStepThrough()>
     Private Sub InitializeComponent()
-        Me.tabla = New System.Windows.Forms.TableLayoutPanel()
-        Me.lblTituloDiseno = New System.Windows.Forms.Label()
-        Me.grp1 = New System.Windows.Forms.GroupBox()
-        Me.grp1.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.grp1.Text = "Clientes"
-        Me.grp1.Name = "grp1"
-        Me.grp2 = New System.Windows.Forms.GroupBox()
-        Me.grp2.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.grp2.Text = "Contratos por servicio"
-        Me.grp2.Name = "grp2"
-        Me.grp3 = New System.Windows.Forms.GroupBox()
-        Me.grp3.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.grp3.Text = "Vigencias y ajustes"
-        Me.grp3.Name = "grp3"
+        Me.divide = New System.Windows.Forms.SplitContainer()
+        Me.gridContratos = New System.Windows.Forms.DataGridView()
+        Me.gridLineas = New System.Windows.Forms.DataGridView()
+        Me.lblDescripcion = New System.Windows.Forms.Label()
+        Me.barraAcciones = New System.Windows.Forms.FlowLayoutPanel()
+        CType(Me.divide, System.ComponentModel.ISupportInitialize).BeginInit()
+        Me.divide.Panel1.SuspendLayout()
+        Me.divide.Panel2.SuspendLayout()
+        Me.divide.SuspendLayout()
+        CType(Me.gridContratos, System.ComponentModel.ISupportInitialize).BeginInit()
+        CType(Me.gridLineas, System.ComponentModel.ISupportInitialize).BeginInit()
+        Me.barraAcciones.SuspendLayout()
         Me.SuspendLayout()
-        Me.tabla.ColumnCount = 1
-        Me.tabla.ColumnStyles.Add(New System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100.0!))
-        Me.tabla.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.tabla.Padding = New System.Windows.Forms.Padding(12)
-        Me.tabla.RowCount = 4
-        Me.tabla.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 48.0!))
-        Me.tabla.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 33.33!))
-        Me.tabla.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 33.33!))
-        Me.tabla.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 33.33!))
-        Me.lblTituloDiseno.AutoSize = True
-        Me.lblTituloDiseno.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.lblTituloDiseno.Font = New System.Drawing.Font("Segoe UI", 14.0!, System.Drawing.FontStyle.Bold)
-        Me.lblTituloDiseno.Text = "Contratos y clientes"
-        Me.lblTituloDiseno.TextAlign = System.Drawing.ContentAlignment.MiddleLeft
-        Me.tabla.Controls.Add(Me.lblTituloDiseno, 0, 0)
-        Me.tabla.Controls.Add(Me.grp1, 0, 1)
-        Me.tabla.Controls.Add(Me.grp2, 0, 2)
-        Me.tabla.Controls.Add(Me.grp3, 0, 3)
-        Me.AutoScaleDimensions = New System.Drawing.SizeF(96.0!, 96.0!)
-        Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi
+        '
+        'divide
+        '
+        Me.divide.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.divide.Name = "divide"
+        Me.divide.Orientation = System.Windows.Forms.Orientation.Horizontal
+        Me.divide.SplitterDistance = 200
+        Me.divide.Panel1.Controls.Add(Me.gridContratos)
+        Me.divide.Panel2.Controls.Add(Me.gridLineas)
+        '
+        'gridContratos
+        '
+        Me.gridContratos.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.gridContratos.Name = "gridContratos"
+        Me.gridContratos.AccessibleName = "Contratos"
+        '
+        'gridLineas
+        '
+        Me.gridLineas.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.gridLineas.Name = "gridLineas"
+        Me.gridLineas.AccessibleName = "Lineas"
+        '
+        'lblDescripcion
+        '
+        Me.lblDescripcion.Dock = System.Windows.Forms.DockStyle.Top
+        Me.lblDescripcion.Height = 34
+        Me.lblDescripcion.Name = "lblDescripcion"
+        Me.lblDescripcion.Padding = New System.Windows.Forms.Padding(4)
+        Me.lblDescripcion.Text = "Un ajuste cierra la linea vigente el dia anterior y abre otra con el importe nuevo. El ingreso del mes se prorratea por dias y no reemplaza un ingreso registrado a mano."
+        '
+        'barraAcciones
+        '
+        Me.barraAcciones.AutoSize = True
+        Me.barraAcciones.Dock = System.Windows.Forms.DockStyle.Top
+        Me.barraAcciones.Name = "barraAcciones"
+        '
+        'FormContratos
+        '
+        Me.AutoScaleDimensions = New System.Drawing.SizeF(7.0!, 15.0!)
+        Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
         Me.ClientSize = New System.Drawing.Size(1100, 720)
-        Me.Controls.Add(Me.tabla)
+        Me.Controls.Add(Me.divide)
+        Me.Controls.Add(Me.lblDescripcion)
+        Me.Controls.Add(Me.barraAcciones)
         Me.Name = "FormContratos"
-        Me.Text = "Contratos y clientes"
+        Me.Text = "Contratos"
+        Me.divide.Panel1.ResumeLayout(False)
+        Me.divide.Panel2.ResumeLayout(False)
+        CType(Me.divide, System.ComponentModel.ISupportInitialize).EndInit()
+        Me.divide.ResumeLayout(False)
+        CType(Me.gridContratos, System.ComponentModel.ISupportInitialize).EndInit()
+        CType(Me.gridLineas, System.ComponentModel.ISupportInitialize).EndInit()
+        Me.barraAcciones.ResumeLayout(False)
+        Me.barraAcciones.PerformLayout()
         Me.ResumeLayout(False)
     End Sub
-    Friend WithEvents tabla As System.Windows.Forms.TableLayoutPanel
-    Friend WithEvents lblTituloDiseno As System.Windows.Forms.Label
-    Friend WithEvents grp1 As System.Windows.Forms.GroupBox
-    Friend WithEvents grp2 As System.Windows.Forms.GroupBox
-    Friend WithEvents grp3 As System.Windows.Forms.GroupBox
+    Friend WithEvents divide As System.Windows.Forms.SplitContainer
+    Friend WithEvents gridContratos As System.Windows.Forms.DataGridView
+    Friend WithEvents gridLineas As System.Windows.Forms.DataGridView
+    Friend WithEvents lblDescripcion As System.Windows.Forms.Label
+    Friend WithEvents barraAcciones As System.Windows.Forms.FlowLayoutPanel
 End Class

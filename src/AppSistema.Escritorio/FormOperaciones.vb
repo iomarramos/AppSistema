@@ -6,45 +6,41 @@ Imports AppSistema.Dominio.Seguridad
 Partial Public Class FormOperaciones
 
     Private ReadOnly _servicio As ServicioAdministracion
-    Private ReadOnly _operaciones As DataGridView = Ui.NuevaGrilla()
-    Private ReadOnly _almacenes As DataGridView = Ui.NuevaGrilla()
 
     Public Sub New()
         InitializeComponent()
+        Ui.Configurar(gridOperaciones)
+        Ui.Configurar(gridAlmacenes)
     End Sub
 
     Public Sub New(cadena As String, sesion As SesionUsuario)
         InitializeComponent()
-        Controls.Clear()
+        Ui.Configurar(gridOperaciones)
+        Ui.Configurar(gridAlmacenes)
         _servicio = New ServicioAdministracion(cadena, sesion)
         Text = "Operaciones y almacenes"
-        Dim division As New SplitContainer With {.Dock = DockStyle.Fill}
-        division.Panel1.Controls.Add(_operaciones)
-        division.Panel1.Controls.Add(Ui.BarraBotones(Ui.Boton("Nueva operacion...", AddressOf NuevaOperacion), Ui.Boton("Zona o region...", AddressOf CambiarZona)))
-        division.Panel2.Controls.Add(_almacenes)
-        division.Panel2.Controls.Add(Ui.BarraBotones(Ui.Boton("Nuevo almacen...", AddressOf NuevoAlmacen)))
-        Controls.Add(division)
-        Controls.Add(New Label With {.Dock = DockStyle.Top, .Height = 34, .Padding = New Padding(4),
-            .Text = "Una operacion es una sede o unidad de servicio. Despues de crearla, asigne usuarios con rol en esa operacion (Usuarios y roles) para que puedan entrar a ella."})
-        AddHandler _operaciones.SelectionChanged, Sub() CargarAlmacenes()
+        barraOperaciones.Controls.Add(Ui.Boton("Nueva operacion...", AddressOf NuevaOperacion))
+        barraOperaciones.Controls.Add(Ui.Boton("Zona o region...", AddressOf CambiarZona))
+        barraAlmacenes.Controls.Add(Ui.Boton("Nuevo almacen...", AddressOf NuevoAlmacen))
+        AddHandler gridOperaciones.SelectionChanged, Sub() CargarAlmacenes()
         AddHandler Load, Sub() Cargar()
     End Sub
 
     Private ReadOnly Property Operacion As OperacionDto
         Get
-            Return Ui.Seleccionado(Of OperacionDto)(_operaciones)
+            Return Ui.Seleccionado(Of OperacionDto)(gridOperaciones)
         End Get
     End Property
 
     Private Sub Cargar()
-        Ui.Ejecutar(Me, Sub() Ui.Mostrar(_operaciones, _servicio.ListarOperaciones(), "Codigo|Codigo", "Nombre|Operacion", "Zona|Zona o region", "Ubicacion|Ubicacion",
+        Ui.Ejecutar(Me, Sub() Ui.Mostrar(gridOperaciones, _servicio.ListarOperaciones(), "Codigo|Codigo", "Nombre|Operacion", "Zona|Zona o region", "Ubicacion|Ubicacion",
                                          "Almacenes|Almacenes", "Usuarios|Usuarios"))
     End Sub
 
     Private Sub CargarAlmacenes()
         Dim o = Operacion
-        If o Is Nothing Then _almacenes.DataSource = Nothing : Return
-        Ui.Ejecutar(Me, Sub() Ui.Mostrar(_almacenes, _servicio.ListarAlmacenesDeOperacion(o.Id), "Codigo|Codigo", "Nombre|Almacen"))
+        If o Is Nothing Then gridAlmacenes.DataSource = Nothing : Return
+        Ui.Ejecutar(Me, Sub() Ui.Mostrar(gridAlmacenes, _servicio.ListarAlmacenesDeOperacion(o.Id), "Codigo|Codigo", "Nombre|Almacen"))
     End Sub
 
     Private Sub NuevaOperacion()

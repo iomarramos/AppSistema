@@ -49,6 +49,11 @@ Public Module Ui
         Return EscalaU6.ADecimal(valorU6).ToString("0.######", Globalization.CultureInfo.CurrentCulture)
     End Function
 
+    ''' <summary>Porcentaje en escala u6 con dos decimales (Food Cost, objetivo y desviación).</summary>
+    Public Function Porcentaje(valorU6 As Long) As String
+        Return EscalaU6.ADecimal(valorU6).ToString("N2", Globalization.CultureInfo.CurrentCulture)
+    End Function
+
     Public Function Dinero(valorU6 As Long) As String
         Return EscalaU6.ADecimal(valorU6).ToString("N2", Globalization.CultureInfo.CurrentCulture)
     End Function
@@ -75,31 +80,50 @@ Public Module Ui
     ''' "U6" se muestran como cantidades (o como dinero si empiezan con "Precio").
     ''' </summary>
     Public Function NuevaGrilla() As DataGridView
-        Dim g As New DataGridView With {
-            .Dock = DockStyle.Fill, .ReadOnly = True, .AllowUserToAddRows = False, .AllowUserToDeleteRows = False,
-            .AllowUserToResizeRows = False, .SelectionMode = DataGridViewSelectionMode.FullRowSelect, .MultiSelect = False,
-            .AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill, .RowHeadersVisible = False,
-            .BackgroundColor = Drawing.SystemColors.Window, .StandardTab = True}
+        Dim g As New DataGridView With {.Dock = DockStyle.Fill}
+        Configurar(g)
+        Return g
+    End Function
+
+    ''' <summary>
+    ''' Deja una grilla (creada en el Diseñador o por código) como las de la aplicación: solo lectura, montos en
+    ''' pesos y cantidades, columnas ajustadas y tema. Llamarla una sola vez por grilla.
+    ''' </summary>
+    Public Sub Configurar(g As DataGridView)
+        g.ReadOnly = True
+        g.AllowUserToAddRows = False
+        g.AllowUserToDeleteRows = False
+        g.AllowUserToResizeRows = False
+        g.SelectionMode = DataGridViewSelectionMode.FullRowSelect
+        g.MultiSelect = False
+        g.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill
+        g.RowHeadersVisible = False
+        g.BackgroundColor = Drawing.SystemColors.Window
+        g.StandardTab = True
         AddHandler g.CellFormatting,
             Sub(s, e)
                 If e.ColumnIndex < 0 Then Return
                 Dim prop = g.Columns(e.ColumnIndex).DataPropertyName
                 If Not prop.EndsWith("U6", StringComparison.Ordinal) Then Return
-                Dim esMonto = {"Precio", "Costo", "Importe", "Total", "Valor", "Ingreso", "Gastos", "Otros", "Presupuesto", "DiferenciaPresupuesto", "Margen"}.Any(Function(x) prop.StartsWith(x, StringComparison.Ordinal)) AndAlso Not prop.Contains("Porcentaje")
+                Dim esMonto = {"Precio", "Costo", "Importe", "Total", "Valor", "Ingreso", "Gastos", "Otros", "Presupuesto", "DiferenciaPresupuesto", "Margen", "VentaPrevista"}.Any(Function(x) prop.StartsWith(x, StringComparison.Ordinal)) AndAlso Not prop.Contains("Porcentaje")
+                Dim esPorcentaje = {"FoodCost", "Objetivo", "Desviacion"}.Any(Function(x) prop.StartsWith(x, StringComparison.Ordinal))
                 If e.Value Is Nothing OrElse TypeOf e.Value Is DBNull Then
                     If Not esMonto Then Return
                     e.Value = "pendiente"   ' costo sin precio de referencia: nunca se muestra como cero
                 ElseIf TypeOf e.Value Is Long Then
-                    e.Value = If(esMonto, Dinero(CLng(e.Value)), Cantidad(CLng(e.Value)))
+                    e.Value = If(esMonto, Dinero(CLng(e.Value)), If(esPorcentaje, Porcentaje(CLng(e.Value)), Cantidad(CLng(e.Value))))
                 Else
                     Return
                 End If
                 e.FormattingApplied = True
             End Sub
-        AddHandler g.DataBindingComplete, Sub() AplicarColumnas(g)
+        AddHandler g.HandleCreated, Sub() AplicarColumnas(g)
+        AddHandler g.DataBindingComplete,
+            Sub()
+                If g.IsHandleCreated Then AplicarColumnas(g)
+            End Sub
         Tema.Grilla(g)
-        Return g
-    End Function
+    End Sub
 
     ''' <summary>
     ''' Enlaza la lista y muestra solo las columnas indicadas como "Propiedad|Encabezado", en ese orden.
@@ -107,7 +131,8 @@ Public Module Ui
     Public Sub Mostrar(Of T)(grilla As DataGridView, datos As IList(Of T), ParamArray columnas() As String)
         grilla.Tag = columnas
         grilla.DataSource = New System.ComponentModel.BindingList(Of T)(datos)
-        AplicarColumnas(grilla)
+        ' Sin manejador de ventana no se pueden ajustar anchos (NullReferenceException): lo hace HandleCreated.
+        If grilla.IsHandleCreated Then AplicarColumnas(grilla)
     End Sub
 
     Private Sub AplicarColumnas(grilla As DataGridView)
@@ -123,6 +148,13 @@ Public Module Ui
             c.Visible = True
             c.HeaderText = If(partes.Length > 1, partes(1), partes(0))
             c.DisplayIndex = i
+            c.MinimumWidth = If(c.ValueType Is GetType(Boolean), 64, 88)
+            Dim descriptiva = {"Descripcion", "Nombre", "Observacion", "Detalle", "Mensaje"}.Any(
+                Function(prefijo) c.DataPropertyName.StartsWith(prefijo, StringComparison.Ordinal)) OrElse
+                {"Producto", "Ingrediente", "Concepto", "Receta", "Especificacion", "Servicio"}.Contains(c.DataPropertyName)
+            c.FillWeight = If(descriptiva, 180.0F, 100.0F)
+            If descriptiva Then c.MinimumWidth = 160
+            c.HeaderCell.ToolTipText = c.HeaderText
         Next
     End Sub
 
@@ -137,7 +169,16 @@ Public Module Ui
         ' Nombre estable para la automatización de interfaz (pruebas E2E): btn + texto.
         Dim b As New Button With {.Text = texto, .AutoSize = True, .Margin = New Padding(4),
                                   .Name = Identificadores.DesdeTexto("btn", texto), .AccessibleName = Identificadores.NombreAccesible(texto)}
-        AddHandler b.Click, Sub() accion()
+        AddHandler b.Click, Sub()
+                                ' Evita repetir una acción mientras un diálogo modal sigue abierto.
+                                If Not b.Enabled Then Return
+                                b.Enabled = False
+                                Try
+                                    accion()
+                                Finally
+                                    If Not b.IsDisposed Then b.Enabled = True
+                                End Try
+                            End Sub
         Return b
     End Function
 

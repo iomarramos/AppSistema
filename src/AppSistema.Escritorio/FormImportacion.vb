@@ -20,9 +20,6 @@ Partial Public Class FormImportacion
     Private ReadOnly _recetas As ServicioImportacionRecetas
     Private ReadOnly _sesion As SesionUsuario
     Private _vistaRecetas As ResultadoImportacionRecetas
-    Private ReadOnly _archivo As New Label With {.AutoSize = True, .Text = "(sin archivo)", .Margin = New Padding(3, 9, 3, 3)}
-    Private ReadOnly _resumen As New Label With {.Dock = DockStyle.Bottom, .AutoSize = False, .Height = 40, .Padding = New Padding(6)}
-    Private ReadOnly _filas As DataGridView = Ui.NuevaGrilla()
     Private ReadOnly _importar As Button
     Private ReadOnly _observaciones As Button
     Private _texto As String
@@ -32,11 +29,12 @@ Partial Public Class FormImportacion
     ''' permiso RECETAS_EDITAR). Cada menú abre su propia ventana y solo acepta su tipo de archivo.</param>
     Public Sub New()
         InitializeComponent()
+        Ui.Configurar(gridFilas)
     End Sub
 
     Public Sub New(cadena As String, sesion As SesionUsuario, modo As ModoImportacion)
         InitializeComponent()
-        Controls.Clear()
+        Ui.Configurar(gridFilas)
         _servicio = New ServicioImportacionCatalogo(cadena, sesion)
         _recetas = New ServicioImportacionRecetas(cadena, sesion)
         _sesion = sesion
@@ -46,17 +44,18 @@ Partial Public Class FormImportacion
         _importar.Enabled = False
         _observaciones = Ui.Boton("Observaciones...", AddressOf GuardarObservaciones)
         _observaciones.Enabled = False
-        Controls.Add(_filas)
-        Controls.Add(_resumen)
-        Dim barra = Ui.BarraBotones(Ui.Boton("Descargar plantilla...", AddressOf GuardarPlantilla), Ui.Boton("Elegir archivo...", AddressOf ElegirArchivo),
-                                    Ui.Boton("Vista previa", AddressOf VistaPrevia), _importar, _observaciones, _archivo)
-        barra.Controls(0).Visible = modo = ModoImportacion.Catalogo          ' la plantilla es del catálogo
-        Controls.Add(barra)
-        AddHandler _filas.RowPrePaint,
+        barraAcciones.Controls.Add(Ui.Boton("Descargar plantilla...", AddressOf GuardarPlantilla))
+        barraAcciones.Controls.Add(Ui.Boton("Elegir archivo...", AddressOf ElegirArchivo))
+        barraAcciones.Controls.Add(Ui.Boton("Vista previa", AddressOf VistaPrevia))
+        barraAcciones.Controls.Add(_importar)
+        barraAcciones.Controls.Add(_observaciones)
+        barraAcciones.Controls.Add(lblArchivo)
+        barraAcciones.Controls(0).Visible = modo = ModoImportacion.Catalogo          ' la plantilla es del catálogo
+        AddHandler gridFilas.RowPrePaint,
             Sub(s, e)
-                Dim f = TryCast(_filas.Rows(e.RowIndex).DataBoundItem, FilaResultadoImportacion)
+                Dim f = TryCast(gridFilas.Rows(e.RowIndex).DataBoundItem, FilaResultadoImportacion)
                 If f Is Nothing Then Return
-                _filas.Rows(e.RowIndex).DefaultCellStyle.BackColor =
+                gridFilas.Rows(e.RowIndex).DefaultCellStyle.BackColor =
                     If(f.Estado = EstadoFilaImportacion.ConError, Drawing.Color.MistyRose,
                        If(f.Estado = EstadoFilaImportacion.Nueva, Drawing.Color.Honeydew, Drawing.SystemColors.Window))
             End Sub
@@ -86,7 +85,7 @@ Partial Public Class FormImportacion
         Using d As New OpenFileDialog With {.Filter = "CSV o listado SGP (*.csv;*.tsv;*.txt)|*.csv;*.tsv;*.txt|Todos los archivos (*.*)|*.*"}
             If d.ShowDialog(Me) <> DialogResult.OK Then Return
             If Ui.Ejecutar(Me, Sub() _texto = LeerTexto(d.FileName)) Then
-                _archivo.Text = Path.GetFileName(d.FileName)
+                lblArchivo.Text = Path.GetFileName(d.FileName)
                 VistaPrevia()
             End If
         End Using
@@ -117,8 +116,8 @@ Partial Public Class FormImportacion
         Ui.Ejecutar(Me,
             Sub()
                 _ultimaVista = If(ConversorSgp.EsListadoSgp(_texto), _servicio.VistaPreviaSgp(_texto), _servicio.VistaPrevia(_texto, crearUnidadesBase:=True))
-                Ui.Mostrar(_filas, _ultimaVista.Filas, "Numero|Fila", "Estado|Estado", "Detalle|Detalle")
-                _resumen.Text = "Vista previa: " & _ultimaVista.Resumen &
+                Ui.Mostrar(gridFilas, _ultimaVista.Filas, "Numero|Fila", "Estado|Estado", "Detalle|Detalle")
+                lblResumen.Text = "Vista previa: " & _ultimaVista.Resumen &
                                 If(_ultimaVista.Observaciones.Count > 0, $" {_ultimaVista.Observaciones.Count} observaciones (boton Observaciones).", "")
                 _observaciones.Enabled = _ultimaVista.Observaciones.Count > 0
                 _importar.Enabled = Not _ultimaVista.HayErrores AndAlso _ultimaVista.Filas.Any(Function(f) f.Estado = EstadoFilaImportacion.Nueva)
@@ -131,8 +130,8 @@ Partial Public Class FormImportacion
         Ui.Ejecutar(Me,
             Sub()
                 _vistaRecetas = _recetas.VistaPrevia(_texto)
-                Ui.Mostrar(_filas, _vistaRecetas.Filas, "Numero|Fila", "Estado|Estado", "Detalle|Detalle")
-                _resumen.Text = "Vista previa de recetas: " & _vistaRecetas.Resumen
+                Ui.Mostrar(gridFilas, _vistaRecetas.Filas, "Numero|Fila", "Estado|Estado", "Detalle|Detalle")
+                lblResumen.Text = "Vista previa de recetas: " & _vistaRecetas.Resumen
                 _importar.Enabled = Not _vistaRecetas.HayErrores AndAlso _vistaRecetas.RecetasNuevas > 0
             End Sub)
     End Sub
