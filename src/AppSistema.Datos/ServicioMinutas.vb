@@ -436,7 +436,7 @@ Public NotInheritable Class ServicioMinutas
         End If
     End Sub
 
-    Private Shared Sub ExigirMinutaDeOperacion(u As UnidadDeTrabajo, minutaId As Long, operacionId As Long, Optional soloBorrador As Boolean = True)
+    Friend Shared Sub ExigirMinutaDeOperacion(u As UnidadDeTrabajo, minutaId As Long, operacionId As Long, Optional soloBorrador As Boolean = True)
         Dim estado = u.Escalar("SELECT m.estado FROM minuta m JOIN operacion_servicio os ON os.id = m.operacion_servicio_id " &
                                "WHERE m.id = @m AND os.operacion_id = @o", "m", minutaId, "o", operacionId)
         If estado Is Nothing Then Throw New ReglaNegocioException("OPERACION_AJENA", "La minuta no pertenece a la operacion seleccionada.")

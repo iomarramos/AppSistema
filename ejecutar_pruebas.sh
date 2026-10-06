@@ -98,6 +98,39 @@ rm -rf "$(dirname "$RESPALDO")"
 dropdb "$DB"; dropdb "$CENTRAL"; dropdb "$RESTAURADA"
 
 echo
+echo "######## 4b/5  Asistente de instalacion (sin argumentos): base nueva, todos los datos y segunda corrida sin cambios"
+ASIS=appsistema_asistente_pruebas
+dropdb --if-exists "$ASIS" >/dev/null 2>&1 || true
+# Respuestas del asistente en orden: servidor, puerto, administrador, clave, base, usuario de la base (y clave x2),
+# empresa, operacion y almacen (Enter = valor por defecto), administrador (clave x2), dueno (clave x2), carpeta datos,
+# cargar, clave del dueno, fecha del inventario y ciclo (Enter = valor por defecto).
+LOG_ASISTENTE=$(mktemp)
+# Va por tuberia directa: una variable con $(...) perderia las respuestas vacias del final (Enter del ciclo).
+printf '%s\n' "${PGHOST:-localhost}" "${PGPORT:-5432}" "$APPSISTEMA_PG_USER" "$APPSISTEMA_PG_PASSWORD" "$ASIS" \
+  "" "Clave-App-2026" "Clave-App-2026" "" "" "" "" "" "" "" "" "Clave-Admin-2026" "Clave-Admin-2026" \
+  "dueno" "Dueno Prueba" "Clave-Dueno-2026" "Clave-Dueno-2026" "datos" "" "Clave-Dueno-2026" "2026-10-01" "" "" "" "" \
+  | dotnet run --project src/AppSistema.Instalador -v q > "$LOG_ASISTENTE" 2>&1 \
+  || { echo "El asistente fallo en la primera corrida:"; cat "$LOG_ASISTENTE"; exit 1; }
+for vez in 1 2; do
+  printf '%s\n' "${PGHOST:-localhost}" "${PGPORT:-5432}" "$APPSISTEMA_PG_USER" "$APPSISTEMA_PG_PASSWORD" "$ASIS" \
+    "" "" "Clave-App-2026" "Clave-App-2026" "" "dueno" "Dueno Prueba" "" "" "Clave-Dueno-2026" "" "" "" "" \
+    | dotnet run --project src/AppSistema.Instalador -v q > "$LOG_ASISTENTE" 2>&1 \
+    || { echo "El asistente fallo en la corrida $vez:"; cat "$LOG_ASISTENTE"; exit 1; }
+done
+# Conteos esperados del juego real (ver docs/ESTADO_BASE_DATOS.md): la segunda corrida no duplica nada.
+[ "$(psql -d "$ASIS" -tAc 'SELECT count(*) FROM variante_producto')" = "4158" ]
+[ "$(psql -d "$ASIS" -tAc 'SELECT count(*) FROM receta')" = "946" ]
+[ "$(psql -d "$ASIS" -tAc 'SELECT count(*) FROM movimiento_stock')" = "379" ]
+[ "$(psql -d "$ASIS" -tAc 'SELECT count(*) FROM minuta')" = "84" ]
+# Plan teorico y real del SGP (datos/plan_real): completo, y con los codigos enlazados a las recetas cargadas.
+[ "$(psql -d "$ASIS" -tAc 'SELECT count(*) FROM sgp_plan_plato')" = "11046" ]
+[ "$(psql -d "$ASIS" -tAc 'SELECT count(*) FROM sgp_requisicion')" = "2778" ]
+[ "$(psql -d "$ASIS" -tAc 'SELECT count(*) FROM sgp_codigo_receta WHERE receta_id IS NOT NULL')" = "553" ]
+[ "$(psql -d "$ASIS" -tAc 'SELECT count(*) FROM sgp_codigo_producto WHERE variante_id IS NOT NULL')" = "256" ]
+echo "Asistente: 4158 variantes, 946 recetas, 379 movimientos de apertura, 84 minutas y el plan del SGP (11046 platos, 2778 lineas de requisicion); segunda corrida sin cambios."
+dropdb "$ASIS"
+
+echo
 echo "######## 5/5  Aplicacion de escritorio WinForms y pruebas E2E (compilacion)"
 SDK_DIR="$(dotnet --list-sdks | tail -1 | sed -E 's/^([^ ]+) \[(.*)\]$/\2\/\1/')"
 if [ -d "$SDK_DIR/Sdks/Microsoft.NET.Sdk.WindowsDesktop" ]; then

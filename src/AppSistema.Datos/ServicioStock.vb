@@ -85,15 +85,16 @@ Imports AppSistema.Dominio.Stock
         Public Function ConsultarSaldos(almacenId As Long, texto As String) As List(Of SaldoStockDto)
             Return EnTransaccion(Seguridad.Permisos.CatalogoVer,
                 Function(u) u.Consultar(
-                    "SELECT pb.codigo, pb.descripcion, v.codigo, v.descripcion_comercial, um.codigo, s.cantidad_base_u6, s.valor_u6, v.id FROM saldo_stock s " &
+                    "SELECT pb.codigo, pb.descripcion, v.codigo, v.descripcion_comercial, um.codigo, s.cantidad_base_u6, s.valor_u6, v.id, COALESCE(cp.nombre, 'SIN FAMILIA') FROM saldo_stock s " &
                     "JOIN almacen a ON a.id = s.almacen_id JOIN variante_producto v ON v.id = s.variante_id " &
                     "JOIN producto_base pb ON pb.id = v.producto_base_id JOIN unidad_medida um ON um.id = pb.unidad_base_id " &
+                    "LEFT JOIN categoria_producto cp ON cp.id = v.categoria_id " &
                     "WHERE s.almacen_id = @a AND a.operacion_id = @o AND s.cantidad_base_u6 > 0 " &
                     "  AND (@t = '' OR pb.descripcion ILIKE '%' || @t || '%' OR v.descripcion_comercial ILIKE '%' || @t || '%') " &
                     "ORDER BY pb.descripcion, v.codigo",
                     Function(rd)
                         Dim d As New SaldoStockDto With {.ProductoCodigo = rd.GetString(0), .ProductoDescripcion = rd.GetString(1), .VarianteCodigo = rd.GetString(2),
-                                                         .VarianteDescripcion = rd.GetString(3), .Unidad = rd.GetString(4), .CantidadBaseU6 = rd.GetInt64(5), .ValorU6 = rd.GetInt64(6), .VarianteId = rd.GetInt64(7)}
+                                                         .VarianteDescripcion = rd.GetString(3), .Unidad = rd.GetString(4), .CantidadBaseU6 = rd.GetInt64(5), .ValorU6 = rd.GetInt64(6), .VarianteId = rd.GetInt64(7), .Familia = rd.GetString(8)}
                         d.CostoPromedioU6 = EscalaU6.MultiplicarDividir(d.ValorU6, EscalaU6.Factor, d.CantidadBaseU6)
                         Return d
                     End Function, "a", almacenId, "o", Sesion.OperacionId, "t", If(texto, "").Trim()))
@@ -182,4 +183,6 @@ Public NotInheritable Class SaldoStockDto
     Public Property CantidadBaseU6 As Long
     Public Property ValorU6 As Long
     Public Property CostoPromedioU6 As Long
+    ''' <summary>Familia del producto (categoría del catálogo); "SIN FAMILIA" si no tiene.</summary>
+    Public Property Familia As String
 End Class

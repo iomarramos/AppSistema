@@ -326,11 +326,18 @@ Public NotInheritable Class ServicioAdministracion
         Return EnTransaccion(Permisos.UsuariosAdministrar,
             Function(u) u.Consultar(
                 "SELECT o.id, o.codigo, o.nombre, o.ubicacion, (SELECT count(*) FROM almacen a WHERE a.operacion_id = o.id AND a.activo = 1), " &
-                "(SELECT count(DISTINCT uor.usuario_id) FROM usuario_operacion_rol uor WHERE uor.operacion_id = o.id), o.zona FROM operacion o ORDER BY o.codigo",
+                "(SELECT count(DISTINCT uor.usuario_id) FROM usuario_operacion_rol uor WHERE uor.operacion_id = o.id), o.zona, o.dias_stock_base FROM operacion o ORDER BY o.codigo",
                 Function(rd) New OperacionDto With {.Id = rd.GetInt64(0), .Codigo = rd.GetString(1), .Nombre = rd.GetString(2),
                                                     .Ubicacion = rd.TextoONada("ubicacion"), .Almacenes = rd.GetInt64(4), .Usuarios = rd.GetInt64(5),
-                                                    .Zona = rd.TextoONada("zona")}))
+                                                    .Zona = rd.TextoONada("zona"), .DiasStockBase = rd.GetInt64(7)}))
     End Function
+
+    ''' <summary>Fija los días base del stock de la operación (criterio del contrato). Solo acepta de 1 a 31.</summary>
+    Public Sub FijarDiasStock(operacionId As Long, dias As Long)
+        If dias < 1 OrElse dias > 31 Then Throw New ReglaNegocioException("DATO_INVALIDO", "Los dias base del stock van de 1 a 31.")
+        EnTransaccion(Permisos.UsuariosAdministrar,
+            Function(u) ServicioRecetas.ExigirFila(u.Ejecutar("UPDATE operacion SET dias_stock_base = @d WHERE id = @o", "d", dias, "o", operacionId)))
+    End Sub
 
     ''' <summary>Almacenes de cualquier operación de la empresa (administración).</summary>
     Public Function ListarAlmacenesDeOperacion(operacionId As Long) As List(Of AlmacenResumen)

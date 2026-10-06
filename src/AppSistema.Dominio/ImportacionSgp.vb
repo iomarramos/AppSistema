@@ -123,7 +123,7 @@ Namespace Importacion
             ' El mismo nombre con otra presentación o factor es otro producto: se distingue en la descripción.
             For Each p In r.Productos.Where(Function(x) porNombre(x.Nombre) > 1)
                 p.Nombre = $"{p.Nombre} ({p.Presentacion} x {p.FactorTexto} {p.UnidadBase})"
-                p.Observacion = If(p.Observacion = "", "", p.Observacion & "; ") & "el SGP tiene este nombre con otra presentacion o factor"
+                p.Observacion = If(p.Observacion = "", "", p.Observacion & "; ") & "el listado de origen tiene este nombre con otra presentacion o factor"
             Next
             Return r
         End Function
@@ -255,7 +255,7 @@ Namespace Importacion
                 End If
                 Dim inverso = 1D / factor
                 If Math.Abs(inverso - Math.Round(inverso)) < 0.01D Then
-                    observacion = $"factor {fTexto} = 1/{Math.Round(inverso)}: la unidad base del SGP es un paquete de {Math.Round(inverso)}"
+                    observacion = $"factor {fTexto} = 1/{Math.Round(inverso)}: la unidad base del listado de origen es un paquete de {Math.Round(inverso)}"
                     Return UnidadConteo
                 End If
                 observacion = $"factor decimal {fTexto} sin tamano en el nombre; se asume KG"

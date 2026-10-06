@@ -11,7 +11,7 @@ Imports AppSistema.Dominio.Seguridad
 ''' </summary>
 Partial Public Class FormMinutaVista
 
-    Private _servicio As ServicioPlanSgp
+    Private _servicio As ServicioVistaPlanSgp
     Private _sesion As SesionUsuario
 
     Public Sub New()
@@ -22,7 +22,7 @@ Partial Public Class FormMinutaVista
     Public Sub New(cadena As String, sesion As SesionUsuario)
         InitializeComponent()
         Ui.Configurar(gridVista)
-        _servicio = New ServicioPlanSgp(cadena, sesion)
+        _servicio = New ServicioVistaPlanSgp(cadena, sesion)
         _sesion = sesion
         Text = "Minuta teorica y real - " & sesion.Operacion.Nombre
         cmbNivel.Items.Add(New Opcion(Of String)("TEORICO", "Teorico (planificado)"))

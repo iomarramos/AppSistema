@@ -100,15 +100,77 @@ Public Class ReportesTests
             Assert.All(hoja.Secciones(0).Filas, Sub(f) Assert.Null(f(5)))
             inventarios.RegistrarConteo(inventarios.Hoja(inv).Single(Function(l) l.VarianteId = botella).Id, U(4D), Nothing)    ' 4 L contra 5 L
             Dim resultado = reportes.Inventario(inv, hojaDeConteo:=False)
+            ' Formato SGP: P.M.P. (costo) S/8, stock fisico 4 L y total 32; sistema 5 L y total 40; diferencia -1 L y total -8.
             Dim filaBotella = resultado.Secciones(0).Filas.Single(Function(f) CStr(f(0)) = "ACE-1L")
-            Assert.Equal({U(5D), U(4D), U(-1D), U(-8D)}, {filaBotella(3), filaBotella(4), filaBotella(5), filaBotella(6)}.Select(Function(v) CLng(v)))
-            Assert.Equal("faltante", filaBotella(7))
+            Assert.Equal({U(8D), U(4D), U(32D), U(5D), U(40D), U(-1D), U(-8D)},
+                         {filaBotella(3), filaBotella(4), filaBotella(5), filaBotella(6), filaBotella(7), filaBotella(8), filaBotella(9)}.Select(Function(v) CLng(v)))
             Assert.Equal("8.00", Dato(resultado, "Faltante (S/)"))
             Assert.Equal("1", Dato(resultado, "Lineas sin contar"))
 
-            ' Stock valorizado: bidón 8 L + botella 5 L = 13 L a S/8.
+            ' Inventario fisico valorizado (formato SGP): bidón 8 L + botella 5 L = 13 L a S/8, en una sola familia sin categoria.
             Dim st = reportes.StockValorizado(bd.A.AlmacenId)
-            Assert.Equal(U(104D), CLng(st.Secciones(0).Totales(6)))
+            Assert.Equal("SIN FAMILIA", st.Secciones(0).Titulo)
+            Assert.Equal(U(104D), CLng(st.Secciones(0).Totales(5)))
+            Assert.Equal("104.00", Dato(st, "Total general (S/)"))
+
+            ' Movimiento de stock sintetico (formato SGP): la apertura es la implantacion (S/144), la produccion la retirada (S/40)
+            ' y el saldo actual es el valorizado (S/104). Sin movimientos antes del periodo, saldo anterior cero.
+            Dim mov = reportes.MovimientoStockSintetico(bd.A.AlmacenId, Fecha, Fecha).Secciones(0).Filas.Single()
+            Assert.Equal({U(0D), U(0D), U(144D), U(40D), U(0D), U(0D), U(0D), U(104D)}, {mov(1), mov(2), mov(3), mov(4), mov(5), mov(6), mov(7), mov(8)}.Select(Function(v) CLng(v)))
+
+            ' Resumen de salidas para produccion: 5 L por S/40 en el dia; sin devoluciones.
+            Dim salidas = reportes.SalidasConsolidadas(bd.A.AlmacenId, Fecha, Fecha, devoluciones:=False)
+            Dim salida = salidas.Secciones(0).Filas.Single()
+            Assert.Equal(U(5D), CLng(salida(2)))
+            Assert.Equal(U(40D), CLng(salida(4)))
+            Assert.Equal(U(40D), CLng(salidas.Secciones(0).Totales(4)))
+            Assert.Empty(reportes.SalidasConsolidadas(bd.A.AlmacenId, Fecha, Fecha, devoluciones:=True).Secciones(0).Filas)
+
+            ' A13 (formato SGP): consumo = inicial + entradas (apertura S/144) - traspasos enviados - final (S/104) = S/40, lo producido.
+            Dim a13 = reportes.ResultadoA13(Fecha.Year, Fecha.Month)
+            Assert.Equal(U(40D), CLng(a13.Secciones(1).Totales(1)))
+            ' Dias de stock con el criterio del contrato: 104 de stock entre 40 de consumo: 78 dias con 30 dias base; 55 con 21.
+            Assert.Equal("78", CStr(a13.Secciones(2).Filas(3)(1)))
+            Call New ServicioAdministracion(bd.CadenaAplicacion, s).FijarDiasStock(bd.A.OperacionId, 21)
+            Assert.Equal("55", CStr(reportes.ResultadoA13(Fecha.Year, Fecha.Month).Secciones(2).Filas(3)(1)))
+
+            ' Menu de reportes: frecuencia de la teorica (una receta, una vez), requisicion y piso y techo en horizontal (sin datos SGP en el fixture).
+            Assert.Single(reportes.FrecuenciaTeorica(Fecha.Year, Fecha.Month).Secciones(0).Filas)
+            Assert.True(reportes.RequisicionRango(Fecha, Fecha).Horizontal)
+            Assert.True(reportes.CostoPisoTecho(Fecha.Year, Fecha.Month).Horizontal)
+            Assert.True(reportes.SalidasPorServicio(Fecha, Fecha, False).Horizontal)
+
+            ' Menu y venta en hoja horizontal. Food cost y comparativo: una minuta aprobada del mes, con su teorico y sus raciones.
+            Assert.True(reportes.MinutaDelDia(minuta).Horizontal)
+            Dim food = reportes.FoodCost(Fecha.Year, Fecha.Month)
+            Assert.True(food.Horizontal)
+            Assert.Single(food.Secciones(0).Filas)
+            Dim comparativo = reportes.ComparativoTresNiveles(Fecha.Year, Fecha.Month)
+            Assert.True(comparativo.Horizontal)
+            Assert.Equal(50L, CLng(comparativo.Secciones(0).Filas.Single()(2)))
+
+            ' Traspasos: ninguno en el periodo de la prueba, pero las dos tablas (entrada y salida) salen.
+            Assert.Equal(2, reportes.Traspasos(Fecha, Fecha).Secciones.Count)
+
+            ' Menu del mes (teorico y real): horizontal, con una columna por dia y el servicio en su seccion.
+            Dim menuTeorico = reportes.MenuMes(Fecha.Year, Fecha.Month, real:=False)
+            Assert.True(menuTeorico.Horizontal)
+            Assert.Equal(1 + 31, menuTeorico.Secciones(0).Columnas.Count)
+            Assert.Equal("Almuerzo - General", menuTeorico.Secciones(0).Titulo)
+            Assert.True(reportes.MenuMes(Fecha.Year, Fecha.Month, real:=True).Horizontal)
+
+            ' Boleta R-AL: dos tablas (entrada y salida). Explicacion R-AI: la diferencia del inventario, horizontal, con su motivo.
+            Dim boleta = reportes.BoletaAjuste(Fecha, Fecha)
+            Assert.Equal(2, boleta.Secciones.Count)
+            Dim explica = reportes.ExplicacionAjustes(inv)
+            Assert.True(explica.Horizontal)
+            Assert.Equal("ACE-1L", CStr(explica.Secciones(0).Filas.Single()(0)))
+
+            ' Consumo alternativo (SGP): las mismas diferencias, con diferencia, precio y total, y el total general igual al de la explicacion.
+            Dim alternativo = reportes.ConsumoAlternativo(inv)
+            Assert.Equal(6, alternativo.Secciones(0).Columnas.Count)
+            Assert.Equal("ACE-1L", CStr(alternativo.Secciones(0).Filas.Single()(0)))
+            Assert.Equal(CLng(explica.Secciones(0).Filas.Single()(9)), CLng(alternativo.Secciones(0).Totales(5)))
 
             ' Otra empresa no ve la minuta; cocina no tiene permiso de inventario.
             Dim otra As New ServicioReportes(bd.CadenaAplicacion, bd.Sesion("B"))
@@ -117,6 +179,7 @@ Public Class ReportesTests
             Call New ServicioAdministracion(bd.CadenaAplicacion, s).CrearUsuario("cocina", "Cocinero", "Cocina-Clave-2026", bd.A.OperacionId, "COCINA")
             Dim cocina As New ServicioReportes(bd.CadenaAplicacion, bd.Sesion("A", "cocina", "Cocina-Clave-2026"))
             Assert.Equal("SIN_PERMISO", Assert.Throws(Of ReglaNegocioException)(Function() cocina.Inventario(inv, True)).Codigo)
+            Assert.Equal("SIN_PERMISO", Assert.Throws(Of ReglaNegocioException)(Function() cocina.ConsumoAlternativo(inv)).Codigo)
             Assert.Equal("Minuta Almuerzo 2026-10-02", cocina.MinutaDelDia(minuta).Titulo)
         End Using
     End Sub

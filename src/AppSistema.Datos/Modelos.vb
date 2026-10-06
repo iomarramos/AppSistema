@@ -49,6 +49,8 @@ Public NotInheritable Class OperacionDto
     Public Property Almacenes As Long
     Public Property Usuarios As Long
     Public Property Zona As String
+    ''' <summary>Días base con que se miden los días de stock (criterio del contrato: 20, 21, 31…). Por defecto 30.</summary>
+    Public Property DiasStockBase As Long
 End Class
 
 Public NotInheritable Class AsignacionRolDto

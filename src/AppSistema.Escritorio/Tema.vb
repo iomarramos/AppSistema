@@ -20,6 +20,8 @@ Public Module Tema
     Public ReadOnly Acento As Color = Color.FromArgb(15, 108, 189)        ' #0F6CBD
     Public ReadOnly AcentoOscuro As Color = Color.FromArgb(17, 94, 163)   ' #115EA3
     Public ReadOnly AcentoSuave As Color = Color.FromArgb(235, 243, 252)  ' #EBF3FC
+    Public ReadOnly Navegacion As Color = Color.FromArgb(11, 31, 51)      ' #0B1F33
+    Public ReadOnly NavegacionHover As Color = Color.FromArgb(24, 53, 78) ' #18354E
     Public ReadOnly Texto As Color = Color.FromArgb(36, 36, 36)           ' #242424
     Public ReadOnly TextoSecundario As Color = Color.FromArgb(97, 97, 97) ' #616161
     Public ReadOnly Fondo As Color = Color.White
@@ -31,10 +33,15 @@ Public Module Tema
     Public ReadOnly AvisoFondo As Color = Color.FromArgb(255, 249, 230)   ' franja de ayuda (el amarillo del SGP, suavizado)
     Public ReadOnly AvisoTexto As Color = Color.FromArgb(92, 68, 0)
     Public ReadOnly Peligro As Color = Color.FromArgb(196, 49, 75)        ' #C4314B
+    ' Matriz de planificación: estructura del servicio (verde claro), celda habilitada (amarillo claro), bloqueada (rojo claro).
+    Public ReadOnly EstructuraFondo As Color = Color.FromArgb(220, 242, 220)
+    Public ReadOnly CeldaHabilitada As Color = Color.FromArgb(255, 248, 204)
+    Public ReadOnly CeldaBloqueada As Color = Color.FromArgb(248, 215, 215)
 
-    Public ReadOnly Fuente As New Font("Segoe UI", 9.75F)
-    Public ReadOnly FuenteSemibold As New Font("Segoe UI Semibold", 9.75F)
-    Public ReadOnly FuenteTitulo As New Font("Segoe UI Semibold", 13.0F)
+    Public ReadOnly Fuente As New Font("Segoe UI", 10.0F)
+    Public ReadOnly FuenteSemibold As New Font("Segoe UI Semibold", 10.0F)
+    Public ReadOnly FuenteTitulo As New Font("Segoe UI Semibold", 14.5F)
+    Public ReadOnly FuenteHero As New Font("Segoe UI Semibold", 18.0F)
 
     Private Const Marca As String = "tema-aplicado"
 
@@ -180,8 +187,22 @@ Public Module Tema
                     s.SplitterWidth = 6
                     s.Panel1.BackColor = Fondo
                     s.Panel2.BackColor = Fondo
-                Case TypeOf c Is TextBox AndAlso DirectCast(c, TextBox).ReadOnly AndAlso DirectCast(c, TextBox).Multiline
+                Case TypeOf c Is TextBox
+                    Dim t = DirectCast(c, TextBox)
+                    t.BorderStyle = BorderStyle.FixedSingle
+                    t.BackColor = If(t.ReadOnly, SuperficieFuerte, Superficie)
+                    t.ForeColor = Texto
+                Case TypeOf c Is ComboBox
+                    Dim combo = DirectCast(c, ComboBox)
+                    combo.FlatStyle = FlatStyle.Flat
+                    combo.BackColor = Superficie
+                    combo.ForeColor = Texto
+                Case TypeOf c Is GroupBox
+                    c.Font = FuenteSemibold
+                    c.ForeColor = Texto
                     c.BackColor = Superficie
+                Case TypeOf c Is TabControl
+                    c.Font = FuenteSemibold
             End Select
             If c.HasChildren AndAlso Not TypeOf c Is DataGridView Then Estilo(c)
         Next
@@ -323,5 +344,96 @@ Public Module Tema
         p.CloseFigure()
         Return p
     End Function
+
+
+    Private Sub EstiloSubmenu(item As ToolStripMenuItem)
+        For Each hijo In item.DropDownItems.OfType(Of ToolStripMenuItem)()
+            hijo.BackColor = Superficie
+            hijo.ForeColor = Texto
+            hijo.Font = Fuente
+            hijo.Padding = New Padding(8, 4, 8, 4)
+            If hijo.HasDropDownItems Then EstiloSubmenu(hijo)
+        Next
+    End Sub
+
+    Private NotInheritable Class ColoresShell
+        Inherits ProfessionalColorTable
+
+        Public Overrides ReadOnly Property MenuStripGradientBegin As Color
+            Get
+                Return Navegacion
+            End Get
+        End Property
+        Public Overrides ReadOnly Property MenuStripGradientEnd As Color
+            Get
+                Return Navegacion
+            End Get
+        End Property
+        Public Overrides ReadOnly Property MenuItemSelected As Color
+            Get
+                Return NavegacionHover
+            End Get
+        End Property
+        Public Overrides ReadOnly Property MenuItemSelectedGradientBegin As Color
+            Get
+                Return NavegacionHover
+            End Get
+        End Property
+        Public Overrides ReadOnly Property MenuItemSelectedGradientEnd As Color
+            Get
+                Return NavegacionHover
+            End Get
+        End Property
+        Public Overrides ReadOnly Property MenuItemPressedGradientBegin As Color
+            Get
+                Return Superficie
+            End Get
+        End Property
+        Public Overrides ReadOnly Property MenuItemPressedGradientEnd As Color
+            Get
+                Return Superficie
+            End Get
+        End Property
+        Public Overrides ReadOnly Property MenuItemBorder As Color
+            Get
+                Return Acento
+            End Get
+        End Property
+        Public Overrides ReadOnly Property ToolStripDropDownBackground As Color
+            Get
+                Return Superficie
+            End Get
+        End Property
+        Public Overrides ReadOnly Property ImageMarginGradientBegin As Color
+            Get
+                Return SuperficieFuerte
+            End Get
+        End Property
+        Public Overrides ReadOnly Property ImageMarginGradientMiddle As Color
+            Get
+                Return SuperficieFuerte
+            End Get
+        End Property
+        Public Overrides ReadOnly Property ImageMarginGradientEnd As Color
+            Get
+                Return SuperficieFuerte
+            End Get
+        End Property
+        Public Overrides ReadOnly Property MenuBorder As Color
+            Get
+                Return Borde
+            End Get
+        End Property
+        Public Overrides ReadOnly Property SeparatorDark As Color
+            Get
+                Return Borde
+            End Get
+        End Property
+        Public Overrides ReadOnly Property SeparatorLight As Color
+            Get
+                Return Superficie
+            End Get
+        End Property
+    End Class
 
 End Module

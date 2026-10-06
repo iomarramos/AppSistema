@@ -29,6 +29,8 @@ Public NotInheritable Class LineaConteoDto
     Public Property DiferenciaU6 As Long?
     Public Property ValorDiferenciaU6 As Long?
     Public Property Resultado As String
+    ''' <summary>Costo promedio al corte (P.M.P.). Nothing en conteo ciego.</summary>
+    Public Property CostoU6 As Long?
 End Class
 
 Public NotInheritable Class ResumenInventario
@@ -109,6 +111,7 @@ Public NotInheritable Class ServicioInventarios
                             If l.FisicoU6.HasValue Then l.Resultado = "contado"
                         Else
                             l.SistemaU6 = sistema
+                            l.CostoU6 = costo
                         End If
                         Return l
                     End Function, "i", inventarioId)

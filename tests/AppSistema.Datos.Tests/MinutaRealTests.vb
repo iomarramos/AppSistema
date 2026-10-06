@@ -63,7 +63,7 @@ Public Class MinutaRealTests
             End Using
         End Using
         Dim sesion = acceso.SeleccionarOperacion(acceso.IniciarSesion("DEMO", login, clave), operacionId)
-        Dim plan As New ServicioPlanSgp(cadena, sesion)
+        Dim plan As New ServicioVistaPlanSgp(cadena, sesion)
         Dim desde = New Date(2026, 10, 1)
         Dim hasta = New Date(2026, 10, 31)
 
@@ -146,7 +146,7 @@ Public Class MinutaRealTests
         End Using
         Dim sesion = acceso.SeleccionarOperacion(acceso.IniciarSesion("DEMO", login, clave), operacionId)
 
-        Dim json = New ServicioPlanSgp(cadena, sesion).MenuMensualJson("ALMUERZO", New Date(2026, 10, 1), New Date(2026, 10, 31))
+        Dim json = New ServicioVistaPlanSgp(cadena, sesion).MenuMensualJson("ALMUERZO", New Date(2026, 10, 1), New Date(2026, 10, 31))
         Dim raiz = JsonNode.Parse(json)
 
         ' Encabezado: código del contrato (V036) y régimen/servicio como los usa el comparativo del SGP.

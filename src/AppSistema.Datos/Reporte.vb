@@ -29,6 +29,8 @@ Public NotInheritable Class SeccionReporte
     Public ReadOnly Property Filas As New List(Of Object())
     ''' <summary>Fila de totales (opcional), con el mismo número de celdas que las columnas.</summary>
     Public Property Totales As Object()
+    ''' <summary>Alto mínimo de cada fila en la hoja, en centésimas de pulgada (0 = normal). Para los formatos que se llenan a mano.</summary>
+    Public Property AlturaFila As Integer
 
     Public Sub New(titulo As String, ParamArray columnas As ColumnaReporte())
         Me.Titulo = titulo
@@ -58,6 +60,8 @@ Public NotInheritable Class Reporte
     Public ReadOnly Property Firmas As New List(Of String)
     Public Property GeneradoEn As DateTime = DateTime.Now
     Public Property GeneradoPor As String
+    ''' <summary>Hoja horizontal (apaisada). Los reportes de tablas anchas (menú, venta, comparativo, food cost) la usan.</summary>
+    Public Property Horizontal As Boolean
 
     Public Sub New(titulo As String)
         Me.Titulo = titulo
@@ -194,7 +198,7 @@ Public NotInheritable Class Reporte
     End Sub
 
     ''' <summary>Texto de una celda. Nothing queda vacío; un texto en columna numérica (por ejemplo "TOTAL") se respeta.</summary>
-    Friend Shared Function Valor(v As Object, formato As FormatoColumna, cultura As CultureInfo, miles As Boolean) As String
+    Public Shared Function Valor(v As Object, formato As FormatoColumna, cultura As CultureInfo, miles As Boolean) As String
         If v Is Nothing OrElse TypeOf v Is DBNull Then Return ""
         If TypeOf v Is String Then Return DirectCast(v, String)
         Select Case formato

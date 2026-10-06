@@ -298,7 +298,9 @@ Se mantienen ADMIN, SUPERVISOR, COCINA, FINANZAS, PLANIFICACION y ABASTECIMIENTO
 * Pantalla Administración > Matriz de acceso; zona en Operaciones; alcance en Usuarios.
 * Pruebas T53, T54, T61, T62 y T63, más alcance y matriz (`SeguridadCentralTests`).
 
-**Siguiente:** fase 2, planificación central con versiones (V022).
+**Fase 2 hecha (V022, 2026-10-04):** `planificacion`, `planificacion_version` (BORRADOR → APROBADO → REEMPLAZADO; una borrador y una aprobada por planificación), `planificacion_estado` (historial que escribe la base), `planificacion_servicio`, `planificacion_plato` y `planificacion_producto`. Inmutabilidad en la base (T49): una versión aprobada no cambia ni se borra, y su contenido no se crea ni cambia. Nueva versión (T56): la versión aprobada solo pasa a REEMPLAZADO si existe una más nueva, en la misma transacción en que se aprueba la nueva; sus filas quedan como estaban. Permisos: preparar exige MINUTAS_EDITAR y aprobar MINUTAS_APROBAR, por la operación. Pendiente de la fase: **la protección de un plan ya ejecutado** llega con V023, cuando una minuta pueda referenciar la versión. Sin pantallas todavía.
+
+**Siguiente:** fase 3, liberación y recepción (V023).
 
 ### Preguntas originales
 
